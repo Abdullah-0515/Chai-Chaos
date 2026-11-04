@@ -40,6 +40,10 @@ function PlayerData.default()
 		owned = {}, -- list of brainrot ids
 		discovered = {}, -- [id] = true
 		lastDaily = 0, -- day number of the last daily chai
+		rollTokens = 0, -- Kismat Rolls from daily chai and Robux packs
+		rollPity = 0, -- rolls since the last Epic or better
+		stealTokens = 0, -- Chor Passes, one is used for every steal
+		receipts = {}, -- recent Robux purchase ids, so a purchase is never granted twice
 	}
 end
 
@@ -63,6 +67,22 @@ local function reconcile(saved: any)
 	end
 	if type(saved.lastDaily) == "number" then
 		data.lastDaily = saved.lastDaily
+	end
+	if type(saved.rollTokens) == "number" then
+		data.rollTokens = math.max(0, math.floor(saved.rollTokens))
+	end
+	if type(saved.stealTokens) == "number" then
+		data.stealTokens = math.max(0, math.floor(saved.stealTokens))
+	end
+	if type(saved.rollPity) == "number" then
+		data.rollPity = math.max(0, math.floor(saved.rollPity))
+	end
+	if type(saved.receipts) == "table" then
+		for _, id in saved.receipts do
+			if type(id) == "string" then
+				table.insert(data.receipts, id)
+			end
+		end
 	end
 	if type(saved.discovered) == "table" then
 		for id, value in saved.discovered do

@@ -60,6 +60,14 @@ function State.addRupees(profile, amount: number)
 	State.syncStats(profile)
 end
 
+-- Kismat Rolls, Chor Passes and the pity counter, for the HUD.
+function State.syncTokens(profile)
+	local player, data = profile.player, profile.data
+	player:SetAttribute("RollTokens", data.rollTokens)
+	player:SetAttribute("StealTokens", data.stealTokens)
+	player:SetAttribute("RollPity", data.rollPity)
+end
+
 function State.syncDiscovered(profile)
 	local ids = {}
 	for id in profile.data.discovered do

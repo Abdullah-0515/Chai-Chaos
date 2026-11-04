@@ -849,6 +849,9 @@ InstanceMT.__index = function(self, key)
 	if hasMember(d.ClassName, "events", key) then
 		return signalOf(self, key)
 	end
+	if hasMember(d.ClassName, "callbacks", key) then
+		return d.props[key]
+	end
 	if hasMember(d.ClassName, "props", key) then
 		if key == "Position" and isA(d.ClassName, "BasePart") then
 			return d.props.CFrame.Position
@@ -869,6 +872,11 @@ InstanceMT.__newindex = function(self, key, value)
 	local d = data[self]
 	if key == "Parent" then
 		setParent(self, value)
+		return
+	end
+	if hasMember(d.ClassName, "callbacks", key) then
+		assert(type(value) == "function" or value == nil, key .. " must be a function")
+		d.props[key] = value
 		return
 	end
 	if not hasMember(d.ClassName, "props", key) then
@@ -952,6 +960,8 @@ for _, name in
 		"ProximityPromptService",
 		"TweenService",
 		"Debris",
+		"PolicyService",
+		"MarketplaceService",
 	}
 do
 	service(name)
@@ -993,6 +1003,14 @@ function Methods.GetPlayers(self)
 	end
 	return list
 end
+function Methods.GetPlayerByUserId(_, userId)
+	for _, player in Methods.GetPlayers(services.Players) do
+		if data[player].props.UserId == userId then
+			return player
+		end
+	end
+	return nil
+end
 function Methods.GetPlayerFromCharacter(_, character)
 	for _, player in Methods.GetPlayers(services.Players) do
 		if character ~= nil and data[player].props.Character == character then
@@ -1017,8 +1035,12 @@ function Methods.GetAsync(_, key)
 	end
 	return M.store[key]
 end
+M.failSavesFor = {}
 function Methods.UpdateAsync(_, key, transform)
 	task.wait(0.05)
+	if M.failSavesFor[key] then
+		error("mock DataStore save failure for " .. key)
+	end
 	local result = transform(M.store[key], nil)
 	if result ~= nil then
 		-- like the real thing, data must survive a JSON round trip
@@ -1038,6 +1060,34 @@ function M.deepcopy(v)
 		out[k] = M.deepcopy(x)
 	end
 	return out
+end
+
+-- Policy and purchases
+M.restricted = {} -- [userId] = true when paid random items are restricted
+M.policyFail = false
+function Methods.GetPolicyInfoForPlayerAsync(_, player)
+	task.wait(0.05)
+	if M.policyFail then
+		error("mock PolicyService failure")
+	end
+	return {
+		ArePaidRandomItemsRestricted = M.restricted[data[player].props.UserId] == true,
+		AllowedExternalLinkReferences = {},
+		IsPaidItemTradingAllowed = true,
+		IsSubjectToChinaPolicies = false,
+	}
+end
+M.prompts = {}
+function Methods.PromptProductPurchase(_, player, productId)
+	assert(isInstance(player) and data[player].ClassName == "Player", "PromptProductPurchase needs a Player")
+	assert(type(productId) == "number" and productId > 0, "PromptProductPurchase needs a product id")
+	table.insert(M.prompts, { player = data[player].props.Name, id = productId })
+end
+M.prices = {}
+function Methods.GetProductInfo(_, id, infoType)
+	assert(infoType and infoType.EnumType == "InfoType", "GetProductInfo needs an Enum.InfoType")
+	task.wait(0.05)
+	return { PriceInRobux = M.prices[id] or 25, Name = "Product " .. id }
 end
 
 -- Remotes

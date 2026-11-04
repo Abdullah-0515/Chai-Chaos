@@ -13,7 +13,8 @@ if [ ! -f "$CACHE_DIR/API-Dump.json" ]; then
   curl -sSfL -o "$CACHE_DIR/API-Dump.json" \
     https://raw.githubusercontent.com/MaximumADHD/Roblox-Client-Tracker/roblox/API-Dump.json
 fi
-if [ ! -f "$CACHE_DIR/api.luau" ] || [ "$CACHE_DIR/API-Dump.json" -nt "$CACHE_DIR/api.luau" ]; then
+if [ ! -f "$CACHE_DIR/api.luau" ] || [ "$CACHE_DIR/API-Dump.json" -nt "$CACHE_DIR/api.luau" ] \
+  || [ "$TEST_DIR/gen_api.py" -nt "$CACHE_DIR/api.luau" ]; then
   python3 "$TEST_DIR/gen_api.py" "$CACHE_DIR/API-Dump.json" "$CACHE_DIR/api.luau"
 fi
 

@@ -9,6 +9,9 @@ local NAMES = {
 	"Notify", -- server -> client: (kind, text)
 	"LockHaveli", -- client -> server: lock your haveli (Taala)
 	"Rebirth", -- client -> server: start a Naya Safar
+	"Roll", -- client -> server: ("rupees" or "token") do a Kismat Roll
+	"BuyProduct", -- client -> server: ("rolls" or "steals", pack index) show a Robux purchase prompt
+	"RollResult", -- server -> client: (brainrot id, isNew, wasPity)
 }
 
 local folder: Instance
@@ -31,4 +34,7 @@ return {
 	Notify = folder:WaitForChild("Notify") :: RemoteEvent,
 	LockHaveli = folder:WaitForChild("LockHaveli") :: RemoteEvent,
 	Rebirth = folder:WaitForChild("Rebirth") :: RemoteEvent,
+	Roll = folder:WaitForChild("Roll") :: RemoteEvent,
+	BuyProduct = folder:WaitForChild("BuyProduct") :: RemoteEvent,
+	RollResult = folder:WaitForChild("RollResult") :: RemoteEvent,
 }

@@ -63,6 +63,7 @@ end
 
 requireModule = function(module, context)
 	assert(M.isInstance(module) and module.ClassName == "ModuleScript", "require() needs a ModuleScript")
+	cache[context] = cache[context] or {}
 	local c = cache[context]
 	if c[module] == nil then
 		local path = sources[module]
@@ -570,6 +571,7 @@ check(kettle.model.Parent == nil, "sold model destroyed")
 section("Naya Safar (rebirth)")
 ---------------------------------------------------------------------------
 pa.data.rupees = Config.REBIRTH_COST
+pa.data.rollTokens, pa.data.rollPity = 3, 7
 State.syncStats(pa)
 M.advance(0.5)
 local rebirthButton = hud.Buttons.NayaSafar
@@ -581,6 +583,7 @@ check(pa.data.rebirths == 0 and rebirthButton.Text:find("Sure") ~= nil, "rebirth
 rebirthButton.Activated:Fire()
 M.advance(0.5)
 check(pa.data.rebirths == 1, "rebirthed")
+check(pa.data.rollTokens == 3 and pa.data.rollPity == 7, "rebirth keeps Kismat Rolls and pity")
 check(pa.data.rupees == Config.START_RUPEES and pa.data.plots == Config.START_PLOTS, "rupees and plots reset")
 check(#pa.owned == 0, "brainrots reset")
 check(map.Havelis.Haveli1.Walls:GetChildren()[1].Color == Config.HAVELI_COLORS[2], "haveli got a new colour")
@@ -621,6 +624,255 @@ local pa2 = State.profiles[A2]
 check(pa2 and #pa2.owned == 1 and pa2.owned[1].arrived and pa2.owned[1].plot == 1, "saved brainrot back on plot 1")
 check(pa2.data.rebirths == 1, "rebirth kept")
 check(not notified("Ali", "Daily chai"), "daily chai only once a day")
+
+---------------------------------------------------------------------------
+section("Kismat Roll (RNG)")
+---------------------------------------------------------------------------
+local Remotes = sharedModule("Remotes")
+local Kismat = serverModule("Kismat")
+local MPS = M.services.MarketplaceService
+local Granted = M.Enum.ProductPurchaseDecision.PurchaseGranted
+local NotYet = M.Enum.ProductPurchaseDecision.NotProcessedYet
+local EPIC_PLUS = { Epic = true, Legendary = true, Mythic = true }
+
+-- Developer Product ids, as the game owner would paste them into Config
+local clientConfig = requireModule(shared:FindFirstChild("Config"), "client2")
+for _, cfg in { Config, clientConfig } do
+	cfg.ROLL_PRODUCTS[1].id, cfg.ROLL_PRODUCTS[2].id = 1001, 1010
+	cfg.STEAL_PRODUCTS[1].id, cfg.STEAL_PRODUCTS[2].id = 2001, 2005
+end
+M.prices[1010] = 199
+
+markLog()
+local D = addPlayer("Dua", 4)
+M.advance(0.5)
+local pd = State.profiles[D]
+check(pd.data.rollTokens == Config.DAILY_FREE_ROLLS, "daily chai gives a free Kismat Roll")
+check(notified("Dua", "free Kismat Roll"), "daily chai mentions the free roll")
+check(D:GetAttribute("PaidRollsAllowed") == true, "policy allows paid rolls")
+local charD = spawnCharacter(D)
+M.advance(0.3)
+Havelis.clearBrainrots(pd)
+Havelis.arrange(pd)
+
+M.localPlayer = D
+M.rawset(Players, "LocalPlayer", D)
+runScripts(client, "client2")
+M.advance(0.5)
+local hudD = D.PlayerGui:FindFirstChild("ChaiChaosHud")
+local kp = hudD.KismatPanel
+local kc = kp.Content
+check(kc.Common.Percent.Text == "50%" and kc.Common.OneIn.Text == "1 in 2", "common odds shown")
+check(
+	kc.Mythic.Percent.Text == "0.2%" and kc.Mythic.OneIn.Text == "1 in 500",
+	"mythic odds shown: " .. kc.Mythic.Percent.Text .. " " .. kc.Mythic.OneIn.Text
+)
+check(kc.Legendary.Percent.Text == "1.8%" and kc.Legendary.OneIn.Text == "1 in 56", "legendary odds shown")
+check(kc.BuyRolls1.Visible and kc.BuyRolls1.Text:find("R%$ 25") ~= nil, "1-roll pack priced: " .. kc.BuyRolls1.Text)
+check(
+	kc.BuyRolls2.Text:find("10 Kismat Rolls") and kc.BuyRolls2.Text:find("R%$ 199"),
+	"10-roll pack priced: " .. kc.BuyRolls2.Text
+)
+check(kc.Pity.Text == "Epic or better guaranteed within 30 rolls", "pity shown: " .. kc.Pity.Text)
+
+hudD.Buttons.Kismat.Activated:Fire()
+M.advance(0.1)
+check(kp.Visible, "Kismat panel opens")
+check(kc.RollToken.Visible and hudD.Buttons.Kismat.Text == "Kismat Roll (1)", "free roll button shows")
+local rupeesBefore = pd.data.rupees
+kc.RollToken.Activated:Fire()
+M.advance(0.1)
+check(pd.data.rollTokens == 0 and #pd.owned == 1, "roll with a token gives a brainrot")
+check(pd.data.rupees == rupeesBefore, "token roll costs no rupees")
+check(hudD.KismatReveal.Visible, "reveal pops up")
+M.advance(2)
+local rolled = pd.owned[1]
+check(hudD.KismatReveal.BrainrotName.Text == rolled.def.name, "reveal lands on the rolled brainrot")
+check(not kc.RollToken.Visible, "free roll button hides when used up")
+M.advance(3)
+check(not hudD.KismatReveal.Visible, "reveal hides again")
+M.advance(8)
+check(rolled.arrived, "rolled brainrot walked onto a plot")
+
+pd.data.rupees = 100
+State.syncStats(pd)
+markLog()
+kc.RollRupees.Activated:Fire()
+M.advance(0.1)
+check(notified("Dua", "costs Rs 2,500") and #pd.owned == 1, "rupee roll needs Rs 2,500")
+M.advance(3)
+pd.data.rupees = 10000
+State.syncStats(pd)
+kc.RollRupees.Activated:Fire()
+M.advance(0.1)
+check(pd.data.rupees == 7500 and #pd.owned == 2, "rupee roll costs Rs 2,500")
+Remotes.Roll:FireServer("rupees") -- skipping the client's own cooldown
+M.advance(0.1)
+check(#pd.owned == 2 and pd.data.rupees == 7500, "server enforces the roll cooldown")
+M.advance(3)
+Remotes.Roll:FireServer("rupees")
+M.advance(3)
+check(#pd.owned == 3, "third roll fills the last plot")
+markLog()
+Remotes.Roll:FireServer("rupees")
+M.advance(0.1)
+check(notified("Dua", "No empty plot") and pd.data.rupees == 5000, "no roll (and no charge) without an empty plot")
+Remotes.Roll:FireServer("free-mythic")
+M.advance(3)
+check(#pd.owned == 3 and pd.data.rupees == 5000, "unknown roll method ignored")
+
+-- pity: the 30th roll without an Epic is always Epic or better
+local pityOk = true
+for _ = 1, 8 do
+	Havelis.clearBrainrots(pd)
+	pd.data.rollPity = Config.ROLL_PITY - 1
+	pd.data.rollTokens = 1
+	Remotes.Roll:FireServer("token")
+	M.advance(Config.ROLL_COOLDOWN + 0.1)
+	local got = pd.owned[1]
+	pityOk = pityOk and got ~= nil and EPIC_PLUS[got.def.rarity] == true and pd.data.rollPity == 0
+end
+check(pityOk, "pity roll is always Epic or better and resets the counter")
+check(hudD.KismatReveal.Rarity.Text ~= "", "pity reveal shows rarity")
+Havelis.clearBrainrots(pd)
+Havelis.arrange(pd)
+
+-- the odds really are the odds shown
+M.rawset(M.services.Lighting, "ClockTime", 12)
+local rc = {}
+for _ = 1, 100000 do
+	local def = Kismat.pick(false)
+	rc[def.rarity] = (rc[def.rarity] or 0) + 1
+end
+check(math.abs(rc.Common / 1e5 - 0.5) < 0.01, "roll common ~50%: " .. rc.Common / 1e5)
+check(math.abs(rc.Legendary / 1e5 - 0.018) < 0.002, "roll legendary ~1.8%: " .. rc.Legendary / 1e5)
+check(math.abs((rc.Mythic or 0) / 1e5 - 0.002) < 0.001, "roll mythic ~0.2%: " .. tostring(rc.Mythic))
+local pityRare = true
+for _ = 1, 5000 do
+	pityRare = pityRare and EPIC_PLUS[Kismat.pick(true).rarity] == true
+end
+check(pityRare, "pity pick never gives below Epic")
+
+---------------------------------------------------------------------------
+section("Robux purchases")
+---------------------------------------------------------------------------
+local function receipt(userId, productId, purchaseId)
+	local result
+	M.task.spawn(function()
+		result = MPS.ProcessReceipt({
+			PlayerId = userId,
+			ProductId = productId,
+			PurchaseId = purchaseId,
+			CurrencySpent = 25,
+			CurrencyType = M.Enum.CurrencyType.Robux,
+			PlaceIdWherePurchased = 1,
+		})
+	end)
+	M.advance(0.5)
+	return result
+end
+
+table.clear(M.prompts)
+kc.BuyRolls2.Activated:Fire()
+M.advance(0.1)
+check(
+	#M.prompts == 1 and M.prompts[1].id == 1010 and M.prompts[1].player == "Dua",
+	"10-roll button opens the Robux prompt"
+)
+pd.data.rollTokens = 0
+check(receipt(4, 1010, "buy-1") == Granted and pd.data.rollTokens == 10, "10-roll pack granted")
+check(M.store["player_4"] and M.store["player_4"].rollTokens == 10, "purchase saved straight away")
+check(hudD.Buttons.Kismat.Text == "Kismat Roll (10)", "HUD shows the new rolls")
+check(receipt(4, 1010, "buy-1") == Granted and pd.data.rollTokens == 10, "same purchase is never granted twice")
+check(receipt(4, 9999, "buy-2") == NotYet, "unknown product is not granted")
+check(receipt(99, 1001, "buy-3") == NotYet, "player not in the server: Roblox retries later")
+M.failSavesFor["player_4"] = true
+check(receipt(4, 1001, "buy-4") == NotYet and pd.data.rollTokens == 10, "failed save undoes the grant")
+M.failSavesFor["player_4"] = nil
+check(receipt(4, 1001, "buy-4") == Granted and pd.data.rollTokens == 11, "retry after a failed save works")
+M.studio = false
+check(receipt(3, 1001, "buy-5") == NotYet, "live server, data did not load: retry later")
+M.studio = true
+check(receipt(3, 1001, "buy-6") == Granted, "Studio test purchase works without DataStores")
+
+-- players where Roblox restricts paid random items
+M.restricted[5] = true
+local E = addPlayer("Ehsan", 5)
+M.advance(0.5)
+check(E:GetAttribute("PaidRollsAllowed") == false, "restricted player flagged")
+table.clear(M.prompts)
+markLog()
+M.localPlayer = E
+Remotes.BuyProduct:FireServer("rolls", 1)
+M.advance(0.1)
+check(#M.prompts == 0 and notified("Ehsan", "not available"), "restricted players are never offered paid rolls")
+Remotes.BuyProduct:FireServer("steals", 1)
+M.advance(0.1)
+check(#M.prompts == 1 and M.prompts[1].id == 2001, "Chor Passes are not random, so they are allowed")
+Remotes.BuyProduct:FireServer("rolls", "lots")
+Remotes.BuyProduct:FireServer("gems", 1)
+M.advance(0.1)
+check(#M.prompts == 1, "bad purchase requests ignored")
+M.localPlayer = D
+M.policyFail = true
+local F = addPlayer("Faraz", 6)
+M.advance(0.5)
+M.policyFail = false
+check(F:GetAttribute("PaidRollsAllowed") == false, "if PolicyService fails, paid rolls stay off")
+D:SetAttribute("PaidRollsAllowed", false)
+M.advance(0.1)
+check(not kc.BuyRolls1.Visible and not kc.BuyRolls2.Visible, "Robux roll buttons hide when not allowed")
+check(kc.RollRupees.Visible, "rupee rolls stay available")
+D:SetAttribute("PaidRollsAllowed", true)
+
+---------------------------------------------------------------------------
+section("Chor Pass stealing")
+---------------------------------------------------------------------------
+local pe = State.profiles[E]
+local charE = spawnCharacter(E)
+M.advance(0.3)
+Havelis.clearBrainrots(pe)
+Havelis.arrange(pe)
+pe.data.rupees = 1000
+State.syncStats(pe)
+buy(E, "ChanaChaatChacha")
+buy(E, "SamosaSupremo")
+buy(E, "GolGappaGhostu")
+M.advance(10)
+local ghost = entryOf(pe, "GolGappaGhostu")
+check(ghost.plot == 3, "ghostu on Ehsan's plot 3")
+check(prompt(ghost.model, "StealPrompt").ActionText == "Steal (1 Chor Pass)", "steal prompt shows the cost")
+check(hudD.Buttons:FindFirstChild("ChorPass") ~= nil, "Chor Pass button on the HUD")
+M.advance(Config.NEW_PLAYER_PROTECTION + 1)
+
+pd.data.stealTokens = 0
+State.syncTokens(pd)
+table.clear(M.prompts)
+markLog()
+moveNear(D, ghost.model)
+trigger(ghost.model, "StealPrompt", D)
+check(ghost.carrier == nil and notified("Dua", "needs a Chor Pass"), "no Chor Pass, no steal")
+check(#M.prompts == 1 and M.prompts[1].id == 2001, "Chor Pass purchase pops up")
+check(receipt(4, 2005, "chor-1") == Granted and pd.data.stealTokens == 5, "5 Chor Passes granted")
+check(hudD.ChorPanel.Content.Passes.Text == "Your Chor Passes: 5", "Chor panel shows passes")
+check(hudD.ChorPanel.Content.BuyPasses2.Text:find("5 Chor Passes") ~= nil, "Chor pack button")
+
+trigger(ghost.model, "StealPrompt", D)
+check(ghost.carrier == D and pd.data.stealTokens == 4, "steal uses a Chor Pass")
+charD:PivotTo(CFrame.new(10, 5, 0))
+charE:PivotTo(CFrame.new(13, 5, 0))
+markLog()
+E.Backpack:FindFirstChild("Chappal").Activated:Fire()
+M.advance(0.1)
+check(ghost.carrier == nil and pd.data.stealTokens == 5, "bonked thief gets the Chor Pass back")
+check(notified("Dua", "given back"), "refund message")
+M.advance(Config.SAME_HAVELI_COOLDOWN + 1)
+moveNear(D, ghost.model)
+trigger(ghost.model, "StealPrompt", D)
+check(ghost.carrier == D and pd.data.stealTokens == 4, "second steal uses a pass")
+pd.haveli.door.Touched:Fire(charD.HumanoidRootPart)
+M.advance(0.1)
+check(entryOf(pd, "GolGappaGhostu") ~= nil and pd.data.stealTokens == 4, "successful steal keeps the pass spent")
 
 ---------------------------------------------------------------------------
 section("Spawn odds and the night")

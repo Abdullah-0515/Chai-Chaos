@@ -33,8 +33,10 @@ local function canSpawn(def: Brainrots.Def): boolean
 	return true
 end
 
--- First pick a rarity using the odds in Config, then a brainrot inside it.
-function Spawner.pick(): Brainrots.Def
+-- First pick a rarity using the odds (the lane's odds unless others are given),
+-- then a brainrot inside it.
+function Spawner.pick(odds: { [string]: number }?): Brainrots.Def
+	local weights = odds or Config.RARITY_ODDS
 	local tiers = {}
 	local total = 0
 	for _, rarity in Brainrots.RARITY_ORDER do
@@ -44,7 +46,7 @@ function Spawner.pick(): Brainrots.Def
 				table.insert(pool, def)
 			end
 		end
-		local weight = Config.RARITY_ODDS[rarity] or 0
+		local weight = weights[rarity] or 0
 		if #pool > 0 and weight > 0 then
 			table.insert(tiers, { weight = weight, pool = pool })
 			total += weight

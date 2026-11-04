@@ -1,5 +1,6 @@
 -- The on-screen HUD: rupees, income, the Taala button, the Collection Book,
 -- the Naya Safar button and pop-up messages from the server.
+-- (The Kismat Roll and Chor Pass windows are in Kismat.client.luau.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,52 +11,14 @@ local Config = require(Shared:WaitForChild("Config"))
 local Brainrots = require(Shared:WaitForChild("Brainrots"))
 local Format = require(Shared:WaitForChild("Format"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Ui = require(script.Parent:WaitForChild("Ui"))
 
 local player = Players.LocalPlayer
 local leaderstats = player:WaitForChild("leaderstats")
 local rupeesValue = leaderstats:WaitForChild("Rupees") :: IntValue
 
-local WHITE = Color3.new(1, 1, 1)
-local GOLD = Color3.fromRGB(255, 215, 90)
-local FONT = Enum.Font.FredokaOne
-
-local function rgb(r: number, g: number, b: number): Color3
-	return Color3.fromRGB(r, g, b)
-end
-
-local function create(className: string, props: { [string]: any }, children: { Instance }?): any
-	local instance = Instance.new(className)
-	for name, value in props do
-		if name ~= "Parent" then
-			(instance :: any)[name] = value
-		end
-	end
-	if children then
-		for _, c in children do
-			c.Parent = instance
-		end
-	end
-	if props.Parent then
-		instance.Parent = props.Parent
-	end
-	return instance
-end
-
-local function corner(radius: number): UICorner
-	return create("UICorner", { CornerRadius = UDim.new(0, radius) })
-end
-
-local function textStroke(): UIStroke
-	return create("UIStroke", { Thickness = 1.5, Color = rgb(20, 15, 10) })
-end
-
-local function label(props: { [string]: any }): TextLabel
-	props.BackgroundTransparency = props.BackgroundTransparency or 1
-	props.Font = FONT
-	props.TextScaled = true
-	props.TextColor3 = props.TextColor3 or WHITE
-	return create("TextLabel", props, { textStroke() })
-end
+local WHITE, GOLD, FONT = Ui.WHITE, Ui.GOLD, Ui.FONT
+local rgb, create, corner, label = Ui.rgb, Ui.create, Ui.corner, Ui.label
 
 local gui = create("ScreenGui", {
 	Name = "ChaiChaosHud",
@@ -209,7 +172,8 @@ local buttons = create("Frame", {
 	Name = "Buttons",
 	AnchorPoint = Vector2.new(0, 0.5),
 	Position = UDim2.new(0, 12, 0.45, 0),
-	Size = UDim2.fromOffset(150, 190),
+	Size = UDim2.fromOffset(150, 0),
+	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, {
@@ -217,22 +181,7 @@ local buttons = create("Frame", {
 })
 
 local function button(name: string, text: string, color: Color3, order: number): TextButton
-	return create("TextButton", {
-		Name = name,
-		Size = UDim2.new(1, 0, 0, 52),
-		BackgroundColor3 = color,
-		Font = FONT,
-		TextScaled = true,
-		TextColor3 = WHITE,
-		Text = text,
-		LayoutOrder = order,
-		AutoButtonColor = true,
-		Parent = buttons,
-	}, {
-		corner(12),
-		textStroke(),
-		create("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }),
-	})
+	return Ui.sideButton(buttons, name, text, color, order)
 end
 
 local LOCK_READY = rgb(190, 70, 50)
@@ -240,7 +189,7 @@ local LOCK_ON = rgb(40, 150, 80)
 local LOCK_WAIT = rgb(100, 100, 110)
 local lockButton = button("Taala", "Taala (Lock)", LOCK_READY, 1)
 local bookButton = button("Collection", "Collection Book", rgb(60, 120, 195), 2)
-local rebirthButton = button("NayaSafar", "Naya Safar!", rgb(150, 70, 205), 3)
+local rebirthButton = button("NayaSafar", "Naya Safar!", rgb(150, 70, 205), 10)
 rebirthButton.Visible = false
 
 lockButton.Activated:Connect(function()

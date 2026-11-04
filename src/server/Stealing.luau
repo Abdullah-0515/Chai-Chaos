@@ -3,6 +3,9 @@
 -- Hold E for 1.5 seconds on someone else's brainrot and it rides on your back.
 -- Run through your own haveli door to keep it. If you die, fall off the map,
 -- reset or leave, or someone bonks you with a chappal, it walks back home.
+--
+-- Every steal uses one Chor Pass, bought with Robux (Config.STEAL_PRODUCTS).
+-- If the steal fails, the Chor Pass is given back (Config.STEAL_REFUND_ON_FAIL).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,12 +18,13 @@ local State = require(script.Parent.State)
 local Models = require(script.Parent.Models)
 local Mover = require(script.Parent.Mover)
 local Havelis = require(script.Parent.Havelis)
+local Shop = require(script.Parent.Shop)
 
 local Stealing = {}
 
 local CARRY_OFFSET = CFrame.new(0, 2.6, 2)
 
--- carrying[thief] = { entry, connections, marker, tag }
+-- carrying[thief] = { entry, connections, marker, tag, usedPass }
 local carrying: { [Player]: any } = {}
 local lastSteal: { [Player]: number } = {}
 local lastTarget: { [Player]: { ownerId: number, time: number } } = {}
@@ -68,6 +72,21 @@ local function markThief(character: Model)
 	return marker, tag
 end
 
+-- A failed steal gives the thief their Chor Pass back.
+local function refund(thief: Player, carry)
+	if not carry.usedPass or not Config.STEAL_REFUND_ON_FAIL then
+		return
+	end
+	local profile = State.profiles[thief]
+	if profile then
+		profile.data.stealTokens += 1
+		State.syncTokens(profile)
+		if thief.Parent then
+			State.notify(thief, "info", "Your Chor Pass was given back.")
+		end
+	end
+end
+
 -- Sends a carried brainrot back to its owner.
 function Stealing.returnToOwner(thief: Player, reason: string?)
 	local carry = carrying[thief]
@@ -76,6 +95,7 @@ function Stealing.returnToOwner(thief: Player, reason: string?)
 	end
 	carrying[thief] = nil
 	cleanup(carry)
+	refund(thief, carry)
 
 	local entry = carry.entry
 	Models.setPanic(entry.model, entry.def, false)
@@ -170,6 +190,19 @@ function Stealing.start(thief: Player, model: Model)
 		return
 	end
 
+	-- Everything else is fine, so now it costs a Chor Pass.
+	local usedPass = false
+	if Config.stealsCostRobux() then
+		if thiefProfile.data.stealTokens < 1 then
+			State.notify(thief, "info", "Stealing needs a Chor Pass. Get one, then hold E again!")
+			Shop.prompt(thief, "steals", 1)
+			return
+		end
+		thiefProfile.data.stealTokens -= 1
+		State.syncTokens(thiefProfile)
+		usedPass = true
+	end
+
 	local character = thief.Character :: Model
 	local humanoid = character:FindFirstChildOfClass("Humanoid") :: Humanoid
 	local root = State.rootPart(thief) :: BasePart
@@ -186,6 +219,7 @@ function Stealing.start(thief: Player, model: Model)
 		entry = entry,
 		marker = marker,
 		tag = tag,
+		usedPass = usedPass,
 		connections = {
 			humanoid.Died:Connect(function()
 				Stealing.returnToOwner(thief)
@@ -235,6 +269,7 @@ function Stealing.releasePlayer(profile)
 		if carry.entry.owner == profile then
 			carrying[thief] = nil
 			cleanup(carry)
+			refund(thief, carry)
 			carry.entry.carrier = nil
 			Mover.stop(carry.entry.model)
 			State.notify(thief, "bad", ("The %s ran away!"):format(carry.entry.def.name))

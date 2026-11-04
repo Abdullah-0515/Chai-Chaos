@@ -1,5 +1,6 @@
 -- Chai Chaos server entry point. Wires the map, players, income, prompts,
--- the Taala lock, the chappal, daily chai and Naya Safar (rebirth) together.
+-- the Taala lock, the chappal, daily chai, Kismat Rolls, Robux purchases and
+-- Naya Safar (rebirth) together.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -21,11 +22,15 @@ local Models = require(script.Parent.Models)
 local Havelis = require(script.Parent.Havelis)
 local Spawner = require(script.Parent.Spawner)
 local Stealing = require(script.Parent.Stealing)
+local Shop = require(script.Parent.Shop)
+local Kismat = require(script.Parent.Kismat)
 
 local map = MapBuilder.ensure()
 Havelis.init(map)
 Stealing.init(map)
 Spawner.init(map)
+Shop.init()
+Kismat.init()
 
 ---------------------------------------------------------------------------
 -- Day and night (Chand Raat Cheetah only comes out at night)
@@ -108,12 +113,29 @@ local function today(): number
 	return math.floor(os.time() / 86400)
 end
 
+local function plural(count: number, one: string, many: string): string
+	return ("%d %s"):format(count, if count == 1 then one else many)
+end
+
 local function dailyChai(profile)
 	local data = profile.data
 	if data.lastDaily >= today() then
 		return
 	end
 	data.lastDaily = today()
+
+	local extras = {}
+	if Config.DAILY_FREE_ROLLS > 0 then
+		data.rollTokens += Config.DAILY_FREE_ROLLS
+		table.insert(extras, plural(Config.DAILY_FREE_ROLLS, "free Kismat Roll", "free Kismat Rolls"))
+	end
+	if Config.DAILY_FREE_STEALS > 0 then
+		data.stealTokens += Config.DAILY_FREE_STEALS
+		table.insert(extras, plural(Config.DAILY_FREE_STEALS, "free Chor Pass", "free Chor Passes"))
+	end
+	State.syncTokens(profile)
+	local bonus = if #extras > 0 then " Plus " .. table.concat(extras, " and ") .. "!" else ""
+
 	if math.random() < 0.5 and Havelis.hasFreePlot(profile) then
 		local pool = {}
 		for _, def in Brainrots.byRarity.Common do
@@ -124,7 +146,11 @@ local function dailyChai(profile)
 		end
 		local def = pool[math.random(#pool)]
 		Havelis.adopt(profile, def, nil)
-		State.notify(profile.player, "good", ("Daily chai! A free %s is walking into your haveli."):format(def.name))
+		State.notify(
+			profile.player,
+			"good",
+			("Daily chai! A free %s is walking into your haveli.%s"):format(def.name, bonus)
+		)
 	else
 		local amount = math.max(
 			Config.DAILY_MIN_RUPEES,
@@ -134,7 +160,7 @@ local function dailyChai(profile)
 		State.notify(
 			profile.player,
 			"good",
-			("Daily chai! Here is %s to start your day."):format(Format.rupees(amount))
+			("Daily chai! Here is %s to start your day.%s"):format(Format.rupees(amount), bonus)
 		)
 	end
 end
@@ -194,6 +220,8 @@ local function onPlayerAdded(player: Player)
 
 	startProtection(profile)
 	Havelis.refreshPrompts(profile)
+	State.syncTokens(profile)
+	task.spawn(Shop.setup, profile)
 	dailyChai(profile)
 	State.notify(
 		player,
@@ -221,6 +249,7 @@ end
 local function onPlayerRemoving(player: Player)
 	local profile = State.profiles[player]
 	Stealing.forget(player)
+	Kismat.forget(player)
 	if not profile then
 		return
 	end

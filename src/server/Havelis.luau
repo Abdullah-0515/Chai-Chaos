@@ -239,7 +239,8 @@ local function addEntry(profile, def, model: Model, arrived: boolean)
 	local sell = makePrompt(primary, "SellPrompt", "Sell", 0.6, "owner")
 	sell.ObjectText = ("%s  ·  %s"):format(def.name, Format.rupees(math.floor(def.price * Config.SELL_RATE)))
 	sell:SetAttribute("OwnerId", profile.player.UserId)
-	local steal = makePrompt(primary, "StealPrompt", "Steal", Config.STEAL_HOLD_TIME, "others")
+	local stealText = if Config.stealsCostRobux() then "Steal (1 Chor Pass)" else "Steal"
+	local steal = makePrompt(primary, "StealPrompt", stealText, Config.STEAL_HOLD_TIME, "others")
 	steal.ObjectText = ("%s (%s)"):format(def.name, def.rarity)
 	steal:SetAttribute("OwnerId", profile.player.UserId)
 	Models.setInfo(model, ("%s ka  ·  +%s/s"):format(profile.player.DisplayName, Format.short(def.income)))
@@ -248,10 +249,12 @@ end
 
 -- Adds a brainrot to a player's haveli. Pass the model if it already exists
 -- (bought from the lane or stolen); otherwise a new one walks in from the door.
-function Havelis.adopt(profile, def, model: Model?)
+-- Returns the entry and whether this is the first time the player got it.
+-- `quiet` skips the Collection Book message (the Kismat reveal shows it instead).
+function Havelis.adopt(profile, def, model: Model?, quiet: boolean?)
 	local h = profile.haveli
 	if not h then
-		return nil
+		return nil, false
 	end
 	if not model then
 		local created = Models.create(def)
@@ -259,12 +262,13 @@ function Havelis.adopt(profile, def, model: Model?)
 		model = created
 	end
 	local entry = addEntry(profile, def, model :: Model, false)
-	if State.discover(profile, def) then
+	local isNew = State.discover(profile, def)
+	if isNew and not quiet then
 		State.notify(profile.player, "rare", "New in your Collection Book: " .. def.name .. "!")
 	end
 	Havelis.arrange(profile)
 	Havelis.refreshPrompts(profile)
-	return entry
+	return entry, isNew
 end
 
 -- Takes a brainrot out of a haveli without destroying its model.

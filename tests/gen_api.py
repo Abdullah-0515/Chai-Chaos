@@ -14,7 +14,7 @@ def main(dump_path, out_path):
         dump = json.load(f)
     out = ["return {", "classes = {"]
     for c in dump["Classes"]:
-        props, ro, funcs, events = [], [], [], []
+        props, ro, funcs, events, callbacks = [], [], [], [], []
         for m in c["Members"]:
             kind, name, tags = m["MemberType"], m["Name"], m.get("Tags") or []
             if kind == "Property":
@@ -25,6 +25,8 @@ def main(dump_path, out_path):
                 funcs.append(name)
             elif kind == "Event":
                 events.append(name)
+            elif kind == "Callback":
+                callbacks.append(name)
         tags = c.get("Tags") or []
 
         def names(items):
@@ -35,7 +37,8 @@ def main(dump_path, out_path):
             f"creatable={'false' if 'NotCreatable' in tags else 'true'},"
             f"service={'true' if 'Service' in tags else 'false'},"
             f"props={{{names(props)}}},ro={{{names(ro)}}},"
-            f"funcs={{{names(funcs)}}},events={{{names(events)}}}}},"
+            f"funcs={{{names(funcs)}}},events={{{names(events)}}},"
+            f"callbacks={{{names(callbacks)}}}}},"
         )
     out += ["},", "enums = {"]
     for e in dump["Enums"]:

@@ -4,6 +4,12 @@ A Roblox collect-and-earn tycoon set in a loud Pakistani bazaar. Silly desi brai
 
 The full game design is in [docs/game-design.md](docs/game-design.md). This repo is the first playable version of it.
 
+## Three ways to get a brainrot
+
+1. **Bazaar Lane (the conveyor belt):** buy brainrots with rupees as they walk past.
+2. **Kismat Roll (RNG):** roll for a random brainrot with Rs 2,500, or with a Kismat Roll. You get one free roll with every daily chai, and players can buy packs with Robux.
+3. **Stealing:** every steal uses a **Chor Pass**, bought with Robux. If the steal fails (the thief gets bonked, dies or the owner leaves), the thief gets the Chor Pass back.
+
 ## What works in this version
 
 - **Bazaar Lane:** a new brainrot walks from the Spawn Gate to the Chowk every 4 seconds. Press **E** to buy it before it walks off.
@@ -17,12 +23,14 @@ The full game design is in [docs/game-design.md](docs/game-design.md). This repo
 - **Fair-play rules:** 15 second steal cooldown, no robbing the same haveli twice within 2 minutes, 3 minutes of protection after joining, and brainrots over Rs 8,000 can only be stolen by players who have rebirthed.
 - **Taala (lock):** locks your haveli for 30 seconds, then needs 60 seconds to recharge.
 - **Naya Safar (rebirth):** at Rs 1,000,000, reset your rupees and plots for +50% income forever and a new haveli colour.
-- **Daily chai:** once a day you get a free brainrot or a rupee boost.
+- **Daily chai:** once a day you get a free brainrot or a rupee boost, plus a free Kismat Roll.
+- **Kismat Roll:** odds of Common 50%, Uncommon 30%, Rare 13%, Epic 5%, Legendary 1.8% and Mythic 0.2%, shown in the game before anyone rolls. A roll animation reveals the result, and an Epic or better is guaranteed at least every 30 rolls.
+- **Robux packs:** 1 or 10 Kismat Rolls, and 1 or 5 Chor Passes, as Developer Products. Purchases are saved straight away and are never granted twice.
 - **Collection Book:** fills in as you discover brainrots.
 - **Ammi ki Udti Chappal:** when it appears, every other brainrot freezes in fear.
 - **Saving** with DataStores: rupees, plots, brainrots, rebirths and your collection.
 
-Not built yet (see the design doc): two-floor havelis and the rooftop kite minigame, events (festival nights, Basant, Cricket Mania), game passes and other monetization, special behaviours like the Load Shedding Lattoo going dark, sounds, and a physical leaderboard at the Chowk.
+Not built yet (see the design doc): two-floor havelis and the rooftop kite minigame, events (festival nights, Basant, Cricket Mania), the 2x Cash and Extra Plots game passes, the Lucky Spawn product and cosmetics, special behaviours like the Load Shedding Lattoo going dark, sounds, and a physical leaderboard at the Chowk.
 
 ## Getting it into Roblox Studio
 
@@ -52,13 +60,28 @@ Create these in Roblox Studio, then paste in each file's code. The name in Studi
 | --- | --- | --- |
 | `src/shared/*.luau` (Brainrots, Config, Format, Remotes) | `ReplicatedStorage > ChaiChaos` (a Folder) | ModuleScript |
 | `src/server/Main.server.luau` | `ServerScriptService > ChaiChaosServer` (a Folder), named `Main` | Script |
-| The other `src/server/*.luau` files (Havelis, MapBuilder, Models, Mover, PlayerData, Spawner, State, Stealing) | `ServerScriptService > ChaiChaosServer` | ModuleScript |
-| `src/client/Hud.client.luau` and `Prompts.client.luau` | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` (a Folder), named `Hud` and `Prompts` | LocalScript |
+| The other `src/server/*.luau` files (Havelis, Kismat, MapBuilder, Models, Mover, PlayerData, Shop, Spawner, State, Stealing) | `ServerScriptService > ChaiChaosServer` | ModuleScript |
+| `src/client/Hud.client.luau`, `Kismat.client.luau` and `Prompts.client.luau` | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` (a Folder), named `Hud`, `Kismat` and `Prompts` | LocalScript |
+| `src/client/Ui.luau` | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient`, named `Ui` | ModuleScript |
 
 ### Studio settings
 
 - **Game Settings > Players:** set max players to **8**, one per haveli.
 - **Saving:** publish the place, then turn on **Game Settings > Security > Enable Studio Access to API Services**. Without this the game still works, it just starts fresh every time.
+
+## Setting up the Robux packs
+
+The Robux buttons stay hidden, and stealing stays free, until you create the products:
+
+1. Publish the game, then open it on the [Creator Dashboard](https://create.roblox.com/dashboard/creations).
+2. Go to **Monetization > Developer Products** and create four products: "1 Kismat Roll", "10 Kismat Rolls", "1 Chor Pass" and "5 Chor Passes". Set each price there.
+3. Copy each product's id into `Config.ROLL_PRODUCTS` and `Config.STEAL_PRODUCTS` in [`src/shared/Config.luau`](src/shared/Config.luau).
+
+In Studio, purchases are test purchases and cost nothing.
+
+Other settings in `Config.luau`: `STEAL_COSTS_ROBUX = false` makes stealing free, `STEAL_REFUND_ON_FAIL` controls whether failed steals give the Chor Pass back, and `DAILY_FREE_ROLLS` / `DAILY_FREE_STEALS` set what daily chai gives.
+
+**Roblox rules for paid random items.** Kismat Rolls bought with Robux count as paid random items on Roblox. The game already shows the exact odds before anyone buys. It also never offers Robux rolls to players in countries where Roblox restricts paid random items (it asks `PolicyService` for each player). Those players can still roll with rupees. Before you publish, read Roblox's current rules on paid random items on the Creator Hub, and answer the experience questionnaire honestly. If you change `Config.ROLL_ODDS`, the odds shown in the game update by themselves.
 
 ## Making it yours
 
@@ -74,4 +97,4 @@ selene src            # lint (run `selene generate-roblox-std` once first)
 tests/run.sh          # play through the whole game on a mock Roblox engine
 ```
 
-`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game: joining, buying, plots and lockers, the galla, stealing and every steal rule, the chappal, the Taala, selling, rebirth, saving and rejoining, spawn odds, the night-only cheetah and the chappal freeze. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.
+`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game: joining, buying, plots and lockers, the galla, stealing and every steal rule, the chappal, the Taala, selling, rebirth, saving and rejoining, Kismat Rolls and their odds and pity, Robux receipts (including retries and failed saves), the paid random item restriction, Chor Pass steals and refunds, spawn odds, the night-only cheetah and the chappal freeze. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.
