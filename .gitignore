@@ -1,0 +1,12 @@
+# Rojo build output and editor files
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+sourcemap.json
+roblox.yml
+.DS_Store
+
+# Test harness build output and downloads
+tests/.cache/
+tests/runner/target/

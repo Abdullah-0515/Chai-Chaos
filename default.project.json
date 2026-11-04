@@ -1,0 +1,23 @@
+{
+  "name": "ChaiChaos",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "ChaiChaos": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "ChaiChaosServer": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "ChaiChaosClient": {
+          "$path": "src/client"
+        }
+      }
+    }
+  }
+}
