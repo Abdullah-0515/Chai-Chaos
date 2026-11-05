@@ -36,16 +36,14 @@ local function tidy(n: number): number
 end
 
 local function canOffer(profile, quest): boolean
+	local data = profile.data
 	if quest.needs == "upgrade" then
-		return profile.data.level < #Config.HAVELI_LEVELS
+		return data.level < #Config.HAVELI_LEVELS or data.trackerLevel < #Config.TRACKER_LEVELS
+	elseif quest.needs == "treasureGear" then
+		return data.gear.Shovel == true or data.gear.RopeLadder == true
 	elseif quest.needs == "undiscovered" then
 		for _, def in Brainrots.list do
-			if
-				not def.questOnly
-				and not def.eventOnly
-				and not def.nightOnly
-				and not profile.data.discovered[def.id]
-			then
+			if not def.questOnly and not data.discovered[def.id] then
 				return true
 			end
 		end
@@ -100,6 +98,20 @@ function QuestBook.track(profile, kind: string, amount: number)
 	end
 	if changed then
 		State.syncQuests(profile)
+	end
+end
+
+-- "Bring eggs home from N different biomes": counts each biome once.
+function QuestBook.trackBiome(profile, biomeId: string)
+	QuestBook.ensure(profile)
+	for _, quest in profile.data.quests.list do
+		if quest.id == "biomes" and not quest.claimed then
+			quest.seen = quest.seen or {}
+			if not table.find(quest.seen, biomeId) then
+				table.insert(quest.seen, biomeId)
+				QuestBook.track(profile, "biomes", 1)
+			end
+		end
 	end
 end
 
@@ -203,6 +215,7 @@ end
 
 function QuestBook.init()
 	State.tracker = QuestBook.track
+	State.biomeTracker = QuestBook.trackBiome
 	Remotes.ClaimQuest.OnServerEvent:Connect(QuestBook.claim)
 	Remotes.ClaimCollection.OnServerEvent:Connect(QuestBook.claimCollection)
 	-- new quests at midnight (UTC) for players who are still playing

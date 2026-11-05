@@ -1,4 +1,4 @@
--- Moves brainrot models: walking down Bazaar Lane or walking to a plot.
+-- Moves brainrot models: walking home from the door or walking to a plot.
 --
 -- For smooth movement the server does not move models every frame. When a
 -- brainrot starts walking, the server writes where from, where to, when and
@@ -19,7 +19,6 @@ local Mover = {}
 local UPDATE_EVERY = 0.1
 
 local jobs: { [Model]: any } = {}
-local frozenUntil: number? = nil
 local sinceUpdate = 0
 
 local function now(): number
@@ -48,18 +47,12 @@ end
 -- `onDone` runs after the last point is reached (not if the walk is replaced or stopped).
 function Mover.walk(model: Model, points: { CFrame }, speed: number, onDone: (() -> ())?)
 	local old = jobs[model]
-	if old and not old.paused then
+	if old then
 		model:PivotTo((current(old, now())))
 	end
-	local job = { points = points, index = 1, speed = speed, onDone = onDone, paused = false }
+	local job = { points = points, index = 1, speed = speed, onDone = onDone }
 	jobs[model] = job
-	if frozenUntil then
-		job.paused = true
-		job.from = model:GetPivot()
-		rest(model, job.from)
-	else
-		startSegment(model, job)
-	end
+	startSegment(model, job)
 end
 
 -- Put a model somewhere instantly.
@@ -76,7 +69,7 @@ function Mover.stop(model: Model)
 		return
 	end
 	jobs[model] = nil
-	local cf = if job.paused then model:GetPivot() else (current(job, now()))
+	local cf = current(job, now())
 	model:PivotTo(cf)
 	rest(model, cf)
 end
@@ -84,7 +77,7 @@ end
 -- Where a model is right now, even mid-walk.
 function Mover.pivot(model: Model): CFrame
 	local job = jobs[model]
-	if job and not job.paused then
+	if job then
 		return (current(job, now()))
 	end
 	return model:GetPivot()
@@ -92,20 +85,6 @@ end
 
 function Mover.isWalking(model: Model): boolean
 	return jobs[model] ~= nil
-end
-
--- Every walking brainrot except `exempt` stops for `seconds`.
-function Mover.freeze(seconds: number, exempt: Model?)
-	local t = now()
-	for model, job in jobs do
-		if model ~= exempt and not job.paused then
-			local cf = current(job, t)
-			model:PivotTo(cf)
-			job.paused = true
-			rest(model, cf)
-		end
-	end
-	frozenUntil = os.clock() + seconds
 end
 
 RunService.Heartbeat:Connect(function(dt)
@@ -116,23 +95,10 @@ RunService.Heartbeat:Connect(function(dt)
 	sinceUpdate = 0
 	local t = now()
 
-	if frozenUntil and os.clock() >= frozenUntil then
-		frozenUntil = nil
-		for model, job in jobs do
-			if job.paused and model.Parent then
-				job.paused = false
-				startSegment(model, job)
-			end
-		end
-	end
-
 	local finished = {}
 	for model, job in jobs do
 		if model.Parent == nil then
 			jobs[model] = nil
-			continue
-		end
-		if job.paused then
 			continue
 		end
 		local cf, arrived = current(job, t)

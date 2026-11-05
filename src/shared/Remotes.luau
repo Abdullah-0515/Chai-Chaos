@@ -16,6 +16,11 @@ local NAMES = {
 	"SetTheme", -- client -> server: (theme id) change your haveli theme
 	"ClaimQuest", -- client -> server: (quest index, or "bonus") claim a finished quest
 	"ClaimCollection", -- client -> server: (rarity) claim a Collection Book reward
+	"BuyGear", -- client -> server: (gear id) buy gear at the Chowk
+	"UpgradeTracker", -- client -> server: buy the next tracker level
+	"SellBrainrot", -- client -> server: (brainrot uid) sell at the Chowk's Sell stall
+	"SetRide", -- client -> server: (brainrot uid, or nil to stop) pick your ride
+	"PlaySound", -- server -> client: (sound name, position or nil)
 }
 
 local folder: Instance
@@ -45,4 +50,9 @@ return {
 	SetTheme = folder:WaitForChild("SetTheme") :: RemoteEvent,
 	ClaimQuest = folder:WaitForChild("ClaimQuest") :: RemoteEvent,
 	ClaimCollection = folder:WaitForChild("ClaimCollection") :: RemoteEvent,
+	BuyGear = folder:WaitForChild("BuyGear") :: RemoteEvent,
+	UpgradeTracker = folder:WaitForChild("UpgradeTracker") :: RemoteEvent,
+	SellBrainrot = folder:WaitForChild("SellBrainrot") :: RemoteEvent,
+	SetRide = folder:WaitForChild("SetRide") :: RemoteEvent,
+	PlaySound = folder:WaitForChild("PlaySound") :: RemoteEvent,
 }

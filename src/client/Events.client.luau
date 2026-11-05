@@ -1,6 +1,7 @@
--- The event banner and each event's look: rain, kites, cricket confetti,
--- the Load Shedding blackout, Mela fireworks and Sardi snow.
--- Everything here is only on this player's screen.
+-- The event banner (with the event's boosts) and each event's look: Basant
+-- kites, rain, cricket confetti, the Load Shedding blackout, Mela fireworks
+-- and Sardi snow. The sky effects follow your camera, so you see them
+-- wherever you are in the world. Everything here is only on this player's screen.
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -22,7 +23,7 @@ local banner = Ui.create("Frame", {
 	Name = "EventBanner",
 	AnchorPoint = Vector2.new(1, 0),
 	Position = UDim2.new(1, -10, 0, 8),
-	Size = UDim2.fromOffset(250, 58),
+	Size = UDim2.fromOffset(250, 80),
 	BackgroundColor3 = rgb(45, 30, 22),
 	BackgroundTransparency = 0.15,
 	Parent = gui,
@@ -43,6 +44,36 @@ local timer = Ui.label({
 	Parent = banner,
 })
 
+local perks = Ui.label({
+	Name = "Perks",
+	Size = UDim2.new(1, -12, 0, 20),
+	Position = UDim2.fromOffset(6, 55),
+	TextColor3 = rgb(160, 255, 170),
+	Parent = banner,
+})
+
+-- "Cash x2 · Luck x2" for the running event
+local PERKS = {
+	{ "cashMult", "Cash x%s" },
+	{ "luckMult", "Luck x%s" },
+	{ "eggMult", "Eggs x%s" },
+	{ "hatchMult", "Hatching x%s" },
+	{ "eggTimeMult", "Egg time x%s" },
+}
+local function perkText(event): string
+	local parts = {}
+	for _, perk in PERKS do
+		local value = event[perk[1]]
+		if value and value ~= 1 then
+			table.insert(parts, perk[2]:format(tostring(value)))
+		end
+	end
+	if event.rollDiscount then
+		table.insert(parts, ("Kismat -%d%%"):format(math.floor(event.rollDiscount * 100 + 0.5)))
+	end
+	return table.concat(parts, " · ")
+end
+
 local function formatTime(seconds: number): string
 	seconds = math.max(0, math.ceil(seconds))
 	return ("%d:%02d"):format(seconds // 60, seconds % 60)
@@ -54,7 +85,8 @@ end
 local effects = Instance.new("Folder")
 effects.Name = "ChaiChaosEventEffects"
 local cleanup: { () -> () } = {}
-local followers: { BasePart } = {} -- parts that stay above the camera
+-- parts that move with the camera: { part, offset } (offset from the camera, in studs)
+local followers: { { part: BasePart, offset: Vector3 } } = {}
 
 local function weather(color: Color3, rate: number, speed: number, size: number, streak: boolean)
 	local cloud = Instance.new("Part")
@@ -79,34 +111,60 @@ local function weather(color: Color3, rate: number, speed: number, size: number,
 		emitter.Squash = NumberSequence.new(2.5)
 	end
 	emitter.Parent = cloud
-	table.insert(followers, cloud)
+	table.insert(followers, { part = cloud, offset = Vector3.new(0, 40, 0) })
 end
 
 local function kites()
 	local colors = { rgb(255, 60, 90), rgb(255, 205, 40), rgb(70, 200, 110), rgb(70, 160, 255), rgb(255, 120, 220) }
 	local list = {}
-	for i = 1, 18 do
+	-- a ring of patang all around you, bobbing and drifting in the wind
+	for i = 1, 24 do
+		local color = colors[(i - 1) % #colors + 1]
 		local kite = Instance.new("Part")
 		kite.Name = "Kite"
 		kite.Anchored = true
 		kite.CanCollide = false
 		kite.CanQuery = false
 		kite.CanTouch = false
-		kite.Size = Vector3.new(4, 4, 0.2)
-		kite.Color = colors[(i - 1) % #colors + 1]
+		kite.CastShadow = false
+		kite.Size = Vector3.new(5, 5, 0.2)
+		kite.Color = color
 		kite.Material = Enum.Material.SmoothPlastic
 		kite.Parent = effects
-		table.insert(list, { part = kite, x = -200 + i * 22, radius = 6 + (i % 4) * 3, phase = i })
+		local tail = Instance.new("Part")
+		tail.Name = "KiteTail"
+		tail.Anchored = true
+		tail.CanCollide = false
+		tail.CanQuery = false
+		tail.CanTouch = false
+		tail.CastShadow = false
+		tail.Size = Vector3.new(0.4, 4, 0.1)
+		tail.Color = colors[i % #colors + 1]
+		tail.Parent = effects
+		table.insert(list, {
+			part = kite,
+			tail = tail,
+			angle = math.rad(i * 15),
+			distance = 50 + (i % 4) * 22,
+			height = 45 + (i % 5) * 7,
+			phase = i,
+		})
 	end
 	local connection = RunService.RenderStepped:Connect(function()
 		local t = os.clock()
+		local camera = workspace.CurrentCamera
+		local here = if camera then camera.CFrame.Position else Vector3.zero
 		for _, k in list do
+			local a = k.angle + t * 0.03
 			local pos = Vector3.new(
-				k.x + math.sin(t * 0.4 + k.phase) * k.radius,
-				55 + math.sin(t + k.phase) * 4,
-				math.cos(t * 0.3 + k.phase) * 40
+				here.X + math.cos(a) * k.distance + math.sin(t * 0.4 + k.phase) * 6,
+				here.Y + k.height + math.sin(t + k.phase) * 4,
+				here.Z + math.sin(a) * k.distance
 			)
-			k.part.CFrame = CFrame.new(pos) * CFrame.Angles(0, t * 0.2 + k.phase, math.rad(45))
+			local facing = CFrame.lookAt(pos, Vector3.new(here.X, pos.Y, here.Z))
+			local sway = math.sin(t * 2 + k.phase) * 0.3
+			k.part.CFrame = facing * CFrame.Angles(0, 0, math.rad(45) + sway * 0.3)
+			k.tail.CFrame = facing * CFrame.new(0, -5.2, 0) * CFrame.Angles(0, 0, sway)
 		end
 	end)
 	table.insert(cleanup, function()
@@ -125,8 +183,11 @@ local function bursts(colors: { Color3 }, height: number, every: number)
 		spot.CanTouch = false
 		spot.Transparency = 1
 		spot.Size = Vector3.one
-		spot.Position = Vector3.new(-180 + i * 60, height, if i % 2 == 0 then 30 else -30)
 		spot.Parent = effects
+		table.insert(
+			followers,
+			{ part = spot, offset = Vector3.new(-210 + i * 60, height, if i % 2 == 0 then 30 else -30) }
+		)
 		local emitter = Instance.new("ParticleEmitter")
 		emitter.Rate = 0
 		emitter.Lifetime = NumberRange.new(1, 1.6)
@@ -222,9 +283,9 @@ updateEffects()
 RunService.RenderStepped:Connect(function()
 	local camera = workspace.CurrentCamera
 	if camera and #followers > 0 then
-		local position = camera.CFrame.Position + Vector3.new(0, 40, 0)
-		for _, part in followers do
-			part.CFrame = CFrame.new(position)
+		local position = camera.CFrame.Position
+		for _, follower in followers do
+			follower.part.CFrame = CFrame.new(position + follower.offset)
 		end
 	end
 end)
@@ -238,11 +299,13 @@ task.spawn(function()
 			title.Text = event.name
 			title.TextColor3 = event.color
 			timer.Text = formatTime((workspace:GetAttribute("EventEndsAt") or now) - now) .. " left"
+			perks.Text = perkText(event)
 			edge.Color = event.color
 		else
 			title.Text = "Next event"
 			title.TextColor3 = Ui.WHITE
 			timer.Text = "in " .. formatTime((workspace:GetAttribute("NextEventAt") or now) - now)
+			perks.Text = ""
 			edge.Color = Ui.GOLD
 		end
 		task.wait(0.5)

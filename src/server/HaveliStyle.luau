@@ -632,13 +632,13 @@ end
 ---------------------------------------------------------------------------
 -- Painting
 ---------------------------------------------------------------------------
-local FRONT_SPOTS = { -- courtyard (x, z), clear of the door path, galla, stairs and plots
-	{ -22, -12 },
-	{ 14, -11 },
-	{ -18, -23 },
-	{ 16, -23 },
-	{ 32, -9 },
-	{ 31, -23 },
+local FRONT_SPOTS = { -- courtyard (x, z), clear of the door path, galla, incubators, stairs and plots
+	{ -24, -8 },
+	{ 31, -9 },
+	{ -16, -24 },
+	{ 16, -24 },
+	{ 31, -24 },
+	{ -10, -8 },
 }
 local UPPER_SPOTS = { { -30, 23 }, { 0, 24 }, { 30, 23 }, { -14, 24 }, { 15, 24 } }
 local ROOF_SPOTS = { { -31, -2 }, { 31, -2 }, { -31, 22 }, { 31, 22 } }
@@ -683,6 +683,18 @@ function HaveliStyle.apply(h, themeId: string?, level: number): Model?
 			gui.Enabled = not upstairs
 		end
 	end
+	-- egg incubators: more of them at higher levels
+	local nests = if theme then Config.HAVELI_LEVELS[level].incubators else 1
+	for i, nest in h.incubators do
+		local on = i <= nests
+		nest.Transparency = if on then 0 else 1
+		nest.CanCollide = false
+		local gui = nest:FindFirstChildOfClass("BillboardGui")
+		if gui then
+			gui.Enabled = on
+		end
+	end
+
 	local rooftop = theme ~= nil and level >= Config.ROOFTOP_LEVEL
 	if h.roof then
 		h.roof.Transparency = if rooftop then 0 else 1

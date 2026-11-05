@@ -1,18 +1,19 @@
--- The on-screen HUD: rupees, income, the Taala button, the Collection Book,
--- the Naya Safar button and pop-up messages from the server.
--- (The Kismat Roll and Chor Pass windows are in Kismat.client.luau.)
+-- The on-screen HUD: rupees, income, the Taala button, the Collection Book
+-- and pop-up messages from the server.
+-- (Kismat Roll and Chor Pass: Kismat.client.luau. The Chowk shops and the
+-- Brainrots window: Shops.client.luau. The radar: Radar.client.luau.)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
-local Config = require(Shared:WaitForChild("Config"))
 local Brainrots = require(Shared:WaitForChild("Brainrots"))
 local Format = require(Shared:WaitForChild("Format"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 local Mutations = require(Shared:WaitForChild("Mutations"))
+local Biomes = require(Shared:WaitForChild("Biomes"))
 
 local player = Players.LocalPlayer
 local leaderstats = player:WaitForChild("leaderstats")
@@ -202,28 +203,9 @@ local LOCK_ON = rgb(40, 150, 80)
 local LOCK_WAIT = rgb(100, 100, 110)
 local lockButton = button("Taala", "Taala (Lock)", LOCK_READY, 1)
 local bookButton = button("Collection", "Collection", rgb(60, 120, 195), 5)
-local rebirthButton = button("NayaSafar", "Naya Safar!", rgb(150, 70, 205), 10)
-rebirthButton.Visible = false
 
 lockButton.Activated:Connect(function()
 	Remotes.LockHaveli:FireServer()
-end)
-
-local confirmUntil = 0
-rebirthButton.Activated:Connect(function()
-	if os.clock() < confirmUntil then
-		confirmUntil = 0
-		Remotes.Rebirth:FireServer()
-		rebirthButton.Text = "Naya Safar!"
-	else
-		confirmUntil = os.clock() + 4
-		rebirthButton.Text = "Sure? Tap again"
-		task.delay(4, function()
-			if os.clock() >= confirmUntil then
-				rebirthButton.Text = "Naya Safar!"
-			end
-		end)
-	end
 end)
 
 local function formatTime(seconds: number): string
@@ -249,9 +231,6 @@ task.spawn(function()
 
 		local protectedUntil = player:GetAttribute("ProtectedUntil") or 0
 		statusLabel.Text = if now < protectedUntil then "Steal protection " .. formatTime(protectedUntil - now) else ""
-
-		local rebirthCost = player:GetAttribute("RebirthCost") or Config.REBIRTH_COST
-		rebirthButton.Visible = rupeesValue.Value >= rebirthCost
 		task.wait(0.2)
 	end
 end)
@@ -312,6 +291,15 @@ local grid = create("ScrollingFrame", {
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 	}),
 })
+
+-- which biomes' eggs each brainrot hatches from
+local hatchesIn: { [string]: { string } } = {}
+for _, biome in Biomes.list do
+	for _, id in biome.pool do
+		hatchesIn[id] = hatchesIn[id] or {}
+		table.insert(hatchesIn[id], biome.name)
+	end
+end
 
 local cards = {}
 local order = 0
@@ -395,9 +383,8 @@ local function refreshBook()
 			card.info.Text = def.rarity
 			card.phrase.Text = if def.questOnly
 				then "Collection Book reward"
-				elseif def.nightOnly then "Only comes out at night..."
-				elseif def.eventOnly then ("Only during %s"):format(def.eventOnly)
-				else "Not found yet"
+				elseif hatchesIn[def.id] then "Eggs in " .. table.concat(hatchesIn[def.id], ", ")
+				else "Kismat Roll only"
 			card.frame.BackgroundColor3 = rgb(35, 32, 38)
 		end
 		for id, badge in card.badges do

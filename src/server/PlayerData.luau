@@ -13,6 +13,8 @@ local Config = require(Shared.Config)
 local Brainrots = require(Shared.Brainrots)
 local Mutations = require(Shared.Mutations)
 local Themes = require(Shared.Themes)
+local Gear = require(Shared.Gear)
+local Biomes = require(Shared.Biomes)
 
 local PlayerData = {}
 
@@ -34,7 +36,7 @@ end
 
 function PlayerData.default()
 	return {
-		version = 2,
+		version = 3,
 		rupees = Config.START_RUPEES,
 		galla = 0,
 		rebirths = 0,
@@ -50,6 +52,10 @@ function PlayerData.default()
 		receipts = {}, -- recent Robux purchase ids, so a purchase is never granted twice
 		quests = { day = 0, list = {}, bonusClaimed = false },
 		collection = {}, -- [rarity] = { rewarded = true, specialRebirth = n }
+		trackerLevel = 1, -- egg tracker level (see Config.TRACKER_LEVELS)
+		gear = {}, -- [gear id] = true
+		ride = nil, -- brainrot key of the brainrot you ride, it is not in `owned`
+		incubators = {}, -- { slot, biome, golden, id, mutation, hatchAt } eggs waiting to hatch
 	}
 end
 
@@ -87,6 +93,16 @@ local function reconcile(saved: any)
 	if type(saved.theme) == "string" and Themes.isUnlocked(saved.theme, data.rebirths) then
 		data.theme = saved.theme
 	end
+	if type(saved.trackerLevel) == "number" then
+		data.trackerLevel = math.clamp(math.floor(saved.trackerLevel), 1, #Config.TRACKER_LEVELS)
+	end
+	if type(saved.gear) == "table" then
+		for id, value in saved.gear do
+			if value == true and type(id) == "string" and Gear.byId[id] then
+				data.gear[id] = true
+			end
+		end
+	end
 
 	if type(saved.receipts) == "table" then
 		for _, id in saved.receipts do
@@ -111,6 +127,42 @@ local function reconcile(saved: any)
 		end
 	end
 	local plots = Config.HAVELI_LEVELS[data.level].plots
+	if type(saved.ride) == "string" then
+		local id, mutation = Mutations.parse(saved.ride)
+		local def = Brainrots.byId[id]
+		if def and not def.questOnly then
+			data.ride = Mutations.key(id, mutation)
+			data.discovered[id] = true
+		end
+	end
+	if type(saved.incubators) == "table" then
+		local used = {}
+		for _, egg in saved.incubators do
+			local slot = type(egg) == "table" and whole(egg.slot, 1)
+			if
+				slot
+				and not used[slot]
+				and slot <= Config.HAVELI_LEVELS[data.level].incubators
+				and type(egg.biome) == "string"
+				and Biomes.byId[egg.biome]
+				and type(egg.id) == "string"
+				and Brainrots.byId[egg.id]
+				and type(egg.hatchAt) == "number"
+			then
+				used[slot] = true
+				table.insert(data.incubators, {
+					slot = slot,
+					biome = egg.biome,
+					golden = egg.golden == true,
+					id = egg.id,
+					mutation = if type(egg.mutation) == "string" and Mutations.byId[egg.mutation]
+						then egg.mutation
+						else nil,
+					hatchAt = math.floor(egg.hatchAt),
+				})
+			end
+		end
+	end
 	if type(saved.owned) == "table" then
 		for _, key in saved.owned do
 			if type(key) == "string" then

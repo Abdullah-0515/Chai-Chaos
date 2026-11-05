@@ -30,6 +30,7 @@ function EventRunner.start(id: string)
 	workspace:SetAttribute("EventEndsAt", now() + Config.EVENT_DURATION)
 	World.forceNight = event.night == true
 	State.notifyAll("rare", ("EVENT: %s %s"):format(event.name, event.blurb))
+	State.soundAll("EventStart")
 end
 
 function EventRunner.stop()

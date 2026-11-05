@@ -15,6 +15,7 @@ local Mutations = require(Shared:WaitForChild("Mutations"))
 local Themes = require(Shared:WaitForChild("Themes"))
 local Events = require(Shared:WaitForChild("Events"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
+local SoundPlayer = require(script.Parent:WaitForChild("SoundPlayer"))
 
 local rgb = Ui.rgb
 local player = Players.LocalPlayer
@@ -391,6 +392,7 @@ local function showRoll(id: string, mutationId: string, isNew: boolean, wasPity:
 		local fake = Brainrots.list[math.random(#Brainrots.list)]
 		revealName.Text = fake.name
 		revealName.TextColor3 = Brainrots.RARITY_COLORS[fake.rarity]
+		SoundPlayer.play("RollSpin")
 		elapsed += task.wait(step)
 		step *= 1.15
 		if mine ~= revealCount then
@@ -407,6 +409,7 @@ local function showRoll(id: string, mutationId: string, isNew: boolean, wasPity:
 	revealRarity.Text = ("%s  ·  %s"):format(def.rarity, oneIn(def.rarity))
 	revealRarity.TextColor3 = Brainrots.RARITY_COLORS[def.rarity]
 	revealNew.Visible = isNew
+	SoundPlayer.play("RollReveal")
 	revealScale.Scale = 1.15
 	TweenService:Create(revealScale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 

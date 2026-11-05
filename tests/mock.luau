@@ -416,6 +416,26 @@ M.Vector2 = {
 		return { X = x or 0, Y = y or 0 }
 	end,
 }
+-- Random: a small deterministic generator (not Roblox's, but seeded the same way)
+local RandomMT = {}
+RandomMT.__index = {
+	NextNumber = function(self, lo, hi)
+		self.state = (self.state * 1103515245 + 12345) % 2147483648
+		local t = self.state / 2147483648
+		lo, hi = lo or 0, hi or 1
+		return lo + (hi - lo) * t
+	end,
+	NextInteger = function(self, lo, hi)
+		assert(type(lo) == "number" and type(hi) == "number" and lo <= hi, "NextInteger(min, max)")
+		self.state = (self.state * 1103515245 + 12345) % 2147483648
+		return lo + self.state % (hi - lo + 1)
+	end,
+}
+M.Random = {
+	new = function(seed)
+		return setmetatable({ state = math.floor(seed or os.clock() * 1000) % 2147483648 }, RandomMT)
+	end,
+}
 M.NumberRange = opaque("NumberRange")
 M.NumberSequence = opaque("NumberSequence")
 M.ColorSequence = opaque("ColorSequence")
@@ -485,7 +505,7 @@ local DEFAULTS = {
 		}
 	end,
 	Humanoid = function()
-		return { Health = 100, MaxHealth = 100, WalkSpeed = 16 }
+		return { Health = 100, MaxHealth = 100, WalkSpeed = 16, HipHeight = 2 }
 	end,
 	Lighting = function()
 		return { ClockTime = 14 }
@@ -504,6 +524,9 @@ local DEFAULTS = {
 	end,
 	UIScale = function()
 		return { Scale = 1 }
+	end,
+	Sound = function()
+		return { IsPlaying = false, Volume = 0.5, PlaybackSpeed = 1, Looped = false, TimePosition = 0, SoundId = "" }
 	end,
 }
 
@@ -976,6 +999,7 @@ for _, name in
 		"PhysicsService",
 		"HttpService",
 		"CollectionService",
+		"SoundService",
 	}
 do
 	service(name)
@@ -990,6 +1014,40 @@ M.rawset(camera, "CFrame", CFrame.new(0, 20, 0))
 data[camera].parent = services.Workspace
 table.insert(data[services.Workspace].children, camera)
 M.rawset(services.Workspace, "CurrentCamera", camera)
+
+-- Terrain: fills are recorded, not voxelised
+local terrain = newInstance("Terrain", true)
+M.rawset(terrain, "Name", "Terrain")
+data[terrain].parent = services.Workspace
+table.insert(data[services.Workspace].children, terrain)
+M.rawset(services.Workspace, "Terrain", terrain)
+M.terrainFills = {}
+local function material(m)
+	assert(type(m) == "table" and m.EnumType == "Material", "terrain fill needs an Enum.Material")
+	return m
+end
+function Methods.FillBall(_, center, radius, mat)
+	assert(isV3(center) and type(radius) == "number" and radius > 0, "FillBall(center, radius, material)")
+	table.insert(M.terrainFills, { kind = "Ball", position = center, radius = radius, material = material(mat) })
+end
+function Methods.FillBlock(_, cf, size, mat)
+	assert(isCF(cf) and isV3(size), "FillBlock(cframe, size, material)")
+	table.insert(M.terrainFills, { kind = "Block", position = cf.Position, size = size, material = material(mat) })
+end
+function Methods.FillCylinder(_, cf, height, radius, mat)
+	assert(
+		isCF(cf) and type(height) == "number" and type(radius) == "number",
+		"FillCylinder(cframe, height, radius, material)"
+	)
+	table.insert(
+		M.terrainFills,
+		{ kind = "Cylinder", position = cf.Position, radius = radius, material = material(mat) }
+	)
+end
+function Methods.FillWedge(_, cf, size, mat)
+	assert(isCF(cf) and isV3(size), "FillWedge(cframe, size, material)")
+	table.insert(M.terrainFills, { kind = "Wedge", position = cf.Position, size = size, material = material(mat) })
+end
 
 M.game = game
 M.workspace = services.Workspace
@@ -1329,8 +1387,22 @@ function Methods.Create(_, inst, _info, goals)
 	data[tween].target = inst
 	return tween
 end
+M.streamRequests = {}
+function Methods.RequestStreamAroundAsync(self, position, timeout)
+	assert(isV3(position), "RequestStreamAroundAsync needs a Vector3")
+	assert(timeout == nil or type(timeout) == "number", "RequestStreamAroundAsync timeout must be a number")
+	table.insert(M.streamRequests, { player = data[self].props.Name, position = position })
+end
+
+M.soundsPlayed = {}
 function Methods.Play(self)
 	local d = data[self]
+	if d.ClassName == "Sound" then
+		assert(type(d.props.SoundId) == "string" and d.props.SoundId ~= "", "Sound:Play() needs a SoundId")
+		d.props.IsPlaying = true
+		table.insert(M.soundsPlayed, { name = d.props.Name, volume = d.props.Volume, at = clock })
+		return
+	end
 	for k, v in d.goals do
 		if not data[d.target].destroyed then
 			d.target[k] = v
@@ -1339,6 +1411,12 @@ function Methods.Play(self)
 	task.defer(function()
 		signalOf(self, "Completed"):Fire(Enum and nil)
 	end)
+end
+
+function Methods.Stop(self)
+	local d = data[self]
+	assert(d.ClassName == "Sound", "mock: Stop is only for sounds")
+	d.props.IsPlaying = false
 end
 
 function Methods.Emit(_, count)

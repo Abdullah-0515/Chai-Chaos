@@ -1,6 +1,7 @@
--- Chai Chaos server entry point. Wires the map, players, income, prompts,
--- haveli levels and themes, the Taala lock, the chappal, daily chai, quests,
--- events, Kismat Rolls, Robux purchases and Naya Safar (rebirth) together.
+-- Chai Chaos server entry point. Wires the world (the Chowk, the ring of
+-- havelis and the eight biomes), players, income, eggs, hazards, treasure, the
+-- Chowk shops, riding, the Taala lock, the chappal, daily chai, quests, events,
+-- Kismat Rolls, Robux purchases and Naya Safar (rebirth) together.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -20,7 +21,6 @@ local PlayerData = require(script.Parent.PlayerData)
 local MapBuilder = require(script.Parent.MapBuilder)
 local Models = require(script.Parent.Models)
 local Havelis = require(script.Parent.Havelis)
-local Spawner = require(script.Parent.Spawner)
 local Stealing = require(script.Parent.Stealing)
 local Shop = require(script.Parent.Shop)
 local Kismat = require(script.Parent.Kismat)
@@ -29,13 +29,22 @@ local Defenses = require(script.Parent.Defenses)
 local EventRunner = require(script.Parent.EventRunner)
 local QuestBook = require(script.Parent.QuestBook)
 local Leaderboard = require(script.Parent.Leaderboard)
+local EggSystem = require(script.Parent.EggSystem)
+local Hazards = require(script.Parent.Hazards)
+local Treasure = require(script.Parent.Treasure)
+local Upgrades = require(script.Parent.Upgrades)
+local Riding = require(script.Parent.Riding)
 
 World.init()
 local map = MapBuilder.ensure()
 Havelis.init(map)
 Defenses.init(map)
 Stealing.init(map)
-Spawner.init(map)
+EggSystem.init(map)
+Hazards.init(map)
+Treasure.init(map)
+Upgrades.init(map)
+Riding.init()
 Shop.init()
 Kismat.init()
 QuestBook.init()
@@ -139,9 +148,7 @@ local function dailyChai(profile)
 		local pool = {}
 		for _, rarity in { "Common", "Uncommon" } do
 			for _, def in Brainrots.byRarity[rarity] do
-				if not def.eventOnly then
-					table.insert(pool, def)
-				end
+				table.insert(pool, def)
 			end
 		end
 		local def = pool[math.random(#pool)]
@@ -180,9 +187,11 @@ local function onCharacterAdded(profile, character: Model)
 	task.wait()
 	if State.profiles[profile.player] == profile then
 		profile.carrySpeed = nil
+		profile.baseHipHeight = nil
 		Havelis.teleportHome(profile)
 		Havelis.applyWalkSpeed(profile)
 		Defenses.applyCharacter(profile)
+		Riding.mount(profile)
 	end
 end
 
@@ -208,10 +217,18 @@ local function onPlayerAdded(player: Player)
 	player:SetAttribute("LockedUntil", 0)
 	player:SetAttribute("LockReadyAt", 0)
 
+	State.syncGear(profile)
 	if Havelis.claim(profile) then
 		player:SetAttribute("HaveliIndex", profile.haveli.index)
+		player:SetAttribute("HomePosition", profile.haveli.doorOutside.Position)
+		EggSystem.restore(profile)
+		Riding.restore(profile)
 	else
-		State.notify(player, "bad", "The bazaar is full, so there is no haveli for you right now. Try another server!")
+		State.notify(
+			player,
+			"bad",
+			"Every haveli is taken, so there is no haveli for you right now. Try another server!"
+		)
 	end
 
 	player.CharacterAdded:Connect(function(character)
@@ -231,7 +248,7 @@ local function onPlayerAdded(player: Player)
 	State.notify(
 		player,
 		"info",
-		"Welcome to Chai Chaos! Buy brainrots on Bazaar Lane and collect rupees from your galla."
+		"Welcome to Chai Chaos! Follow your radar out of the Chowk, find eggs in the biomes and carry them home to hatch."
 	)
 	if next(data.discovered) == nil then
 		State.notify(player, "info", "Open the Haveli menu to pick your haveli's theme!")
@@ -250,6 +267,7 @@ end
 local function saveProfile(profile)
 	if profile.canSave then
 		Havelis.syncData(profile)
+		EggSystem.syncData(profile)
 		PlayerData.save(profile.player.UserId, profile.data)
 	end
 end
@@ -263,6 +281,9 @@ local function onPlayerRemoving(player: Player)
 	end
 	Stealing.releasePlayer(profile)
 	Havelis.syncData(profile)
+	EggSystem.syncData(profile)
+	EggSystem.release(profile)
+	Riding.dismount(profile)
 	Havelis.release(profile)
 	State.profiles[player] = nil
 	saveProfile(profile)
@@ -316,18 +337,20 @@ end)
 ---------------------------------------------------------------------------
 -- Every ProximityPrompt in the game is handled here
 ---------------------------------------------------------------------------
+-- (ShopPrompts at the Chowk only open a window on the player's screen.)
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, player: Player)
-	local model = Models.ownerModel(prompt)
-	if not model then
-		return
-	end
 	local name = prompt.Name
-	if name == "BuyPrompt" then
-		Spawner.buy(player, model)
-	elseif name == "SellPrompt" then
-		Havelis.sell(player, model)
+	if name == "EggPrompt" then
+		EggSystem.pickUp(player, prompt:FindFirstAncestorOfClass("Model"))
+	elseif name == "TreasurePrompt" then
+		Treasure.open(player, prompt:FindFirstAncestorOfClass("Model"))
+	elseif name == "ClimbPrompt" then
+		Treasure.climb(player, prompt:FindFirstAncestorOfClass("Model"))
 	elseif name == "StealPrompt" then
-		Stealing.start(player, model)
+		local model = Models.ownerModel(prompt)
+		if model then
+			Stealing.start(player, model)
+		end
 	end
 end)
 
@@ -339,11 +362,16 @@ Remotes.UpgradeHaveli.OnServerEvent:Connect(Havelis.upgrade)
 Remotes.SetTheme.OnServerEvent:Connect(Havelis.setTheme)
 
 ---------------------------------------------------------------------------
--- Naya Safar (rebirth): costs more every time, unlocks a new theme
+-- Naya Safar (rebirth) at the Chowk: costs more every time, unlocks a new
+-- theme. You keep your gear, Kismat Rolls, Chor Passes and Collection Book.
 ---------------------------------------------------------------------------
 Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 	local profile = State.profiles[player]
 	if not profile or not profile.haveli then
+		return
+	end
+	if not Upgrades.atShop(player, "Rebirth") then
+		State.notify(player, "bad", "Go to the Naya Safar stall in the Chowk to rebirth.")
 		return
 	end
 	local data = profile.data
@@ -353,13 +381,18 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 		return
 	end
 	Stealing.releasePlayer(profile)
+	EggSystem.reset(profile)
+	Riding.reset(profile)
 	Havelis.clearBrainrots(profile)
 	data.rebirths += 1
 	data.rupees = Config.START_RUPEES
 	data.level = 1
+	data.trackerLevel = 1
 	data.galla = 0
 	data.owned = {}
 	State.syncStats(profile)
+	State.syncGear(profile)
+	State.sound(player, "Rebirth")
 	State.syncQuests(profile)
 	Havelis.restyle(profile)
 	State.notifyAll(
@@ -378,4 +411,10 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 	task.spawn(saveProfile, profile)
 end)
 
-print(("[ChaiChaos] Ready with %d brainrots and %d havelis."):format(#Brainrots.list, #map.havelis))
+print(
+	("[ChaiChaos] Ready with %d brainrots, %d havelis and %d biomes."):format(
+		#Brainrots.list,
+		#map.havelis,
+		#require(Shared.Biomes).list
+	)
+)

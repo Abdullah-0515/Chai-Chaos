@@ -2,6 +2,11 @@
   "name": "ChaiChaos",
   "tree": {
     "$className": "DataModel",
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": true
+      }
+    },
     "ReplicatedStorage": {
       "ChaiChaos": {
         "$path": "src/shared"

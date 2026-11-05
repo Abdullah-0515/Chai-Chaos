@@ -1,5 +1,5 @@
--- Shows each ProximityPrompt only to the right players:
--- "Sell" and "Unlock plot" only to the owner, "Steal" only to everyone else.
+-- Shows each ProximityPrompt only to the right players: "Steal" is only for
+-- people who do not own the brainrot (prompts can also be owner-only).
 -- The server marks prompts with attributes: ShowFor ("owner"/"others"),
 -- OwnerId and Active. The server still checks everything when a prompt is used.
 

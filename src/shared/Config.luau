@@ -6,21 +6,41 @@ local Config = {}
 
 -- Money
 Config.START_RUPEES = 1_000
-Config.PRICE_MULTIPLIER = 2 -- every brainrot costs this many times its price in the design doc
-Config.SELL_RATE = 0.5 -- sell for half the price
+Config.PRICE_MULTIPLIER = 2 -- brainrots are worth this many times their price in the design doc
+Config.SELL_RATE = 0.5 -- sell for half the value
+Config.SELL_DISTANCE = 22 -- how close to the Sell stall you must be to sell
 
 -- Haveli levels: each level costs rupees, adds plots and sometimes a feature.
 -- Plots 1-10 are on the ground floor, 11-20 on the second floor.
+-- `incubators` is how many eggs can hatch at the same time.
 Config.HAVELI_LEVELS = {
-	{ plots = 4, cost = 0, name = "Chhota Ghar" },
-	{ plots = 6, cost = 4_000, name = "Pakka Ghar" },
-	{ plots = 8, cost = 12_000, name = "Laser Darwaza", unlock = "Laser Darwaza: your Taala blocks the door" },
-	{ plots = 10, cost = 30_000, name = "Bagh Wala Ghar", unlock = "A garden full of decorations" },
-	{ plots = 12, cost = 80_000, name = "Do Manzila", unlock = "The second floor" },
-	{ plots = 14, cost = 180_000, name = "Chowkidar Wali", unlock = "A Chowkidar who catches thieves" },
-	{ plots = 16, cost = 350_000, name = "Bari Haveli" },
-	{ plots = 18, cost = 550_000, name = "Chhat Wali Haveli", unlock = "A rooftop with chhatris and kites" },
-	{ plots = 20, cost = 800_000, name = "Shahi Haveli", unlock = "The fanciest haveli in the bazaar" },
+	{ plots = 4, incubators = 1, cost = 0, name = "Chhota Ghar" },
+	{ plots = 6, incubators = 1, cost = 4_000, name = "Pakka Ghar" },
+	{
+		plots = 8,
+		incubators = 2,
+		cost = 12_000,
+		name = "Laser Darwaza",
+		unlock = "A second incubator, and the Laser Darwaza: your Taala blocks the door",
+	},
+	{ plots = 10, incubators = 2, cost = 30_000, name = "Bagh Wala Ghar", unlock = "A garden full of decorations" },
+	{
+		plots = 12,
+		incubators = 3,
+		cost = 80_000,
+		name = "Do Manzila",
+		unlock = "The second floor and a third incubator",
+	},
+	{ plots = 14, incubators = 3, cost = 180_000, name = "Chowkidar Wali", unlock = "A Chowkidar who catches thieves" },
+	{ plots = 16, incubators = 4, cost = 350_000, name = "Bari Haveli", unlock = "A fourth incubator" },
+	{
+		plots = 18,
+		incubators = 4,
+		cost = 550_000,
+		name = "Chhat Wali Haveli",
+		unlock = "A rooftop with chhatris and kites",
+	},
+	{ plots = 20, incubators = 4, cost = 800_000, name = "Shahi Haveli", unlock = "The fanciest haveli in the bazaar" },
 }
 Config.LASER_LEVEL = 3
 Config.GARDEN_LEVEL = 4
@@ -28,24 +48,64 @@ Config.UPPER_FLOOR_LEVEL = 5
 Config.GUARD_LEVEL = 6
 Config.ROOFTOP_LEVEL = 8
 Config.LOCKER_PLOTS = 2 -- plots 1 and 2 can never be stolen from
+Config.MAX_INCUBATORS = 4
 
--- Bazaar Lane
-Config.SPAWN_INTERVAL = 4 -- seconds between new brainrots
-Config.LANE_WALK_TIME = 26 -- seconds to walk from the Spawn Gate to the Chowk
-Config.WALK_HOME_SPEED = 22 -- studs per second when walking to a plot
-Config.PROMPT_DISTANCE = 12 -- how close you must be to press E
-Config.RARITY_ODDS = {
-	Common = 60,
-	Uncommon = 25,
-	Rare = 10,
-	Epic = 4,
-	Legendary = 0.9,
-	Mythic = 0.1,
+-- Tracker (radar): each level tracks eggs in one more biome and sees further.
+Config.TRACKER_LEVELS = {
+	{ cost = 0, range = 150 },
+	{ cost = 2_500, range = 180 },
+	{ cost = 8_000, range = 210, golden = true },
+	{ cost = 25_000, range = 240, golden = true },
+	{ cost = 70_000, range = 270, golden = true, treasure = true },
+	{ cost = 160_000, range = 300, golden = true, treasure = true },
+	{ cost = 320_000, range = 340, golden = true, treasure = true },
+	{ cost = 600_000, range = 400, golden = true, treasure = true },
 }
-Config.CHAPPAL_FREEZE_TIME = 4 -- everyone freezes when Ammi ki Udti Chappal appears
+
+-- Eggs
+Config.EGGS_PER_BIOME = 7 -- eggs lying around in each biome at once
+Config.EGG_RESPAWN = 6 -- seconds between new eggs in a biome that is short of eggs
+Config.GOLDEN_EGG_CHANCE = 0.03 -- golden eggs always hatch a mutated brainrot and are luckier
+Config.GOLDEN_EGG_LUCK = 2
+Config.GOLDEN_EGG_TIME = 1.3 -- golden eggs last a bit longer...
+Config.GOLDEN_HATCH_TIME = 1.5 -- ...and take longer to hatch
+Config.EGG_HIT_PENALTY = 8 -- seconds a hazard knocks off a carried egg
+Config.DROPPED_EGG_LIFETIME = 60 -- a dropped egg disappears after this long
+Config.EGG_RUSH_EVERY = 240 -- an egg rush in a random biome every 4 minutes
+Config.EGG_RUSH_DURATION = 60
+Config.EGG_RUSH_EGGS = 14
+Config.PICKUP_DISTANCE = 12
+
+-- Treasure chests (need a Rope Ladder for cliff tops, a Shovel for buried ones)
+Config.TREASURE_COOLDOWN = 600 -- each player can open each chest once every 10 minutes
+Config.TREASURE_RUPEES = 1_500 -- times the biome's tier squared
+Config.TREASURE_ROLL_CHANCE = 0.35 -- chance of a free Kismat Roll too
+
+-- Riding: one brainrot carries you; rarer ones are faster. Your ride does not earn rupees.
+Config.RIDE_SPEED = {
+	Common = 1.15,
+	Uncommon = 1.25,
+	Rare = 1.4,
+	Epic = 1.6,
+	Legendary = 1.8,
+	Mythic = 2.1,
+	Special = 1.7,
+}
+Config.RIDE_MUTATION_BONUS = { Golden = 0.05, Diamond = 0.1, Rainbow = 0.2 }
 
 -- Players
-Config.WALK_SPEED = 20 -- a bit faster than Roblox's 16, the bazaar is big
+Config.WALK_SPEED = 20 -- a bit faster than Roblox's 16, the world is big
+Config.PROMPT_DISTANCE = 12 -- how close you must be to press E
+Config.WALK_HOME_SPEED = 22 -- studs per second when a brainrot walks to its plot
+
+-- Hazards (see Biomes.luau for which biome has which)
+Config.HAZARD_SPEED = { water = 0.6, mud = 0.55, ice = 0.7, sandstorm = 0.65 }
+Config.HAZARD_EGG_DRAIN = { water = 2, ice = 1.5, sandstorm = 2 } -- eggs crack this many times faster
+Config.SANDSTORM_EVERY = 50
+Config.SANDSTORM_DURATION = 15
+Config.WAVE_EVERY = 35
+Config.SNOWBALL_EVERY = 20
+Config.SALT_FALL_EVERY = 18
 
 -- Stealing
 Config.STEAL_HOLD_TIME = 1.5
@@ -70,7 +130,8 @@ Config.GUARD_RANGE = 12 -- the Chowkidar spots thieves this close to him
 Config.GUARD_SPOT_TIME = 1.2 -- seconds a thief must stay in range before he catches them
 Config.GUARD_COOLDOWN = 40 -- then he takes a nap
 
--- Rebirth ("Naya Safar")
+-- Rebirth ("Naya Safar"). Resets rupees, haveli, tracker and brainrots; keeps gear,
+-- themes, the Collection Book and Kismat Rolls.
 Config.REBIRTH_COST = 1_000_000
 Config.REBIRTH_COST_GROWTH = 2.5 -- every Naya Safar costs this many times more than the last
 Config.REBIRTH_BONUS = 0.5 -- +50% income for every rebirth

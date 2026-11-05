@@ -1,12 +1,13 @@
--- Server events. Every 15-20 minutes one of these runs for 5 minutes.
+-- Multiplier events. Every 15-20 minutes one of these runs for 5 minutes.
 --
--- boosts       : these brainrots spawn this many times more often on the lane
--- incomeMult   : everyone's income is multiplied
--- mutationMult : mutation chances are multiplied (lane and Kismat Rolls)
--- spawnRate    : the lane spawns this many times faster
+-- cashMult     : everyone's income is multiplied
+-- luckMult     : rarer brainrots and mutations are likelier in eggs
+-- eggMult      : more eggs lie around in every biome
+-- eggTimeMult  : eggs last longer before breaking
+-- hatchMult    : eggs hatch faster
 -- rollDiscount : Kismat Rolls cost this much less (0.3 = 30% off)
--- night        : it is night during the event (night-only brainrots come out)
--- look         : which effects clients show (rain, kites, cricket, blackout, mela, snow)
+-- night        : it is night during the event
+-- look         : which effects clients show (kites, rain, cricket, blackout, mela, snow)
 
 local Events = {}
 
@@ -20,69 +21,67 @@ export type Event = {
 	blurb: string,
 	color: Color3,
 	look: string,
-	boosts: { [string]: number },
-	incomeMult: number?,
-	mutationMult: number?,
-	spawnRate: number?,
+	cashMult: number?,
+	luckMult: number?,
+	eggMult: number?,
+	eggTimeMult: number?,
+	hatchMult: number?,
 	rollDiscount: number?,
 	night: boolean?,
 }
 
 Events.list = {
 	{
-		id = "Baarish",
-		name = "Baarish!",
-		blurb = "It's raining! Pakora Panda is out and every brainrot earns +20%.",
-		color = rgb(90, 160, 255),
-		look = "rain",
-		boosts = { PakoraPanda = 6, ChaiyooKettlesaurus = 3, DoodhPattiDolphin = 3 },
-		incomeMult = 1.2,
-	},
-	{
 		id = "Basant",
-		name = "Basant Kite Night",
-		blurb = "Kites everywhere! Flying brainrots spawn more and mutations are twice as likely.",
+		name = "Basant Kite Festival",
+		blurb = "Kites fill the sky! Cash x2 and Luck x2!",
 		color = rgb(255, 215, 40),
 		look = "kites",
-		boosts = { KiteKaptaan = 8, ParathaPilot = 3, GolGappaGhostu = 3, TruckArtTotaa = 3 },
-		mutationMult = 2,
+		cashMult = 2,
+		luckMult = 2,
+	},
+	{
+		id = "Baarish",
+		name = "Baarish!",
+		blurb = "It's raining eggs! Twice as many eggs in every biome.",
+		color = rgb(90, 160, 255),
+		look = "rain",
+		eggMult = 2,
+		cashMult = 1.2,
 	},
 	{
 		id = "CricketMania",
 		name = "Cricket Mania",
-		blurb = "Sixer Sher spawns way more and everything earns +50%!",
+		blurb = "Sixer! Cash x1.5 for everyone.",
 		color = rgb(60, 200, 90),
 		look = "cricket",
-		boosts = { SixerSher = 10, CricketBatBhaijaan = 5 },
-		incomeMult = 1.5,
+		cashMult = 1.5,
 	},
 	{
 		id = "LoadShedding",
 		name = "Load Shedding!",
-		blurb = "Light gayi! It's dark, night brainrots come out and Diamond and Rainbow glow 3x more often.",
+		blurb = "Light gayi! In the dark, Luck x3 for glowing mutations.",
 		color = rgb(150, 110, 255),
 		look = "blackout",
-		boosts = { LoadSheddingLattoo = 8, GeneratorGainda = 8 },
-		mutationMult = 3,
+		luckMult = 3,
 		night = true,
 	},
 	{
 		id = "MelaNight",
 		name = "Mela Night",
-		blurb = "The mela is here! Kismat Rolls cost 30% less and Mela Maharaja spawns more.",
+		blurb = "Fireworks! Eggs hatch twice as fast and Kismat Rolls are 30% off.",
 		color = rgb(255, 110, 200),
 		look = "mela",
-		boosts = { MelaMaharaja = 8, DholakDino = 4, JalebiJinn = 4 },
+		hatchMult = 2,
 		rollDiscount = 0.3,
 	},
 	{
 		id = "Sardi",
 		name = "Sardi Aa Gayi",
-		blurb = "Winter! Gajar Halwa Gorilla is out and the lane spawns twice as fast.",
+		blurb = "Winter! Cold keeps eggs fresh: eggs last 50% longer.",
 		color = rgb(200, 235, 255),
 		look = "snow",
-		boosts = { GajarHalwaGorilla = 6, KulfiKangaroo = 3, ChaiyooKettlesaurus = 3 },
-		spawnRate = 2,
+		eggTimeMult = 1.5,
 	},
 } :: { Event }
 
@@ -95,6 +94,12 @@ end
 function Events.current(): Event?
 	local id = workspace:GetAttribute("EventId")
 	return if type(id) == "string" then Events.byId[id] else nil
+end
+
+-- A multiplier from the running event, or 1.
+function Events.mult(field: string): number
+	local event = Events.current()
+	return if event then (event :: any)[field] or 1 else 1
 end
 
 return Events

@@ -19,7 +19,7 @@ local Events = require(Shared.Events)
 
 local State = require(script.Parent.State)
 local Havelis = require(script.Parent.Havelis)
-local Spawner = require(script.Parent.Spawner)
+local Picker = require(script.Parent.Picker)
 
 local Kismat = {}
 
@@ -28,16 +28,16 @@ local EPIC_PLUS = { Epic = true, Legendary = true, Mythic = true }
 local lastRoll: { [Player]: number } = {}
 
 -- Picks a brainrot with the Kismat odds. With `pity`, only Epic or better.
--- Event boosts do not apply, so every brainrot in a rarity is equally likely.
+-- Luck from events does not apply, so the odds in the panel are exact.
 function Kismat.pick(pity: boolean)
 	if not pity then
-		return Spawner.pick(Config.ROLL_ODDS, false)
+		return Picker.pick(Config.ROLL_ODDS)
 	end
 	local odds = {}
 	for rarity, weight in Config.ROLL_ODDS do
 		odds[rarity] = if EPIC_PLUS[rarity] then weight else 0
 	end
-	return Spawner.pick(odds, false)
+	return Picker.pick(odds)
 end
 
 -- Rupee price after the Chai Dhaba perk and the Mela Night discount.

@@ -1,26 +1,28 @@
--- Builds the bazaar if the place does not have one yet, then finds all the
--- important parts. To customise the map: press Play, copy "ChaiChaosMap" from
--- Workspace, stop, paste it back into Workspace and decorate it. Keep the part
--- names (SpawnGate, LaneEnd, Havelis/HaveliN/Floor, Deck, PlotN, Galla, Door,
--- Barrier, Sign, Spawn, GuardSpot, StairGate, Roof, Walls, Trim, Accent) and
--- this script will use your version.
+-- Builds the world if the place does not have one yet, then finds all the
+-- important parts.
 --
--- Haveli layout (looking from the lane): the door is in the front wall, the
--- courtyard has the galla and the stairs on the left, plots 1-10 are on the
--- ground floor and plots 11-20 on the second floor above them.
+-- The Chowk (town square) is in the middle with the fountain and the shops:
+-- Sell, Gear, Tracker, Kismat Kettle, Naya Safar, Quests and the leaderboard.
+-- The 8 havelis stand in a ring around it, facing the fountain. Between the
+-- havelis, 8 roads lead out to the 8 biomes (see BiomeBuilder.luau).
+--
+-- Haveli layout (looking from the Chowk): the door is in the front wall, the
+-- courtyard has the galla, the egg incubators and the stairs, plots 1-10 are on
+-- the ground floor and plots 11-20 on the second floor above them.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Config = require(Shared.Config)
 local Themes = require(Shared.Themes)
+local Biomes = require(Shared.Biomes)
+
+local BiomeBuilder = require(script.Parent.BiomeBuilder)
 
 local MapBuilder = {}
 
 local MAP_NAME = "ChaiChaosMap"
-local GROUND_Y = 1
-local LANE_LENGTH = 400
-local LANE_WIDTH = 18
+local GROUND_Y = Biomes.GROUND_Y
 local HAVELI_W = 72
 local HAVELI_D = 52
 local WALL_H = 12 -- ground floor height (the second floor is on top of it)
@@ -28,8 +30,6 @@ local UPPER_H = 9 -- second floor wall height
 local DOOR_W = 14
 local DOOR_H = 9
 local FLOOR_TOP = 0.4
-local HAVELI_X = { -129, -43, 43, 129 }
-local HAVELI_Z = 47
 local PLOT_SIZE = 8
 local PLOT_COLUMNS = { -20, -9, 2, 13, 24 }
 local PLOT_ROWS = { 18, 6 } -- plots 1-5 at the back, 6-10 in front (same for 11-20 upstairs)
@@ -39,17 +39,21 @@ local STAIR_W = 7
 local STAIR_START = -22
 local STAIR_STEPS = 16
 local PLOTS_PER_FLOOR = 10
+local INCUBATOR_SPOTS = { { 11, -11 }, { 19, -11 }, { -17, -11 }, { -21, -18 } }
+local SHOP_RADIUS = 50
 
 MapBuilder.PLOTS_PER_FLOOR = PLOTS_PER_FLOOR
 
 export type Haveli = {
 	index: number,
 	model: Model,
-	origin: CFrame, -- centre of the floor's top, facing the lane
+	origin: CFrame, -- centre of the floor's top, facing the Chowk
 	size: Vector3,
 	upperY: number, -- height of the second floor above the ground floor
 	plots: { BasePart },
 	plotLabels: { TextLabel },
+	incubators: { BasePart },
+	incubatorLabels: { TextLabel },
 	galla: BasePart,
 	gallaLabel: TextLabel,
 	door: BasePart,
@@ -70,15 +74,15 @@ export type Haveli = {
 	stairTop: CFrame,
 	brainrotFolder: Folder,
 	owner: any, -- the profile of the player living here
+	guard: Model?,
 }
 
 export type Map = {
 	model: Model,
-	spawnGate: CFrame,
-	laneEnd: CFrame,
-	laneFolder: Folder,
 	havelis: { Haveli },
+	shops: { [string]: BasePart },
 	leaderboard: Frame?,
+	biomes: { [string]: any },
 }
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -131,9 +135,6 @@ local function surfaceText(target: BasePart, face: Enum.NormalId, text: string, 
 end
 MapBuilder.surfaceText = surfaceText
 
----------------------------------------------------------------------------
--- Bazaar decorations
----------------------------------------------------------------------------
 local function buildStall(parent: Instance, cf: CFrame, title: string, roofColor: Color3)
 	local stall = Instance.new("Model")
 	stall.Name = title .. "Stall"
@@ -304,6 +305,7 @@ local BRIGHT = {
 
 local function buildBunting(parent: Instance, from: Vector3, to: Vector3)
 	local count = math.floor((to - from).Magnitude / 2)
+	local along = (to - from).Unit
 	for i = 0, count do
 		local t = i / count
 		local sag = math.sin(t * math.pi) * 1.5
@@ -311,7 +313,8 @@ local function buildBunting(parent: Instance, from: Vector3, to: Vector3)
 		part({
 			Name = "Flag",
 			Size = Vector3.new(0.1, 1.2, 1.2),
-			CFrame = CFrame.lookAt(pos, pos + Vector3.xAxis) * CFrame.Angles(0, 0, math.rad(45)),
+			-- a diamond hanging on the string
+			CFrame = CFrame.lookAt(pos, pos + along) * CFrame.Angles(math.rad(45), 0, 0),
 			Color = BRIGHT[i % #BRIGHT + 1],
 			Material = Enum.Material.Fabric,
 			CanCollide = false,
@@ -321,290 +324,8 @@ local function buildBunting(parent: Instance, from: Vector3, to: Vector3)
 	end
 end
 
-local function buildLane(map: Model)
-	local half = LANE_LENGTH / 2
-	part({
-		Name = "Ground",
-		Size = Vector3.new(560, 1, 240),
-		Position = Vector3.new(30, GROUND_Y - 0.5, 0),
-		Color = rgb(238, 214, 165),
-		Material = Enum.Material.Sand,
-		Parent = map,
-	})
-	part({
-		Name = "Lane",
-		Size = Vector3.new(LANE_LENGTH, 0.2, LANE_WIDTH),
-		Position = Vector3.new(0, GROUND_Y + 0.1, 0),
-		Color = rgb(205, 110, 80),
-		Material = Enum.Material.Brick,
-		Parent = map,
-	})
-	for _, side in { -1, 1 } do
-		part({
-			Name = "LaneEdge",
-			Size = Vector3.new(LANE_LENGTH, 0.4, 1),
-			Position = Vector3.new(0, GROUND_Y + 0.2, side * (LANE_WIDTH / 2 + 0.5)),
-			Color = rgb(255, 215, 80),
-			Parent = map,
-		})
-		part({
-			Name = "Walkway",
-			Size = Vector3.new(LANE_LENGTH, 0.1, 11),
-			Position = Vector3.new(0, GROUND_Y + 0.05, side * (LANE_WIDTH / 2 + 6.5)),
-			Color = rgb(245, 230, 200),
-			Material = Enum.Material.Pavement,
-			Parent = map,
-		})
-	end
-
-	local startX = -half + 4
-	local endX = half - 4
-	local y = GROUND_Y + 0.2
-	for name, x in { SpawnGate = startX, LaneEnd = endX } do
-		part({
-			Name = name,
-			Size = Vector3.new(1, 1, LANE_WIDTH),
-			CFrame = CFrame.lookAt(Vector3.new(x, y, 0), Vector3.new(x + 1, y, 0)),
-			Transparency = 1,
-			CanCollide = false,
-			CanTouch = false,
-			CanQuery = false,
-			Parent = map,
-		})
-	end
-
-	-- Spawn Gate arch
-	local gateX = -half
-	for _, side in { -1, 1 } do
-		part({
-			Name = "GatePillar",
-			Size = Vector3.new(3.5, 18, 3.5),
-			Position = Vector3.new(gateX, GROUND_Y + 9, side * (LANE_WIDTH / 2 + 2.5)),
-			Color = rgb(230, 85, 60),
-			Parent = map,
-		})
-		part({
-			Name = "GateDome",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * 4.5,
-			Position = Vector3.new(gateX, GROUND_Y + 19, side * (LANE_WIDTH / 2 + 2.5)),
-			Color = rgb(255, 205, 50),
-			Parent = map,
-		})
-	end
-	local gateSign = part({
-		Name = "GateSign",
-		Size = Vector3.new(3, 4.5, LANE_WIDTH + 9),
-		Position = Vector3.new(gateX, GROUND_Y + 19.5, 0),
-		Color = rgb(30, 165, 140),
-		Parent = map,
-	})
-	surfaceText(gateSign, Enum.NormalId.Right, "BAZAAR LANE", rgb(255, 230, 90))
-	surfaceText(gateSign, Enum.NormalId.Left, "CHAI CHAOS", rgb(255, 230, 90))
-
-	-- Chowk (town square)
-	local chowkX = half + 32
-	part({
-		Name = "Chowk",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.3, 60, 60),
-		CFrame = cylinderUp(CFrame.new(chowkX, GROUND_Y + 0.15, 0)),
-		Color = rgb(235, 220, 200),
-		Material = Enum.Material.Slate,
-		Parent = map,
-	})
-	part({
-		Name = "FountainBasin",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(2, 16, 16),
-		CFrame = cylinderUp(CFrame.new(chowkX, GROUND_Y + 1.2, 0)),
-		Color = rgb(245, 245, 250),
-		Material = Enum.Material.Marble,
-		Parent = map,
-	})
-	part({
-		Name = "FountainWater",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(0.3, 14.5, 14.5),
-		CFrame = cylinderUp(CFrame.new(chowkX, GROUND_Y + 2.1, 0)),
-		Color = rgb(70, 180, 255),
-		Material = Enum.Material.Neon,
-		Transparency = 0.3,
-		CanCollide = false,
-		Parent = map,
-	})
-	part({
-		Name = "FountainColumn",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(7, 2.2, 2.2),
-		CFrame = cylinderUp(CFrame.new(chowkX, GROUND_Y + 4.5, 0)),
-		Color = rgb(245, 245, 250),
-		Material = Enum.Material.Marble,
-		Parent = map,
-	})
-	local spray = Instance.new("ParticleEmitter")
-	spray.Name = "Spray"
-	spray.Color = ColorSequence.new(rgb(170, 225, 255))
-	spray.Rate = 25
-	spray.Lifetime = NumberRange.new(1, 1.5)
-	spray.Speed = NumberRange.new(8, 11)
-	spray.SpreadAngle = Vector2.new(18, 18)
-	spray.Acceleration = Vector3.new(0, -20, 0)
-	spray.Size = NumberSequence.new(0.5, 0.1)
-	spray.Transparency = NumberSequence.new(0.2, 1)
-	spray.Parent = map:FindFirstChild("FountainColumn")
-
-	-- the giant Kismat Kettle
-	local kettleCF = CFrame.new(chowkX - 6, GROUND_Y, -22)
-	part({
-		Name = "KismatKettle",
-		Shape = Enum.PartType.Ball,
-		Size = Vector3.one * 9,
-		CFrame = kettleCF * CFrame.new(0, 5, 0),
-		Color = rgb(255, 175, 40),
-		Material = Enum.Material.Metal,
-		Parent = map,
-	})
-	part({
-		Name = "KismatSpout",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(6, 1.6, 1.6),
-		CFrame = kettleCF * CFrame.new(5, 7, 0) * CFrame.Angles(0, 0, math.rad(35)),
-		Color = rgb(255, 175, 40),
-		Material = Enum.Material.Metal,
-		Parent = map,
-	})
-	local kettleSign = part({
-		Name = "KismatSign",
-		Size = Vector3.new(10, 2.4, 0.4),
-		CFrame = kettleCF * CFrame.new(0, 11.5, 0) * CFrame.Angles(0, math.rad(180), 0),
-		Color = rgb(140, 60, 200),
-		Parent = map,
-	})
-	surfaceText(kettleSign, Enum.NormalId.Front, "KISMAT KETTLE", rgb(255, 230, 90))
-	surfaceText(kettleSign, Enum.NormalId.Back, "KISMAT KETTLE", rgb(255, 230, 90))
-
-	-- leaderboard
-	local board = part({
-		Name = "Leaderboard",
-		Size = Vector3.new(0.6, 14, 20),
-		CFrame = CFrame.new(chowkX + 26, GROUND_Y + 8, 0),
-		Color = rgb(40, 30, 25),
-		Parent = map,
-	})
-	local boardGui = Instance.new("SurfaceGui")
-	boardGui.Name = "Gui"
-	boardGui.Face = Enum.NormalId.Left
-	boardGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	boardGui.PixelsPerStud = 30
-	boardGui.LightInfluence = 0
-	local list = Instance.new("Frame")
-	list.Name = "List"
-	list.Size = UDim2.fromScale(1, 1)
-	list.BackgroundTransparency = 1
-	list.Parent = boardGui
-	local layout = Instance.new("UIListLayout")
-	layout.SortOrder = Enum.SortOrder.LayoutOrder
-	layout.Parent = list
-	boardGui.Parent = board
-	for _, z in { -10.5, 10.5 } do
-		part({
-			Name = "BoardPost",
-			Size = Vector3.new(1, 16, 1),
-			CFrame = CFrame.new(chowkX + 26.5, GROUND_Y + 8, z),
-			Color = rgb(255, 205, 50),
-			Parent = map,
-		})
-	end
-
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "ChowkSpawn"
-	spawn.Anchored = true
-	spawn.Size = Vector3.new(8, 1, 8)
-	spawn.Position = Vector3.new(chowkX + 16, GROUND_Y + 0.5, 0)
-	spawn.Duration = 0
-	spawn.Neutral = true
-	spawn.Color = rgb(255, 210, 80)
-	spawn.TopSurface = Enum.SurfaceType.Smooth
-	spawn.Parent = map
-
-	-- String lights and bunting along the lane
-	local first = -half + 10
-	local last = half - 10
-	for _, side in { -1, 1 } do
-		local z = side * (LANE_WIDTH / 2 + 2)
-		for x = first, last, 30 do
-			part({
-				Name = "LightPole",
-				Size = Vector3.new(0.5, 9, 0.5),
-				Position = Vector3.new(x, GROUND_Y + 4.5, z),
-				Color = rgb(110, 70, 45),
-				Parent = map,
-			})
-		end
-		local i = 0
-		for x = first, last, 5 do
-			i += 1
-			local sag = math.sin(((x - first) % 30) / 30 * math.pi) * 1.4
-			local bulb = part({
-				Name = "Bulb",
-				Shape = Enum.PartType.Ball,
-				Size = Vector3.one * 0.7,
-				Position = Vector3.new(x, GROUND_Y + 8.8 - sag, z),
-				Color = BRIGHT[i % #BRIGHT + 1],
-				Material = Enum.Material.Neon,
-				CanCollide = false,
-				CastShadow = false,
-				Parent = map,
-			})
-			if i % 6 == 0 then
-				local light = Instance.new("PointLight")
-				light.Color = bulb.Color
-				light.Range = 14
-				light.Brightness = 1.2
-				light.Parent = bulb
-			end
-		end
-	end
-	local bunting = Instance.new("Folder")
-	bunting.Name = "Bunting"
-	bunting.Parent = map
-	for x = first + 15, last, 60 do
-		buildBunting(
-			bunting,
-			Vector3.new(x, GROUND_Y + 9.5, -(LANE_WIDTH / 2 + 2)),
-			Vector3.new(x, GROUND_Y + 9.5, LANE_WIDTH / 2 + 2)
-		)
-	end
-
-	-- Stalls, carts, rickshaws and palm trees
-	local function facingLane(position: Vector3): CFrame
-		return CFrame.lookAt(position, Vector3.new(position.X, position.Y, 0))
-	end
-	buildStall(map, facingLane(Vector3.new(-half - 18, GROUND_Y, -26)), "CHAI", rgb(235, 60, 70))
-	buildFruitCart(map, facingLane(Vector3.new(-half - 18, GROUND_Y, 26)))
-	buildStall(map, facingLane(Vector3.new(half - 14, GROUND_Y, -30)), "PARATHA", rgb(255, 170, 30))
-	buildStall(map, facingLane(Vector3.new(half - 14, GROUND_Y, 30)), "KULFI", rgb(80, 170, 255))
-	buildRickshaw(map, CFrame.new(half + 18, GROUND_Y, 34) * CFrame.Angles(0, math.rad(30), 0))
-	buildRickshaw(map, CFrame.new(half + 24, GROUND_Y, -36) * CFrame.Angles(0, math.rad(-20), 0))
-	local trees = Instance.new("Folder")
-	trees.Name = "Trees"
-	trees.Parent = map
-	for _, side in { -1, 1 } do
-		for _, x in { -172, -86, 0, 86, 172 } do
-			buildPalm(trees, Vector3.new(x, GROUND_Y, side * 34), 18 + (x % 7))
-		end
-		for _, x in { -215, 250, 280 } do
-			buildPalm(trees, Vector3.new(x, GROUND_Y, side * 60), 20)
-		end
-	end
-end
-
----------------------------------------------------------------------------
--- Havelis
----------------------------------------------------------------------------
 local function buildHaveli(parent: Instance, index: number, center: Vector3)
-	local origin = CFrame.lookAt(center, Vector3.new(center.X, center.Y, 0))
+	local origin = CFrame.lookAt(center, Vector3.new(0, center.Y, 0))
 	local function at(x: number, y: number, z: number): CFrame
 		return origin * CFrame.new(x, y, z)
 	end
@@ -878,6 +599,39 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 		})
 	end
 
+	-- egg incubators (nests) in the courtyard; haveli levels unlock more of them
+	for i, spot in INCUBATOR_SPOTS do
+		local nest = part({
+			Name = "Incubator" .. i,
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1.2, 5, 5),
+			CFrame = at(spot[1], FLOOR_TOP + 0.6, spot[2]) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = rgb(150, 105, 60),
+			Material = Enum.Material.Fabric,
+			Parent = haveli,
+		})
+		nest:SetAttribute("IncubatorIndex", i)
+		local straw = Instance.new("BillboardGui")
+		straw.Name = "IncubatorGui"
+		straw.Size = UDim2.fromScale(7, 1.8)
+		straw.StudsOffset = Vector3.new(0, 4.2, 0)
+		straw.MaxDistance = 60
+		straw.LightInfluence = 0
+		local text = Instance.new("TextLabel")
+		text.Name = "Label"
+		text.Size = UDim2.fromScale(1, 1)
+		text.BackgroundTransparency = 1
+		text.Font = Enum.Font.FredokaOne
+		text.TextScaled = true
+		text.TextColor3 = rgb(255, 240, 180)
+		text.Text = "Incubator"
+		local outline = Instance.new("UIStroke")
+		outline.Thickness = 2
+		outline.Parent = text
+		text.Parent = straw
+		straw.Parent = nest
+	end
+
 	local decor = Instance.new("Folder")
 	decor.Name = "Decor"
 	decor.Parent = haveli
@@ -888,24 +642,446 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 	haveli.Parent = parent
 end
 
-local function build(): Model
-	local map = Instance.new("Model")
-	map.Name = MAP_NAME
-	buildLane(map)
+---------------------------------------------------------------------------
+-- The Chowk
+---------------------------------------------------------------------------
+local function shopPrompt(target: BasePart, shop: string, label: string)
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "ShopPrompt"
+	prompt.ActionText = "Open"
+	prompt.ObjectText = label
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt:SetAttribute("Shop", shop)
+	prompt.Parent = target
+	target:SetAttribute("Shop", shop)
+end
 
-	local havelis = Instance.new("Folder")
-	havelis.Name = "Havelis"
-	havelis.Parent = map
-	local index = 0
-	for _, side in { -1, 1 } do
-		for _, x in HAVELI_X do
-			index += 1
-			buildHaveli(havelis, index, Vector3.new(x, GROUND_Y, side * HAVELI_Z))
+local function shopStall(parent: Instance, cf: CFrame, shop: string, title: string, color: Color3)
+	local stall = Instance.new("Model")
+	stall.Name = shop .. "Shop"
+	local counter = part({
+		Name = "Counter",
+		Size = Vector3.new(12, 3.5, 4),
+		CFrame = cf * CFrame.new(0, 1.75, 0),
+		Color = rgb(150, 95, 55),
+		Material = Enum.Material.WoodPlanks,
+		Parent = stall,
+	})
+	for _, x in { -5.6, 5.6 } do
+		part({
+			Name = "Pole",
+			Size = Vector3.new(0.6, 9, 0.6),
+			CFrame = cf * CFrame.new(x, 4.5, 1.6),
+			Color = rgb(110, 70, 45),
+			Parent = stall,
+		})
+	end
+	for i = 0, 3 do
+		part({
+			Name = "Awning",
+			Size = Vector3.new(13.5 / 4, 0.5, 6.5),
+			CFrame = cf * CFrame.new(-5 + i * 3.375, 9.2, 0.4) * CFrame.Angles(math.rad(-12), 0, 0),
+			Color = if i % 2 == 0 then color else rgb(255, 255, 255),
+			Material = Enum.Material.Fabric,
+			Parent = stall,
+		})
+	end
+	local sign = part({
+		Name = "Sign",
+		Size = Vector3.new(11, 2.2, 0.4),
+		CFrame = cf * CFrame.new(0, 10.8, -2.6),
+		Color = color:Lerp(rgb(0, 0, 0), 0.35),
+		Parent = stall,
+	})
+	surfaceText(sign, Enum.NormalId.Front, title, rgb(255, 240, 160))
+	shopPrompt(counter, shop, title)
+	stall.Parent = parent
+	return counter
+end
+
+local function buildHub(map: Model): { [string]: BasePart }
+	local terrain = workspace.Terrain
+	-- grass everywhere, a paved bazaar around the Chowk
+	terrain:FillCylinder(CFrame.new(0, GROUND_Y - 4, 0), 8, Biomes.WORLD_RADIUS + 30, Enum.Material.Grass)
+	terrain:FillCylinder(CFrame.new(0, GROUND_Y - 2, 0), 4, 130, Enum.Material.Pavement)
+
+	local center = Vector3.new(0, GROUND_Y, 0)
+	part({
+		Name = "Plaza",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.6, Biomes.PLAZA_RADIUS * 2, Biomes.PLAZA_RADIUS * 2),
+		CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 0.3, 0))),
+		Color = rgb(235, 215, 185),
+		Material = Enum.Material.Slate,
+		Parent = map,
+	})
+	-- a tiered fountain
+	for i, tier in { { 2, 26, 0 }, { 1.6, 14, 2.4 }, { 1.2, 6, 4.6 } } do
+		part({
+			Name = "FountainTier",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(tier[1], tier[2], tier[2]),
+			CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 1 + tier[3], 0))),
+			Color = rgb(245, 245, 250),
+			Material = Enum.Material.Marble,
+			Parent = map,
+		})
+		part({
+			Name = "FountainWater",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.3, tier[2] - 1.5, tier[2] - 1.5),
+			CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 1.9 + tier[3] + (tier[1] - 2) / 2, 0))),
+			Color = rgb(70, 180, 255),
+			Material = Enum.Material.Neon,
+			Transparency = 0.3,
+			CanCollide = false,
+			Parent = map,
+		})
+		if i == 3 then
+			local top = part({
+				Name = "FountainTop",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.one * 2.4,
+				CFrame = CFrame.new(center + Vector3.new(0, 7.2, 0)),
+				Color = rgb(255, 205, 60),
+				Material = Enum.Material.Metal,
+				Parent = map,
+			})
+			local spray = Instance.new("ParticleEmitter")
+			spray.Name = "Spray"
+			spray.Color = ColorSequence.new(rgb(170, 225, 255))
+			spray.Rate = 40
+			spray.Lifetime = NumberRange.new(1.2, 1.6)
+			spray.Speed = NumberRange.new(10, 13)
+			spray.SpreadAngle = Vector2.new(20, 20)
+			spray.Acceleration = Vector3.new(0, -20, 0)
+			spray.Size = NumberSequence.new(0.5, 0.1)
+			spray.Transparency = NumberSequence.new(0.2, 1)
+			spray.Parent = top
 		end
 	end
 
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "ChowkSpawn"
+	spawn.Anchored = true
+	spawn.Size = Vector3.new(8, 1, 8)
+	spawn.Position = center + Vector3.new(22, 0.4, 0)
+	spawn.Duration = 0
+	spawn.Neutral = true
+	spawn.Color = rgb(255, 210, 80)
+	spawn.TopSurface = Enum.SurfaceType.Smooth
+	spawn.Parent = map
+
+	-- the shops, around the fountain and facing it
+	local shops = {}
+	local function spot(k: number): CFrame
+		local a = math.rad(45 * k)
+		local position = center + Vector3.new(math.cos(a), 0, math.sin(a)) * SHOP_RADIUS
+		return CFrame.lookAt(position, center)
+	end
+	shops.Sell = shopStall(map, spot(0), "Sell", "BECHO (Sell)", rgb(60, 170, 90))
+	shops.Gear = shopStall(map, spot(1), "Gear", "GEAR SHOP", rgb(60, 130, 220))
+	shops.Tracker = shopStall(map, spot(2), "Tracker", "RADAR WALA", rgb(150, 70, 210))
+
+	-- the Kismat Kettle
+	local kettleCF = spot(3)
+	local kettle = part({
+		Name = "KismatKettle",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 9,
+		CFrame = kettleCF * CFrame.new(0, 5, 0),
+		Color = rgb(255, 175, 40),
+		Material = Enum.Material.Metal,
+		Parent = map,
+	})
+	part({
+		Name = "KismatSpout",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(6, 1.6, 1.6),
+		CFrame = kettleCF * CFrame.new(5, 7, 0) * CFrame.Angles(0, 0, math.rad(35)),
+		Color = rgb(255, 175, 40),
+		Material = Enum.Material.Metal,
+		Parent = map,
+	})
+	local kettleSign = part({
+		Name = "KismatSign",
+		Size = Vector3.new(10, 2.4, 0.4),
+		CFrame = kettleCF * CFrame.new(0, 11.5, 0),
+		Color = rgb(140, 60, 200),
+		Parent = map,
+	})
+	surfaceText(kettleSign, Enum.NormalId.Front, "KISMAT KETTLE", rgb(255, 230, 90))
+	shopPrompt(kettle, "Kismat", "Kismat Roll")
+	shops.Kismat = kettle
+
+	-- the Naya Safar gate
+	local gateCF = spot(4)
+	for _, x in { -5, 5 } do
+		part({
+			Name = "SafarPillar",
+			Size = Vector3.new(2, 14, 2),
+			CFrame = gateCF * CFrame.new(x, 7, 0),
+			Color = rgb(255, 205, 60),
+			Material = Enum.Material.Marble,
+			Parent = map,
+		})
+	end
+	part({
+		Name = "SafarArch",
+		Size = Vector3.new(12, 2, 2),
+		CFrame = gateCF * CFrame.new(0, 15, 0),
+		Color = rgb(255, 205, 60),
+		Material = Enum.Material.Marble,
+		Parent = map,
+	})
+	local portal = part({
+		Name = "SafarPortal",
+		Size = Vector3.new(8, 13, 0.4),
+		CFrame = gateCF * CFrame.new(0, 7.5, 0),
+		Color = rgb(190, 120, 255),
+		Material = Enum.Material.Neon,
+		Transparency = 0.35,
+		CanCollide = false,
+		Parent = map,
+	})
+	local safarSign = part({
+		Name = "SafarSign",
+		Size = Vector3.new(12, 2.4, 0.4),
+		CFrame = gateCF * CFrame.new(0, 17.4, 0),
+		Color = rgb(90, 40, 140),
+		Parent = map,
+	})
+	surfaceText(safarSign, Enum.NormalId.Front, "NAYA SAFAR", rgb(255, 230, 90))
+	shopPrompt(portal, "Rebirth", "Naya Safar")
+	shops.Rebirth = portal
+
+	-- the quest board
+	local boardCF = spot(5)
+	local questBoard = part({
+		Name = "QuestBoard",
+		Size = Vector3.new(10, 7, 0.6),
+		CFrame = boardCF * CFrame.new(0, 5, 0),
+		Color = rgb(130, 85, 50),
+		Material = Enum.Material.WoodPlanks,
+		Parent = map,
+	})
+	surfaceText(questBoard, Enum.NormalId.Front, "QUESTS", rgb(255, 235, 150))
+	for _, x in { -4.5, 4.5 } do
+		part({
+			Name = "BoardLeg",
+			Size = Vector3.new(0.6, 5, 0.6),
+			CFrame = boardCF * CFrame.new(x, 1.5, 0.4),
+			Color = rgb(100, 65, 40),
+			Parent = map,
+		})
+	end
+	shopPrompt(questBoard, "Quests", "Quests")
+	shops.Quests = questBoard
+
+	-- the leaderboard
+	local lbCF = spot(6)
+	local board = part({
+		Name = "Leaderboard",
+		Size = Vector3.new(16, 11, 0.6),
+		CFrame = lbCF * CFrame.new(0, 7, 0),
+		Color = rgb(40, 30, 25),
+		Parent = map,
+	})
+	local boardGui = Instance.new("SurfaceGui")
+	boardGui.Name = "Gui"
+	boardGui.Face = Enum.NormalId.Front
+	boardGui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	boardGui.PixelsPerStud = 30
+	boardGui.LightInfluence = 0
+	local list = Instance.new("Frame")
+	list.Name = "List"
+	list.Size = UDim2.fromScale(1, 1)
+	list.BackgroundTransparency = 1
+	list.Parent = boardGui
+	boardGui.Parent = board
+
+	-- a chai stall just for fun
+	buildStall(map, spot(7), "CHAI", rgb(235, 60, 70))
+	buildFruitCart(map, CFrame.lookAt(center + Vector3.new(-18, 0, -40), center))
+	buildRickshaw(map, CFrame.new(center + Vector3.new(30, 0, 40)) * CFrame.Angles(0, math.rad(30), 0))
+	buildRickshaw(map, CFrame.new(center + Vector3.new(-36, 0, 30)) * CFrame.Angles(0, math.rad(-50), 0))
+
+	-- string lights around the plaza
+	local i = 0
+	for degree = 0, 355, 5 do
+		i += 1
+		local a = math.rad(degree)
+		local bulb = part({
+			Name = "Bulb",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 0.8,
+			Position = center + Vector3.new(math.cos(a) * 68, 9 - (i % 6 == 0 and 0 or 0.6), math.sin(a) * 68),
+			Color = BRIGHT[i % #BRIGHT + 1],
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = map,
+		})
+		if i % 9 == 0 then
+			local light = Instance.new("PointLight")
+			light.Color = bulb.Color
+			light.Range = 16
+			light.Brightness = 1.2
+			light.Parent = bulb
+			part({
+				Name = "LightPole",
+				Size = Vector3.new(0.5, 9, 0.5),
+				Position = center + Vector3.new(math.cos(a) * 68, 4.5, math.sin(a) * 68),
+				Color = rgb(110, 70, 45),
+				Parent = map,
+			})
+		end
+	end
+	return shops
+end
+
+---------------------------------------------------------------------------
+-- Roads, gates, countryside and the edge of the world
+---------------------------------------------------------------------------
+local function buildRoads(map: Model)
+	local roads = Instance.new("Folder")
+	roads.Name = "Roads"
+	roads.Parent = map
+	for _, biome in Biomes.list do
+		local dir = Biomes.direction(biome)
+		local from, to = Biomes.PLAZA_RADIUS - 2, Biomes.innerRadius(biome)
+		local mid = dir * ((from + to) / 2) + Vector3.new(0, GROUND_Y + 0.15, 0)
+		local cf = CFrame.lookAt(mid, mid + dir)
+		part({
+			Name = "Road",
+			Size = Vector3.new(14, 0.3, to - from),
+			CFrame = cf,
+			Color = rgb(200, 175, 140),
+			Material = Enum.Material.Cobblestone,
+			Parent = roads,
+		})
+		for _, x in { -7.5, 7.5 } do
+			part({
+				Name = "RoadEdge",
+				Size = Vector3.new(1, 0.5, to - from),
+				CFrame = cf * CFrame.new(x, 0.1, 0),
+				Color = biome.color,
+				Parent = roads,
+			})
+		end
+		-- the biome gate
+		local gatePos = dir * to + Vector3.new(0, GROUND_Y, 0)
+		local gate = CFrame.lookAt(gatePos, Vector3.new(0, GROUND_Y, 0))
+		for _, x in { -9, 9 } do
+			part({
+				Name = "GatePillar",
+				Size = Vector3.new(3, 16, 3),
+				CFrame = gate * CFrame.new(x, 8, 0),
+				Color = biome.color,
+				Parent = roads,
+			})
+		end
+		local sign = part({
+			Name = "GateSign",
+			Size = Vector3.new(21, 4.5, 1),
+			CFrame = gate * CFrame.new(0, 17, 0),
+			Color = biome.color:Lerp(rgb(0, 0, 0), 0.45),
+			Parent = roads,
+		})
+		local label = ("%s · %s"):format(biome.name:upper(), biome.title)
+		surfaceText(sign, Enum.NormalId.Front, label, rgb(255, 240, 170))
+		surfaceText(sign, Enum.NormalId.Back, "TO THE CHOWK", rgb(255, 240, 170))
+		buildBunting(roads, (gate * CFrame.new(-8, 13.5, 0)).Position, (gate * CFrame.new(8, 13.5, 0)).Position)
+		-- a signpost by the Chowk saying how far
+		local postPos = dir * (Biomes.PLAZA_RADIUS + 14) + Vector3.new(0, GROUND_Y, 0) + dir:Cross(Vector3.yAxis) * 9
+		part({
+			Name = "Signpost",
+			Size = Vector3.new(0.5, 6, 0.5),
+			Position = postPos + Vector3.new(0, 3, 0),
+			Color = rgb(120, 80, 50),
+			Parent = roads,
+		})
+		local arrow = part({
+			Name = "SignArrow",
+			Size = Vector3.new(7, 1.6, 0.3),
+			CFrame = CFrame.lookAt(
+				postPos + Vector3.new(0, 5.5, 0),
+				postPos + Vector3.new(0, 5.5, 0) + dir:Cross(Vector3.yAxis)
+			),
+			Color = biome.color,
+			Parent = roads,
+		})
+		surfaceText(arrow, Enum.NormalId.Front, ("%s · Tier %d"):format(biome.name, biome.tier), rgb(30, 25, 20))
+		surfaceText(arrow, Enum.NormalId.Back, ("%s · Tier %d"):format(biome.name, biome.tier), rgb(30, 25, 20))
+	end
+
+	-- countryside palms between the bazaar and the biomes
+	local trees = Instance.new("Folder")
+	trees.Name = "Countryside"
+	trees.Parent = map
+	local rng = Random.new(77)
+	local placed = 0
+	for _ = 1, 400 do
+		if placed >= 70 then
+			break
+		end
+		local r = rng:NextNumber(Biomes.HUB_RADIUS - 10, 520)
+		local a = rng:NextNumber(0, math.pi * 2)
+		local position = Vector3.new(math.cos(a) * r, GROUND_Y, math.sin(a) * r)
+		local nearRoad = false
+		for _, biome in Biomes.list do
+			local diff = math.abs((a - (biome.angle :: number) + math.pi) % (2 * math.pi) - math.pi)
+			if diff * r < 14 then
+				nearRoad = true
+			end
+		end
+		if not nearRoad and not Biomes.at(position) and r > 185 then
+			buildPalm(trees, position, 16 + rng:NextNumber(0, 6))
+			placed += 1
+		end
+	end
+
+	-- the edge of the world
+	local edge = Instance.new("Folder")
+	edge.Name = "WorldEdge"
+	edge.Parent = map
+	for k = 0, 47 do
+		local a = math.rad(k * 7.5)
+		local position = Vector3.new(math.cos(a), 0, math.sin(a)) * Biomes.WORLD_RADIUS + Vector3.new(0, 100, 0)
+		part({
+			Name = "Edge",
+			Size = Vector3.new(Biomes.WORLD_RADIUS * math.rad(7.5) + 4, 220, 4),
+			CFrame = CFrame.lookAt(position, Vector3.new(0, 100, 0)),
+			Transparency = 1,
+			CanQuery = false,
+			Parent = edge,
+		})
+	end
+end
+
+local function build(): (Model, { [string]: any })
+	local map = Instance.new("Model")
+	map.Name = MAP_NAME
+	buildHub(map)
+	local havelis = Instance.new("Folder")
+	havelis.Name = "Havelis"
+	havelis.Parent = map
+	for index = 1, 8 do
+		local a = Biomes.haveliAngle(index)
+		buildHaveli(
+			havelis,
+			index,
+			Vector3.new(math.cos(a), 0, math.sin(a)) * Biomes.HAVELI_RADIUS + Vector3.new(0, GROUND_Y, 0)
+		)
+	end
+	buildRoads(map)
+	local biomes = Instance.new("Folder")
+	biomes.Name = "Biomes"
+	biomes.Parent = map
+	local plans = BiomeBuilder.run(biomes)
 	map.Parent = workspace
-	return map
+	return map, plans
 end
 
 local function child(parent: Instance, name: string): any
@@ -936,14 +1112,7 @@ local function partsIn(model: Instance, name: string): { BasePart }
 	return list
 end
 
-function MapBuilder.read(map: Model): Map
-	local laneFolder = map:FindFirstChild("LaneBrainrots")
-	if not laneFolder then
-		laneFolder = Instance.new("Folder")
-		laneFolder.Name = "LaneBrainrots"
-		laneFolder.Parent = map
-	end
-
+function MapBuilder.read(map: Model, plans: { [string]: any }): Map
 	local havelis: { Haveli } = {}
 	for _, model in child(map, "Havelis"):GetChildren() do
 		if not model:IsA("Model") then
@@ -960,6 +1129,12 @@ function MapBuilder.read(map: Model): Map
 			local plot: BasePart = child(model, "Plot" .. i)
 			plots[i] = plot
 			plotLabels[i] = labelIn(plot)
+		end
+		local incubators, incubatorLabels = {}, {}
+		for i = 1, Config.MAX_INCUBATORS do
+			local nest: BasePart = child(model, "Incubator" .. i)
+			incubators[i] = nest
+			incubatorLabels[i] = labelIn(nest)
 		end
 
 		local galla: BasePart = child(model, "Galla")
@@ -985,6 +1160,8 @@ function MapBuilder.read(map: Model): Map
 			upperY = upperY,
 			plots = plots,
 			plotLabels = plotLabels,
+			incubators = incubators,
+			incubatorLabels = incubatorLabels,
 			galla = galla,
 			gallaLabel = labelIn(galla),
 			door = child(model, "Door"),
@@ -1005,30 +1182,37 @@ function MapBuilder.read(map: Model): Map
 			stairTop = origin * CFrame.new(STAIR_X, upperY, DECK_FRONT + 2),
 			brainrotFolder = brainrotFolder,
 			owner = nil,
+			guard = nil,
 		})
 	end
 	table.sort(havelis, function(a, b)
 		return a.index < b.index
 	end)
 
+	local shops = {}
+	for _, d in map:GetDescendants() do
+		if d:IsA("BasePart") and type(d:GetAttribute("Shop")) == "string" then
+			shops[d:GetAttribute("Shop")] = d
+		end
+	end
 	local board = map:FindFirstChild("Leaderboard")
 	local list = board and board:FindFirstChild("List", true)
 	return {
 		model = map,
-		spawnGate = (child(map, "SpawnGate") :: BasePart).CFrame,
-		laneEnd = (child(map, "LaneEnd") :: BasePart).CFrame,
-		laneFolder = laneFolder,
 		havelis = havelis,
+		shops = shops,
 		leaderboard = if list and list:IsA("Frame") then list else nil,
+		biomes = plans,
 	}
 end
 
 function MapBuilder.ensure(): Map
-	local map = workspace:FindFirstChild(MAP_NAME)
-	if not map then
-		map = build()
+	local existing = workspace:FindFirstChild(MAP_NAME)
+	if existing then
+		return MapBuilder.read(existing, BiomeBuilder.run(nil))
 	end
-	return MapBuilder.read(map)
+	local map, plans = build()
+	return MapBuilder.read(map, plans)
 end
 
 return MapBuilder

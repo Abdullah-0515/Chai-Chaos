@@ -2,8 +2,10 @@
 -- They earn more and are worth more. The chances are shown in the Kismat panel.
 --
 -- income : income multiplier
--- value  : price multiplier (cheaper than the income boost, so finding one is lucky)
--- lane / roll : chance on Bazaar Lane and in a Kismat Roll
+-- value  : value multiplier (for selling and Lockers)
+-- egg    : chance when an egg hatches
+-- golden : chance when a golden egg hatches (golden eggs always give a mutation)
+-- roll   : chance in a Kismat Roll
 
 local Mutations = {}
 
@@ -13,7 +15,8 @@ export type Mutation = {
 	income: number,
 	value: number,
 	color: Color3,
-	lane: number,
+	egg: number,
+	golden: number,
 	roll: number,
 }
 
@@ -24,7 +27,8 @@ Mutations.list = {
 		income = 2,
 		value = 1.5,
 		color = Color3.fromRGB(255, 205, 50),
-		lane = 0.04,
+		egg = 0.04,
+		golden = 0.75,
 		roll = 0.08,
 	},
 	{
@@ -33,7 +37,8 @@ Mutations.list = {
 		income = 4,
 		value = 2.5,
 		color = Color3.fromRGB(120, 235, 255),
-		lane = 0.01,
+		egg = 0.01,
+		golden = 0.2,
 		roll = 0.02,
 	},
 	{
@@ -42,7 +47,8 @@ Mutations.list = {
 		income = 8,
 		value = 4.5,
 		color = Color3.fromRGB(255, 110, 210),
-		lane = 0.0025,
+		egg = 0.0025,
+		golden = 0.05,
 		roll = 0.005,
 	},
 } :: { Mutation }
@@ -52,8 +58,8 @@ for _, m in Mutations.list do
 	Mutations.byId[m.id] = m
 end
 
--- Picks a mutation (or nil for a normal brainrot). `source` is "lane" or "roll";
--- `boost` multiplies every chance (events and theme perks).
+-- Picks a mutation (or nil for a normal brainrot). `source` is "egg", "golden"
+-- or "roll"; `boost` multiplies every chance (luck from events and theme perks).
 function Mutations.roll(source: string, boost: number?): string?
 	local r = math.random()
 	for i = #Mutations.list, 1, -1 do
@@ -77,7 +83,7 @@ function Mutations.valueMultiplier(id: string?): number
 	return if m then m.value else 1
 end
 
--- What a brainrot is worth (its lane price with the mutation).
+-- What a brainrot is worth (its price with the mutation).
 function Mutations.value(def, id: string?): number
 	return math.floor(def.price * Mutations.valueMultiplier(id))
 end

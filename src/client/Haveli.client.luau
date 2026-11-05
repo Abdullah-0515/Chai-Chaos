@@ -99,12 +99,19 @@ end
 local function refresh()
 	local level = player:GetAttribute("HaveliLevel") or 1
 	local info = Config.HAVELI_LEVELS[level]
-	levelLabel.Text = ("Level %d · %s · %d plots"):format(level, info.name, info.plots)
+	levelLabel.Text = ("Level %d · %s · %d plots · %d %s"):format(
+		level,
+		info.name,
+		info.plots,
+		info.incubators,
+		if info.incubators == 1 then "incubator" else "incubators"
+	)
 	local nextInfo = Config.HAVELI_LEVELS[level + 1]
 	if nextInfo then
-		nextLabel.Text = ("Next: %s · %d plots%s"):format(
+		nextLabel.Text = ("Next: %s · %d plots · %d incubators%s"):format(
 			nextInfo.name,
 			nextInfo.plots,
+			nextInfo.incubators,
 			if nextInfo.unlock then " · " .. nextInfo.unlock else ""
 		)
 		upgradeButton.Text = "Upgrade for " .. Format.rupees(nextInfo.cost)

@@ -413,6 +413,7 @@ local function decorate(model: Model, def: Brainrots.Def, mutation: string?)
 	local pivot = model:GetPivot()
 	local center = pivot:PointToObjectSpace(boxCFrame.Position)
 	local bottom = center.Y - boxSize.Y / 2
+	model:SetAttribute("Height", boxSize.Y)
 
 	local ringSize = math.max(boxSize.X, boxSize.Z) * 1.15
 	local ring = newPart(

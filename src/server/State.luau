@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
+local Gear = require(Shared.Gear)
 
 local State = {}
 
@@ -28,15 +29,38 @@ function State.newProfile(player: Player, data: any, canSave: boolean)
 		lockedUntil = 0,
 		lockReadyAt = 0,
 		protectedUntil = 0,
+		incubating = {}, -- [slot] = egg hatching in that incubator
+		egg = nil, -- the egg being carried
+		ride = nil, -- { def, mutation, model } of the brainrot being ridden
 	}
 end
 
 -- Quest progress: any module can report what a player did; QuestBook listens.
 State.tracker = nil :: ((any, string, number) -> ())?
+State.biomeTracker = nil :: ((any, string) -> ())?
 function State.track(profile, kind: string, amount: number?)
 	if State.tracker then
 		State.tracker(profile, kind, amount or 1)
 	end
+end
+function State.trackBiome(profile, biomeId: string)
+	if State.biomeTracker then
+		State.biomeTracker(profile, biomeId)
+	end
+end
+
+-- Sounds play on the player's screen (see Sounds.luau and Sounds.client.luau).
+function State.sound(player: Player, name: string, position: Vector3?)
+	Remotes.PlaySound:FireClient(player, name, position)
+end
+function State.soundAll(name: string)
+	Remotes.PlaySound:FireAllClients(name, nil)
+end
+
+-- Gear and tracker level, for the HUD and the radar.
+function State.syncGear(profile)
+	profile.player:SetAttribute("Gear", Gear.encode(profile.data.gear))
+	profile.player:SetAttribute("TrackerLevel", profile.data.trackerLevel)
 end
 
 function State.notify(player: Player, kind: string, text: string)

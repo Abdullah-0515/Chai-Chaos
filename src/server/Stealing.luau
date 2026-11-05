@@ -21,6 +21,7 @@ local Models = require(script.Parent.Models)
 local Mover = require(script.Parent.Mover)
 local Havelis = require(script.Parent.Havelis)
 local Shop = require(script.Parent.Shop)
+local EggSystem = require(script.Parent.EggSystem)
 
 local Stealing = {}
 
@@ -94,6 +95,7 @@ local function unslow(thief: Player)
 	local profile = State.profiles[thief]
 	if profile then
 		profile.carrySpeed = nil
+		profile.carryingBrainrot = false
 		Havelis.applyWalkSpeed(profile)
 	end
 end
@@ -178,6 +180,9 @@ function Stealing.start(thief: Player, model: Model)
 	if carrying[thief] then
 		return deny(thief, "You are already carrying a brainrot!")
 	end
+	if thiefProfile.egg then
+		return deny(thief, "Take your egg home first!")
+	end
 
 	local now = workspace:GetServerTimeNow()
 	if entry.def.questOnly then
@@ -245,6 +250,7 @@ function Stealing.start(thief: Player, model: Model)
 		* (if entry.mutation then Config.CARRY_MUTATION_SPEED else 1)
 		* (Themes.perk(owner.data.theme, "thiefSlow") or 1)
 	thiefProfile.carrySpeed = slow
+	thiefProfile.carryingBrainrot = true
 	Havelis.applyWalkSpeed(thiefProfile)
 
 	local marker, tag = markThief(character)
@@ -270,6 +276,7 @@ function Stealing.start(thief: Player, model: Model)
 		"alert",
 		("Chor! Chor! %s stole your %s! Bonk them with your chappal!"):format(thief.DisplayName, name)
 	)
+	State.sound(owner.player, "ChorAlert")
 	State.notify(thief, "info", "Run through your own haveli door to keep it! You are slower while carrying it.")
 end
 
@@ -290,7 +297,24 @@ function Stealing.bonk(player: Player)
 		local thiefRoot = State.rootPart(thief)
 		if thief ~= player and thiefRoot and (thiefRoot.Position - root.Position).Magnitude <= range then
 			State.notify(thief, "bad", player.DisplayName .. " bonked you with a chappal!")
+			State.sound(thief, "Bonk")
+			State.sound(player, "Bonk")
 			Stealing.returnToOwner(thief, "bonk")
+			return
+		end
+	end
+	-- a bonk also knocks an egg out of someone's hands
+	for other, otherProfile in State.profiles do
+		local otherRoot = State.rootPart(other)
+		if
+			other ~= player
+			and otherProfile.egg
+			and otherRoot
+			and (otherRoot.Position - root.Position).Magnitude <= range
+		then
+			State.sound(other, "Bonk")
+			State.sound(player, "Bonk")
+			EggSystem.drop(other, "bonk")
 			return
 		end
 	end

@@ -14,6 +14,7 @@ local Format = require(Shared.Format)
 local Mutations = require(Shared.Mutations)
 local Themes = require(Shared.Themes)
 local Events = require(Shared.Events)
+local Gear = require(Shared.Gear)
 
 local State = require(script.Parent.State)
 local Models = require(script.Parent.Models)
@@ -54,7 +55,7 @@ function Havelis.incomeMultiplier(profile): number
 	local mult = (1 + Config.REBIRTH_BONUS * profile.data.rebirths) * (Themes.perk(theme, "income") or 1)
 	local event = Events.current()
 	if event then
-		mult *= (event.incomeMult or 1) * (Themes.perk(theme, "eventIncome") or 1)
+		mult *= (event.cashMult or 1) * (Themes.perk(theme, "eventIncome") or 1)
 	end
 	return mult
 end
@@ -73,16 +74,23 @@ function Havelis.hasFreePlot(profile): boolean
 	return profile.haveli ~= nil and #profile.owned < Havelis.plotCount(profile)
 end
 
+-- Running speed on foot: the theme perk and speed gear.
 function Havelis.walkSpeed(profile): number
-	return Config.WALK_SPEED * (Themes.perk(profile.data.theme, "walkSpeed") or 1)
+	return Config.WALK_SPEED
+		* (Themes.perk(profile.data.theme, "walkSpeed") or 1)
+		* Gear.best(profile.data.gear, "speed")
 end
 
--- Sets the player's walk speed (slower while carrying a stolen brainrot).
+-- Sets the player's speed: on foot or riding, slower while carrying a stolen
+-- brainrot, and slower in hazards like mud and sandstorms.
 function Havelis.applyWalkSpeed(profile)
 	local character = profile.player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		humanoid.WalkSpeed = Havelis.walkSpeed(profile) * (profile.carrySpeed or 1)
+		humanoid.WalkSpeed = Havelis.walkSpeed(profile)
+			* (profile.rideSpeed or 1)
+			* (profile.carrySpeed or 1)
+			* (profile.hazardSpeed or 1)
 	end
 end
 
@@ -157,8 +165,30 @@ function Havelis.updateGalla(profile)
 	profile.player:SetAttribute("Galla", math.floor(profile.data.galla))
 end
 
--- Turns steal/sell prompts on or off and updates the sign and the laser.
+-- Tells the player's screen which brainrots they own, for the Brainrots
+-- window (ride and sell): "uid|key|carried" separated by commas.
+function Havelis.syncOwned(profile)
+	local items = {}
+	for _, entry in profile.owned do
+		table.insert(
+			items,
+			("%d|%s|%s"):format(
+				entry.uid,
+				Mutations.key(entry.def.id, entry.mutation),
+				if entry.carrier then "1" else "0"
+			)
+		)
+	end
+	local text = table.concat(items, ",")
+	if profile.player:GetAttribute("Owned") ~= text then
+		profile.player:SetAttribute("Owned", text)
+	end
+end
+
+-- Turns steal prompts on or off and updates the sign, the laser and the
+-- player's list of brainrots.
 function Havelis.refreshPrompts(profile)
+	Havelis.syncOwned(profile)
 	local h = profile.haveli
 	if not h then
 		return
@@ -173,10 +203,6 @@ function Havelis.refreshPrompts(profile)
 				"Active",
 				open and entry.carrier == nil and entry.arrived and not Havelis.isLocker(entry.plot)
 			)
-		end
-		local sell = findPrompt(entry.model, "SellPrompt")
-		if sell then
-			sell:SetAttribute("Active", entry.carrier == nil)
 		end
 	end
 	paintPlots(h, profile)
@@ -320,12 +346,6 @@ local function addEntry(profile, def, mutation: string?, model: Model, arrived: 
 	local primary = model.PrimaryPart :: BasePart
 	local name = Mutations.displayName(def, mutation)
 	if not def.questOnly then
-		local sell = makePrompt(primary, "SellPrompt", "Sell", 0.6, "owner")
-		sell.ObjectText = ("%s  ·  %s"):format(
-			name,
-			Format.rupees(math.floor(Havelis.entryValue(entry) * Config.SELL_RATE))
-		)
-		sell:SetAttribute("OwnerId", profile.player.UserId)
 		local stealText = if Config.stealsCostRobux() then "Steal (1 Chor Pass)" else "Steal"
 		local steal = makePrompt(primary, "StealPrompt", stealText, Config.STEAL_HOLD_TIME, "others")
 		steal.ObjectText = ("%s (%s)"):format(name, def.rarity)
@@ -339,7 +359,7 @@ local function addEntry(profile, def, mutation: string?, model: Model, arrived: 
 end
 
 -- Adds a brainrot to a player's haveli. Pass the model if it already exists
--- (bought from the lane or stolen); otherwise a new one walks in from the door.
+-- (stolen, or coming back from a ride); otherwise a new one walks in from the door.
 -- Returns the entry and whether this is the first time the player got it.
 -- `quiet` skips the Collection Book message (the Kismat reveal shows it instead).
 function Havelis.adopt(profile, def, mutation: string?, model: Model?, quiet: boolean?)
@@ -396,6 +416,7 @@ function Havelis.clearBrainrots(profile)
 		entry.model:Destroy()
 	end
 	table.clear(profile.owned)
+	Havelis.syncOwned(profile)
 end
 
 -- Gives the player the first empty haveli and puts their saved brainrots on their plots.
@@ -460,6 +481,12 @@ function Havelis.teleportHome(profile)
 	local h = profile.haveli
 	local character = profile.player.Character
 	if h and character then
+		if workspace.StreamingEnabled then
+			-- load the haveli on the player's screen first, so they don't fall through the floor
+			pcall(function()
+				profile.player:RequestStreamAroundAsync(h.spawn.Position, 3)
+			end)
+		end
 		character:PivotTo(h.spawn)
 	end
 end
@@ -492,6 +519,7 @@ function Havelis.upgrade(player: Player)
 			if nextLevel.unlock then " " .. nextLevel.unlock .. "." else ""
 		)
 	)
+	State.sound(player, "Upgrade")
 	State.track(profile, "upgrade")
 end
 
@@ -568,27 +596,6 @@ function Havelis.lock(player: Player)
 	end)
 end
 
-function Havelis.sell(player: Player, model: Model)
-	local entry = State.entries[model]
-	if not entry or entry.owner.player ~= player or entry.carrier or entry.def.questOnly then
-		return
-	end
-	if not State.isNear(player, Mover.pivot(model).Position, Config.PROMPT_DISTANCE + 4) then
-		return
-	end
-	local profile = entry.owner
-	local amount = math.floor(Havelis.entryValue(entry) * Config.SELL_RATE)
-	Havelis.remove(profile, entry)
-	model:Destroy()
-	State.addRupees(profile, amount)
-	State.notify(
-		player,
-		"good",
-		("Sold %s for %s"):format(Mutations.displayName(entry.def, entry.mutation), Format.rupees(amount))
-	)
-	State.track(profile, "sell")
-end
-
 local function collectGalla(h, hit: BasePart)
 	local profile = h.owner
 	if not profile or Players:GetPlayerFromCharacter(hit.Parent) ~= profile.player then
@@ -608,6 +615,7 @@ local function collectGalla(h, hit: BasePart)
 	State.addRupees(profile, amount)
 	Havelis.updateGalla(profile)
 	State.notify(player, "good", "+" .. Format.rupees(amount) .. " from your galla!")
+	State.sound(player, "Coin")
 	State.track(profile, "collect", amount)
 end
 
