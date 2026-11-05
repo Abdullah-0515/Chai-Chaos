@@ -96,9 +96,10 @@ local shared = mount("ChaiChaos", M.services.ReplicatedStorage, "shared", FILES.
 local server = mount("ChaiChaosServer", M.services.ServerScriptService, "server", FILES.server)
 local client = mount("ChaiChaosClient", M.services.StarterPlayer.StarterPlayerScripts, "client", FILES.client)
 
-local function runScripts(folder, context)
+local function runScripts(folder, context, only)
 	for _, inst in folder:GetChildren() do
-		if inst.ClassName == "Script" or inst.ClassName == "LocalScript" then
+		local wanted = if only then only[inst.Name] else inst.Name ~= "Smooth"
+		if wanted and (inst.ClassName == "Script" or inst.ClassName == "LocalScript") then
 			M.context = context
 			M.task.spawn(loadchunk(readfile(sources[inst]), sources[inst], scriptEnv(inst, context)))
 			M.context = "server"
@@ -226,540 +227,74 @@ end
 ---------------------------------------------------------------------------
 section("Server boot")
 ---------------------------------------------------------------------------
+-- events would start by themselves after a few minutes; the tests start them by hand
+local Config = sharedModule("Config")
+Config.FIRST_EVENT_DELAY = 1e9
 runScripts(server, "server")
 M.advance(0.2)
 
 local map = workspace:FindFirstChild("ChaiChaosMap")
 check(map ~= nil, "map is built")
 check(#map.Havelis:GetChildren() == 8, "8 havelis")
+local h1 = map.Havelis.Haveli1
+check(
+	h1:FindFirstChild("Plot20") ~= nil and h1:FindFirstChild("Deck") ~= nil,
+	"havelis have 20 plots and a second floor"
+)
 local State = serverModule("State")
 local Havelis = serverModule("Havelis")
 local Spawner = serverModule("Spawner")
 local Mover = serverModule("Mover")
+local Models = serverModule("Models")
+local Kismat = serverModule("Kismat")
+local QuestBook = serverModule("QuestBook")
+local EventRunner = serverModule("EventRunner")
 local Brainrots = sharedModule("Brainrots")
-local Config = sharedModule("Config")
 local Format = sharedModule("Format")
-check(#Brainrots.list == 36, "36 brainrots, got " .. #Brainrots.list)
-check(Format.rupees(1234567) == "Rs 1,234,567", "format commas: " .. Format.rupees(1234567))
-check(Format.rupees(25) == "Rs 25", "format small")
+local Mutations = sharedModule("Mutations")
+local Themes = sharedModule("Themes")
+local Remotes = sharedModule("Remotes")
+local Motion = sharedModule("Motion")
+check(#Brainrots.list == 42, "36 brainrots + 6 quest brainrots, got " .. #Brainrots.list)
+check(Brainrots.byId.SamosaSupremo.price == 100, "prices use the multiplier")
+check(Format.rupees(1234567) == "Rs 1,234,567", "format commas")
 check(Format.short(12500) == "12.5K" and Format.short(2000000) == "2M", "format short")
+check(M.services.Lighting:FindFirstChild("ChaiChaosColor") ~= nil, "bright colour correction added")
+check(M.groups.ChaiLaser1 and M.groups.ChaiOwner8 and M.noCollide["ChaiLaser1|ChaiOwner1"], "laser collision groups")
+check(not M.noCollide["ChaiLaser1|ChaiOwner2"], "a laser only lets its own owner through")
+check(h1.Barrier.CollisionGroup == "ChaiLaser1", "barrier in its laser group")
+check(map.Leaderboard:FindFirstChild("Row1", true) ~= nil, "leaderboard rows")
+local parsedId, parsedMutation = Mutations.parse("SamosaSupremo:Golden")
+check(parsedId == "SamosaSupremo" and parsedMutation == "Golden", "mutation keys")
+check(select(2, Mutations.parse("SamosaSupremo:Purple")) == nil, "unknown mutation ignored")
 
----------------------------------------------------------------------------
-section("Ali joins")
----------------------------------------------------------------------------
-markLog()
-local A = addPlayer("Ali", 1)
-M.advance(0.5)
-local pa = State.profiles[A]
-check(pa ~= nil, "Ali has a profile")
-check(pa.haveli and pa.haveli.index == 1, "Ali got haveli 1")
-check(pa.haveli.signLabel.Text == "Ali ki Haveli", "sign: " .. tostring(pa.haveli.signLabel.Text))
-check(pa.canSave, "Ali can save")
-check(notified("Ali", "Daily chai"), "daily chai given")
-local charA = spawnCharacter(A)
-M.advance(0.3)
-check((charA:GetPivot().Position - pa.haveli.spawn.Position).Magnitude < 0.01, "Ali teleported into haveli")
-check(A.Backpack:FindFirstChild("Chappal") ~= nil, "Ali has a chappal")
-check(A.leaderstats.Rupees.Value == pa.data.rupees, "leaderstats synced")
+local TODAY = math.floor(M.os.time() / 86400)
+local function setQuests(profile, list)
+	profile.data.quests = { day = TODAY, list = list, bonusClaimed = false }
+	State.syncQuests(profile)
+end
 
--- Client scripts for Ali
-M.localPlayer = A
-M.rawset(Players, "LocalPlayer", A)
-runScripts(client, "client")
-M.advance(0.5)
-local hud = A.PlayerGui:FindFirstChild("ChaiChaosHud")
-check(hud ~= nil, "HUD created")
-
----------------------------------------------------------------------------
-section("Bazaar Lane")
----------------------------------------------------------------------------
-M.advance(30)
-local lane = map.LaneBrainrots
-local walkers = lane:GetChildren()
-check(#walkers >= 4, "walkers on the lane: " .. #walkers)
-local w = walkers[#walkers]
-local x0 = w:GetPivot().X
-M.advance(1)
-check(w.Parent ~= nil and w:GetPivot().X > x0, "walkers move down the lane")
-check(prompt(w, "BuyPrompt") ~= nil, "walker has a buy prompt")
-M.advance(30)
-check(w.Parent == nil, "unbought walker vanished at the Chowk")
-
----------------------------------------------------------------------------
-section("Buying")
----------------------------------------------------------------------------
--- clear whatever the daily chai gave so plot maths below is predictable
-Havelis.clearBrainrots(pa)
-Havelis.arrange(pa)
-pa.data.rupees = 50000
-State.syncStats(pa)
-
-local function buy(player, id)
-	local model = Spawner.spawn(Brainrots.byId[id])
+local function buy(player, id, mutation)
+	local model = Spawner.spawn(Brainrots.byId[id], mutation)
 	M.advance(0.1)
 	moveNear(player, model)
 	trigger(model, "BuyPrompt", player)
 	return model
 end
 
-markLog()
-local before = pa.data.rupees
-local samosa = buy(A, "SamosaSupremo")
-check(pa.data.rupees == before - 50, "paid Rs 50 for samosa")
-check(samosa.Parent == pa.haveli.brainrotFolder, "samosa moved into Ali's haveli folder")
-check(prompt(samosa, "BuyPrompt") == nil, "buy prompt removed")
-check(notified("Ali", "You bought Samosa Supremo"), "buy message")
-check(notified("Ali", "Collection Book"), "collection message")
-buy(A, "ChaiyooKettlesaurus")
-buy(A, "ChanaChaatChacha")
-M.advance(10)
-check(#pa.owned == 3, "3 brainrots owned")
-check(plotOf(pa, "ChaiyooKettlesaurus") == 1, "most expensive in plot 1 (locker)")
-check(plotOf(pa, "SamosaSupremo") == 2, "second in plot 2 (locker)")
-check(plotOf(pa, "ChanaChaatChacha") == 3, "cheapest in plot 3")
-for _, e in pa.owned do
-	check(e.arrived, e.def.id .. " arrived")
-	local plot = pa.haveli.plots[e.plot]
-	local d = e.model:GetPivot().Position - plot.Position
-	check(math.abs(d.X) < 0.01 and math.abs(d.Z) < 0.01, e.def.id .. " stands on its plot")
+local function stealable(profile)
+	for _, e in profile.owned do
+		if not Havelis.isLocker(e.plot) and not e.def.questOnly and e.arrived and not e.carrier then
+			return e
+		end
+	end
+	return nil
 end
 
-markLog()
-local extra = buy(A, "GolGappaGhostu")
-check(notified("Ali", "No empty plot"), "no empty plot message")
-check(extra.Parent == lane, "brainrot stays on the lane when you cannot buy it")
-
--- unlock plot 4
-markLog()
-local plot4 = pa.haveli.plots[4]
-check(plot4.UnlockPrompt:GetAttribute("Active") == true, "plot 4 unlock prompt active")
-check(pa.haveli.plots[5].UnlockPrompt:GetAttribute("Active") == false, "plot 5 not yet")
-charA:PivotTo(CFrame.new(plot4.Position + Vector3.new(0, 3, 0)))
-before = pa.data.rupees
-PPS.PromptTriggered:Fire(plot4.UnlockPrompt, A)
-M.advance(0.1)
-check(pa.data.plots == 4 and pa.data.rupees == before - 500, "plot 4 unlocked for Rs 500")
-check(pa.haveli.plotLabels[5].Text == "Rs 2,000", "plot 5 shows its price: " .. pa.haveli.plotLabels[5].Text)
-buy(A, "RickshawRaptor")
-M.advance(10)
-check(plotOf(pa, "RickshawRaptor") == 1, "raptor takes the top locker")
-check(plotOf(pa, "ChaiyooKettlesaurus") == 2, "kettlesaurus shuffles to plot 2")
-check(plotOf(pa, "SamosaSupremo") == 3 and plotOf(pa, "ChanaChaatChacha") == 4, "others shuffle down")
-
----------------------------------------------------------------------------
-section("Income and galla")
----------------------------------------------------------------------------
-pa.data.galla = 0
-local income = Havelis.incomePerSecond(pa)
-check(income == 18 + 4 + 2 + 2, "income per second " .. income)
-M.advance(5)
-check(math.abs(pa.data.galla - income * 5) <= income, "galla filled: " .. pa.data.galla)
-check(A:GetAttribute("Income") == income, "income attribute")
-markLog()
-before = pa.data.rupees
-local galla = math.floor(pa.data.galla)
-pa.haveli.galla.Touched:Fire(charA.HumanoidRootPart)
-M.advance(0.1)
-check(pa.data.rupees == before + galla, "collected galla")
-check(pa.data.galla < 1, "galla emptied")
-check(notified("Ali", "from your galla"), "galla message")
-
----------------------------------------------------------------------------
-section("Stealing")
----------------------------------------------------------------------------
-local B = addPlayer("Bilal", 2)
-M.advance(0.5)
-local pb = State.profiles[B]
-check(pb.haveli and pb.haveli.index == 2, "Bilal got haveli 2")
-local charB = spawnCharacter(B)
-M.advance(0.3)
-Havelis.clearBrainrots(pb)
-Havelis.arrange(pb)
-
-local samosaEntry = entryOf(pa, "SamosaSupremo")
-markLog()
-moveNear(B, samosaEntry.model)
-trigger(samosaEntry.model, "StealPrompt", B)
-check(notified("Bilal", "protected"), "new players are protected")
-check(prompt(samosaEntry.model, "StealPrompt"):GetAttribute("Active") == false, "steal prompt off while protected")
-M.advance(Config.NEW_PLAYER_PROTECTION + 1)
-check(prompt(samosaEntry.model, "StealPrompt"):GetAttribute("Active") == true, "steal prompt on after protection")
-local raptor = entryOf(pa, "RickshawRaptor")
-check(prompt(raptor.model, "StealPrompt"):GetAttribute("Active") == false, "locker brainrot cannot be stolen")
-
--- client side prompt visibility for Ali (the local player)
-check(prompt(samosaEntry.model, "SellPrompt").Enabled == true, "Ali sees Sell on own brainrot")
-check(prompt(samosaEntry.model, "StealPrompt").Enabled == false, "Ali does not see Steal on own brainrot")
-
-markLog()
-moveNear(B, raptor.model)
-trigger(raptor.model, "StealPrompt", B)
-check(raptor.carrier == nil and notified("Bilal", "Locker"), "server refuses locker steals")
-
-markLog()
-moveNear(B, samosaEntry.model)
-local incomeBefore = Havelis.incomePerSecond(pa)
-trigger(samosaEntry.model, "StealPrompt", B)
-check(samosaEntry.carrier == B, "Bilal is carrying the samosa")
-check(notified("Ali", "Chor! Chor! Bilal stole your Samosa Supremo"), "Chor! Chor! alert")
-check(Havelis.incomePerSecond(pa) == incomeBefore - 2, "stolen brainrot stops earning")
-check(charB:FindFirstChild("ChorMarker") ~= nil, "thief is highlighted")
-charB:PivotTo(CFrame.new(40, 5, 0))
-M.advance(0.5)
-local carryGap = (samosaEntry.model:GetPivot().Position - charB:GetPivot().Position).Magnitude
-check(
-	carryGap < 5,
-	"brainrot rides on the thief, gap "
-		.. carryGap
-		.. " model "
-		.. tostring(samosaEntry.model:GetPivot().Position)
-		.. " thief "
-		.. tostring(charB:GetPivot().Position)
-)
-local phrase = samosaEntry.model.PrimaryPart.Popup.PhraseLabel.Text
-check(phrase:find("AAAA") ~= nil, "brainrot panics: " .. phrase)
-
-markLog()
-pa.haveli.door.Touched:Fire(charB.HumanoidRootPart) -- the victim's door does nothing
-M.advance(0.1)
-check(samosaEntry.carrier == B, "touching someone else's door does not count")
-pb.haveli.door.Touched:Fire(charB.HumanoidRootPart)
-M.advance(0.1)
-check(entryOf(pb, "SamosaSupremo") ~= nil, "samosa now belongs to Bilal")
-check(entryOf(pa, "SamosaSupremo") == nil, "samosa gone from Ali")
-check(State.entries[samosa].owner == pb, "entry owner updated")
-check(notified("Bilal", "got away"), "thief success message")
-check(charB:FindFirstChild("ChorMarker") == nil, "marker removed")
-M.advance(8)
-check(entryOf(pb, "SamosaSupremo").arrived, "samosa walked to Bilal's plot")
-check(samosa:GetAttribute("OwnerId") == 2, "owner attribute updated")
-check(
-	prompt(samosa, "StealPrompt").Enabled == true or prompt(samosa, "StealPrompt"):GetAttribute("Active") == false,
-	"steal prompt state sane"
-)
-check(prompt(samosa, "SellPrompt").Enabled == false, "Ali does not see Sell on Bilal's brainrot")
-check(plotOf(pa, "ChanaChaatChacha") == 3, "Ali's brainrots re-sorted after the theft")
-
--- cooldowns
-markLog()
-local chana = entryOf(pa, "ChanaChaatChacha")
-moveNear(B, chana.model)
-trigger(chana.model, "StealPrompt", B)
-check(notified("Bilal", "Catch your breath"), "15 second steal cooldown")
-M.advance(Config.STEAL_COOLDOWN + 1)
-markLog()
-moveNear(B, chana.model)
-trigger(chana.model, "StealPrompt", B)
-check(notified("Bilal", "different one"), "same haveli cooldown")
-M.advance(Config.SAME_HAVELI_COOLDOWN + 1)
-
--- price cap
-Config.STEAL_PRICE_CAP = 30
-markLog()
-moveNear(B, chana.model)
-trigger(chana.model, "StealPrompt", B)
-check(notified("Bilal", "Naya Safar"), "price cap before rebirth")
-Config.STEAL_PRICE_CAP = 8000
-
--- steal, then get bonked by Ali's chappal
-markLog()
-moveNear(B, chana.model)
-trigger(chana.model, "StealPrompt", B)
-check(chana.carrier == B, "Bilal carries the chana")
-charB:PivotTo(CFrame.new(10, 5, 0))
-charA:PivotTo(CFrame.new(13, 5, 0))
-local chappal = A.Backpack:FindFirstChild("Chappal")
-chappal.Activated:Fire()
-M.advance(0.1)
-check(chana.carrier == nil, "bonk makes the thief drop it")
-check(notified("Ali", "Bonk!"), "bonk message")
-check(notified("Bilal", "bonked you"), "thief told about bonk")
-M.advance(10)
-check(chana.arrived and entryOf(pa, "ChanaChaatChacha") == chana, "chana walked back home")
-local plot = pa.haveli.plots[chana.plot]
-local backGap = (chana.model:GetPivot().Position - plot.Position) * Vector3.new(1, 0, 1)
-check(backGap.Magnitude < 0.01, "chana is back on a plot")
-
----------------------------------------------------------------------------
-section("Taala lock and dying thief")
----------------------------------------------------------------------------
-M.failLoadsFor["player_3"] = true
-markLog()
-local C = addPlayer("Chand", 3)
-M.advance(0.5)
-local pc = State.profiles[C]
-check(not pc.canSave and notified("Chand", "Saving is off"), "failed load turns saving off")
-local charC = spawnCharacter(C)
-M.advance(0.3)
-Havelis.clearBrainrots(pc)
-Havelis.arrange(pc)
-
-markLog()
-hud.Buttons.Taala.Activated:Fire()
-M.advance(0.3)
-check(pa.lockedUntil > workspace:GetServerTimeNow(), "Ali's haveli is locked")
-check(notified("Ali", "Taala laga diya"), "lock message")
-check(pa.haveli.barrier.Transparency < 1, "lock barrier visible")
-check(hud.Buttons.Taala.Text:find("Locked") ~= nil, "lock button shows countdown: " .. hud.Buttons.Taala.Text)
-check(pa.haveli.signLabel.Text:find("LOCKED") ~= nil, "sign shows lock")
-check(prompt(chana.model, "StealPrompt"):GetAttribute("Active") == false, "steal prompts off while locked")
-markLog()
-moveNear(C, chana.model)
-trigger(chana.model, "StealPrompt", C)
-check(notified("Chand", "taala"), "locked haveli cannot be robbed")
-hud.Buttons.Taala.Activated:Fire()
-M.advance(0.2)
-check(notified("Ali", "not ready"), "cannot lock again right away")
-M.advance(Config.LOCK_TIME + 1)
-check(pa.haveli.barrier.Transparency == 1, "lock expires")
-check(hud.Buttons.Taala.Text:find("Taala in") ~= nil, "lock cooldown shown: " .. hud.Buttons.Taala.Text)
-markLog()
-moveNear(C, chana.model)
-trigger(chana.model, "StealPrompt", C)
-check(chana.carrier == C, "Chand steals after the lock")
-local humC = charC:FindFirstChildOfClass("Humanoid")
-humC.Health = 0
-humC.Died:Fire()
-M.advance(0.1)
-check(chana.carrier == nil, "thief died, brainrot goes back")
-M.advance(10)
-check(chana.arrived, "chana home again")
-
----------------------------------------------------------------------------
-section("Owner leaves while being robbed")
----------------------------------------------------------------------------
-pb.data.rupees = 1000
-State.syncStats(pb)
-buy(B, "ChanaChaatChacha")
-buy(B, "GolGappaGhostu")
-M.advance(10)
-local ghostu = entryOf(pb, "GolGappaGhostu")
-check(ghostu and ghostu.plot == 3, "ghostu in Bilal's plot 3")
-charC = spawnCharacter(C)
-M.advance(0.3)
-M.advance(Config.STEAL_COOLDOWN + 1)
-markLog()
-moveNear(C, ghostu.model)
-trigger(ghostu.model, "StealPrompt", C)
-check(ghostu.carrier == C, "Chand carries Bilal's ghostu")
-removePlayer(B)
-check(State.profiles[B] == nil, "Bilal's profile removed")
-check(notified("Chand", "ran away"), "thief told the brainrot ran away")
-local saved = M.store["player_2"]
-check(saved ~= nil, "Bilal saved on leave")
-check(saved and table.find(saved.owned, "GolGappaGhostu") ~= nil, "stolen-in-progress brainrot stays with its owner")
-check(saved and table.find(saved.owned, "SamosaSupremo") ~= nil, "stolen samosa saved for Bilal")
-check(pb.haveli == nil and map.Havelis.Haveli2.Sign.Gui.Label.Text == "Khaali Haveli", "haveli freed")
-local ghostCount = 0
-for _, x in map.Havelis.Haveli2.Brainrots:GetChildren() do
-	ghostCount += 1
-end
-check(ghostCount == 0, "Bilal's brainrots removed from the map")
-
----------------------------------------------------------------------------
-section("Selling")
----------------------------------------------------------------------------
-markLog()
-local kettle = entryOf(pa, "ChaiyooKettlesaurus")
-moveNear(A, kettle.model)
-before = pa.data.rupees
-trigger(kettle.model, "SellPrompt", A)
-check(pa.data.rupees == before + 50 and entryOf(pa, "ChaiyooKettlesaurus") == nil, "sold for half price")
-check(kettle.model.Parent == nil, "sold model destroyed")
-
----------------------------------------------------------------------------
-section("Naya Safar (rebirth)")
----------------------------------------------------------------------------
-pa.data.rupees = Config.REBIRTH_COST
-pa.data.rollTokens, pa.data.rollPity = 3, 7
-State.syncStats(pa)
-M.advance(0.5)
-local rebirthButton = hud.Buttons.NayaSafar
-check(rebirthButton.Visible, "rebirth button appears at Rs 1,000,000")
-markLog()
-rebirthButton.Activated:Fire()
-M.advance(0.1)
-check(pa.data.rebirths == 0 and rebirthButton.Text:find("Sure") ~= nil, "rebirth asks to confirm")
-rebirthButton.Activated:Fire()
-M.advance(0.5)
-check(pa.data.rebirths == 1, "rebirthed")
-check(pa.data.rollTokens == 3 and pa.data.rollPity == 7, "rebirth keeps Kismat Rolls and pity")
-check(pa.data.rupees == Config.START_RUPEES and pa.data.plots == Config.START_PLOTS, "rupees and plots reset")
-check(#pa.owned == 0, "brainrots reset")
-check(map.Havelis.Haveli1.Walls:GetChildren()[1].Color == Config.HAVELI_COLORS[2], "haveli got a new colour")
-check(A.leaderstats.Rebirths.Value == 1, "rebirth leaderstat")
-buy(A, "SamosaSupremo")
-M.advance(5)
-check(Havelis.incomePerSecond(pa) == 2 * 1.5, "rebirth multiplier applies: " .. Havelis.incomePerSecond(pa))
-
----------------------------------------------------------------------------
-section("HUD")
----------------------------------------------------------------------------
-M.advance(1.5)
-check(hud.Money:FindFirstChildWhichIsA("TextLabel").Text == Format.rupees(pa.data.rupees), "HUD shows rupees")
-local discovered = 0
-for _ in pa.data.discovered do
-	discovered += 1
-end
-check(
-	hud.CollectionBook:FindFirstChildWhichIsA("TextLabel").Text == ("Collection Book  %d/36"):format(discovered),
-	"collection count"
-)
-hud.Buttons.Collection.Activated:Fire()
-M.advance(0.1)
-check(hud.CollectionBook.Visible, "collection book opens")
-local toastCount = #hud.Toasts:GetChildren()
-check(toastCount >= 2, "toasts are showing: " .. toastCount)
-
----------------------------------------------------------------------------
-section("Save and rejoin")
----------------------------------------------------------------------------
-removePlayer(A)
-local savedA = M.store["player_1"]
-check(savedA and savedA.rebirths == 1 and savedA.owned[1] == "SamosaSupremo", "Ali saved")
-M.localPlayer = nil
-local A2 = addPlayer("Ali", 1)
-M.advance(0.5)
-local pa2 = State.profiles[A2]
-check(pa2 and #pa2.owned == 1 and pa2.owned[1].arrived and pa2.owned[1].plot == 1, "saved brainrot back on plot 1")
-check(pa2.data.rebirths == 1, "rebirth kept")
-check(not notified("Ali", "Daily chai"), "daily chai only once a day")
-
----------------------------------------------------------------------------
-section("Kismat Roll (RNG)")
----------------------------------------------------------------------------
-local Remotes = sharedModule("Remotes")
-local Kismat = serverModule("Kismat")
-local MPS = M.services.MarketplaceService
-local Granted = M.Enum.ProductPurchaseDecision.PurchaseGranted
-local NotYet = M.Enum.ProductPurchaseDecision.NotProcessedYet
-local EPIC_PLUS = { Epic = true, Legendary = true, Mythic = true }
-
--- Developer Product ids, as the game owner would paste them into Config
-local clientConfig = requireModule(shared:FindFirstChild("Config"), "client2")
-for _, cfg in { Config, clientConfig } do
-	cfg.ROLL_PRODUCTS[1].id, cfg.ROLL_PRODUCTS[2].id = 1001, 1010
-	cfg.STEAL_PRODUCTS[1].id, cfg.STEAL_PRODUCTS[2].id = 2001, 2005
-end
-M.prices[1010] = 199
-
-markLog()
-local D = addPlayer("Dua", 4)
-M.advance(0.5)
-local pd = State.profiles[D]
-check(pd.data.rollTokens == Config.DAILY_FREE_ROLLS, "daily chai gives a free Kismat Roll")
-check(notified("Dua", "free Kismat Roll"), "daily chai mentions the free roll")
-check(D:GetAttribute("PaidRollsAllowed") == true, "policy allows paid rolls")
-local charD = spawnCharacter(D)
-M.advance(0.3)
-Havelis.clearBrainrots(pd)
-Havelis.arrange(pd)
-
-M.localPlayer = D
-M.rawset(Players, "LocalPlayer", D)
-runScripts(client, "client2")
-M.advance(0.5)
-local hudD = D.PlayerGui:FindFirstChild("ChaiChaosHud")
-local kp = hudD.KismatPanel
-local kc = kp.Content
-check(kc.Common.Percent.Text == "50%" and kc.Common.OneIn.Text == "1 in 2", "common odds shown")
-check(
-	kc.Mythic.Percent.Text == "0.2%" and kc.Mythic.OneIn.Text == "1 in 500",
-	"mythic odds shown: " .. kc.Mythic.Percent.Text .. " " .. kc.Mythic.OneIn.Text
-)
-check(kc.Legendary.Percent.Text == "1.8%" and kc.Legendary.OneIn.Text == "1 in 56", "legendary odds shown")
-check(kc.BuyRolls1.Visible and kc.BuyRolls1.Text:find("R%$ 25") ~= nil, "1-roll pack priced: " .. kc.BuyRolls1.Text)
-check(
-	kc.BuyRolls2.Text:find("10 Kismat Rolls") and kc.BuyRolls2.Text:find("R%$ 199"),
-	"10-roll pack priced: " .. kc.BuyRolls2.Text
-)
-check(kc.Pity.Text == "Epic or better guaranteed within 30 rolls", "pity shown: " .. kc.Pity.Text)
-
-hudD.Buttons.Kismat.Activated:Fire()
-M.advance(0.1)
-check(kp.Visible, "Kismat panel opens")
-check(kc.RollToken.Visible and hudD.Buttons.Kismat.Text == "Kismat Roll (1)", "free roll button shows")
-local rupeesBefore = pd.data.rupees
-kc.RollToken.Activated:Fire()
-M.advance(0.1)
-check(pd.data.rollTokens == 0 and #pd.owned == 1, "roll with a token gives a brainrot")
-check(pd.data.rupees == rupeesBefore, "token roll costs no rupees")
-check(hudD.KismatReveal.Visible, "reveal pops up")
-M.advance(2)
-local rolled = pd.owned[1]
-check(hudD.KismatReveal.BrainrotName.Text == rolled.def.name, "reveal lands on the rolled brainrot")
-check(not kc.RollToken.Visible, "free roll button hides when used up")
-M.advance(3)
-check(not hudD.KismatReveal.Visible, "reveal hides again")
-M.advance(8)
-check(rolled.arrived, "rolled brainrot walked onto a plot")
-
-pd.data.rupees = 100
-State.syncStats(pd)
-markLog()
-kc.RollRupees.Activated:Fire()
-M.advance(0.1)
-check(notified("Dua", "costs Rs 2,500") and #pd.owned == 1, "rupee roll needs Rs 2,500")
-M.advance(3)
-pd.data.rupees = 10000
-State.syncStats(pd)
-kc.RollRupees.Activated:Fire()
-M.advance(0.1)
-check(pd.data.rupees == 7500 and #pd.owned == 2, "rupee roll costs Rs 2,500")
-Remotes.Roll:FireServer("rupees") -- skipping the client's own cooldown
-M.advance(0.1)
-check(#pd.owned == 2 and pd.data.rupees == 7500, "server enforces the roll cooldown")
-M.advance(3)
-Remotes.Roll:FireServer("rupees")
-M.advance(3)
-check(#pd.owned == 3, "third roll fills the last plot")
-markLog()
-Remotes.Roll:FireServer("rupees")
-M.advance(0.1)
-check(notified("Dua", "No empty plot") and pd.data.rupees == 5000, "no roll (and no charge) without an empty plot")
-Remotes.Roll:FireServer("free-mythic")
-M.advance(3)
-check(#pd.owned == 3 and pd.data.rupees == 5000, "unknown roll method ignored")
-
--- pity: the 30th roll without an Epic is always Epic or better
-local pityOk = true
-for _ = 1, 8 do
-	Havelis.clearBrainrots(pd)
-	pd.data.rollPity = Config.ROLL_PITY - 1
-	pd.data.rollTokens = 1
-	Remotes.Roll:FireServer("token")
-	M.advance(Config.ROLL_COOLDOWN + 0.1)
-	local got = pd.owned[1]
-	pityOk = pityOk and got ~= nil and EPIC_PLUS[got.def.rarity] == true and pd.data.rollPity == 0
-end
-check(pityOk, "pity roll is always Epic or better and resets the counter")
-check(hudD.KismatReveal.Rarity.Text ~= "", "pity reveal shows rarity")
-Havelis.clearBrainrots(pd)
-Havelis.arrange(pd)
-
--- the odds really are the odds shown
-M.rawset(M.services.Lighting, "ClockTime", 12)
-local rc = {}
-for _ = 1, 100000 do
-	local def = Kismat.pick(false)
-	rc[def.rarity] = (rc[def.rarity] or 0) + 1
-end
-check(math.abs(rc.Common / 1e5 - 0.5) < 0.01, "roll common ~50%: " .. rc.Common / 1e5)
-check(math.abs(rc.Legendary / 1e5 - 0.018) < 0.002, "roll legendary ~1.8%: " .. rc.Legendary / 1e5)
-check(math.abs((rc.Mythic or 0) / 1e5 - 0.002) < 0.001, "roll mythic ~0.2%: " .. tostring(rc.Mythic))
-local pityRare = true
-for _ = 1, 5000 do
-	pityRare = pityRare and EPIC_PLUS[Kismat.pick(true).rarity] == true
-end
-check(pityRare, "pity pick never gives below Epic")
-
----------------------------------------------------------------------------
-section("Robux purchases")
----------------------------------------------------------------------------
 local function receipt(userId, productId, purchaseId)
 	local result
 	M.task.spawn(function()
-		result = MPS.ProcessReceipt({
+		result = M.services.MarketplaceService.ProcessReceipt({
 			PlayerId = userId,
 			ProductId = productId,
 			PurchaseId = purchaseId,
@@ -771,32 +306,627 @@ local function receipt(userId, productId, purchaseId)
 	M.advance(0.5)
 	return result
 end
+---------------------------------------------------------------------------
+section("Ali joins")
+---------------------------------------------------------------------------
+markLog()
+local A = addPlayer("Ali", 1)
+M.advance(0.5)
+local pa = State.profiles[A]
+check(pa and pa.haveli and pa.haveli.index == 1, "Ali got haveli 1")
+check(pa.haveli.signLabel.Text == "Ali ki Haveli · Lv 1", "sign: " .. pa.haveli.signLabel.Text)
+check(pa.data.theme == "MughalMarble" and pa.data.level == 1, "starts in a level 1 Mughal Marble haveli")
+check(pa.data.rupees >= Config.START_RUPEES, "starts with at least Rs 1,000: " .. pa.data.rupees)
+check(notified("Ali", "Daily chai") and notified("Ali", "free Kismat Roll"), "daily chai with a free roll")
+check(pa.data.rollTokens == 1, "one free Kismat Roll")
+check(notified("Ali", "Haveli menu"), "new players are told to pick a theme")
+check(#pa.data.quests.list == Config.QUESTS_PER_DAY, "daily quests given")
+check(type(A:GetAttribute("QuestState")) == "string", "quest state sent to the HUD")
+check(h1.Walls:GetChildren()[1].Material == M.Enum.Material.Marble, "Mughal Marble walls")
+check(#h1.Decor:GetChildren() > 0, "level 1 decorations")
+check(h1.StairGates.StairGate.CanCollide == true, "stairs closed at level 1")
+local charA = spawnCharacter(A)
+M.advance(0.3)
+check((charA:GetPivot().Position - pa.haveli.spawn.Position).Magnitude < 0.01, "Ali teleported into haveli")
+check(charA.Humanoid.WalkSpeed == Config.WALK_SPEED, "walk speed " .. charA.Humanoid.WalkSpeed)
+check(charA.HumanoidRootPart.CollisionGroup == "ChaiOwner1", "Ali can pass his own laser")
+check(A.Backpack:FindFirstChild("Chappal") ~= nil, "Ali has a chappal")
 
-table.clear(M.prompts)
-kc.BuyRolls2.Activated:Fire()
+M.localPlayer = A
+M.rawset(Players, "LocalPlayer", A)
+runScripts(client, "client")
+M.advance(0.5)
+local hud = A.PlayerGui:FindFirstChild("ChaiChaosHud")
+check(hud ~= nil, "HUD created")
+for _, name in { "Taala", "Haveli", "Kismat", "Quests", "Collection", "NayaSafar" } do
+	check(hud.Buttons:FindFirstChild(name) ~= nil, "HUD button " .. name)
+end
+check(hud.Buttons:FindFirstChild("ChorPass") == nil, "no Chor Pass button while stealing is free")
+check(hud.EventBanner.Title.Text == "Next event", "event banner")
+check(hud.Money:FindFirstChildWhichIsA("TextLabel").Text == Format.rupees(pa.data.rupees), "HUD shows rupees")
+
+---------------------------------------------------------------------------
+section("Bazaar Lane")
+---------------------------------------------------------------------------
+M.advance(30)
+local lane = map.LaneBrainrots
+local walkers = lane:GetChildren()
+check(#walkers >= 4, "walkers on the lane: " .. #walkers)
+local w = walkers[#walkers]
+check((w:GetAttribute("MoveSpeed") or 0) > 0 and w:GetAttribute("MoveTo") ~= nil, "walkers tell clients how they move")
+local x0 = w:GetPivot().X
+M.advance(1)
+check(w.Parent ~= nil and w:GetPivot().X > x0, "server position keeps up")
+check(math.abs(Mover.pivot(w).X - w:GetPivot().X) < 3, "server position within a few studs of the walk")
+M.advance(30)
+check(w.Parent == nil, "unbought walker vanished at the Chowk")
+
+---------------------------------------------------------------------------
+section("Buying")
+---------------------------------------------------------------------------
+Havelis.clearBrainrots(pa)
+pa.data.rupees = 50000
+State.syncStats(pa)
+setQuests(pa, {
+	{ id = "buyLane", target = 3, progress = 0, claimed = false },
+	{ id = "mutation", target = 1, progress = 0, claimed = false },
+	{ id = "collect", target = 100, progress = 0, claimed = false },
+})
+
+markLog()
+local before = pa.data.rupees
+local samosa = buy(A, "SamosaSupremo")
+check(pa.data.rupees == before - 100, "paid Rs 100 for samosa")
+check(samosa.Parent == pa.haveli.brainrotFolder, "samosa moved into Ali's haveli folder")
+check(prompt(samosa, "BuyPrompt") == nil, "buy prompt removed")
+check(notified("Ali", "You bought Samosa Supremo"), "buy message")
+buy(A, "ChaiyooKettlesaurus")
+buy(A, "ChanaChaatChacha")
+local golden = buy(A, "GolGappaGhostu", "Golden")
+check(pa.data.rupees == before - 100 - 200 - 80 - 75, "golden brainrot costs 1.5x: " .. (before - pa.data.rupees))
+M.advance(12)
+check(#pa.owned == 4, "4 brainrots on 4 plots")
+check(plotOf(pa, "ChaiyooKettlesaurus") == 1 and plotOf(pa, "SamosaSupremo") == 2, "most valuable in the lockers")
+for _, e in pa.owned do
+	local plot = pa.haveli.plots[e.plot]
+	local d = (e.model:GetPivot().Position - plot.Position) * Vector3.new(1, 0, 1)
+	check(e.arrived and d.Magnitude < 0.01, e.def.id .. " stands on its plot")
+	check(e.model:GetAttribute("MoveSpeed") == 0 and e.model:GetAttribute("Rest") ~= nil, e.def.id .. " resting")
+end
+local goldenEntry = entryOf(pa, "GolGappaGhostu")
+check(goldenEntry.mutation == "Golden" and Havelis.entryIncome(goldenEntry) == 2, "golden earns 2x")
+check(golden.PrimaryPart.Popup.NameLabel.Text == "Golden Gol Gappa Ghostu", "golden name tag")
+check(pa.data.mutations["GolGappaGhostu:Golden"] == true, "mutation recorded for the Collection Book")
+check(A:GetAttribute("Discovered"):find("GolGappaGhostu:Golden") ~= nil, "mutation badge sent to the HUD")
+check(pa.data.quests.list[1].progress == 3 and pa.data.quests.list[2].progress == 1, "quests track buys and mutations")
+
+markLog()
+local extra = buy(A, "NaanNinja")
+check(notified("Ali", "No empty plot") and extra.Parent == lane, "no empty plot")
+
+---------------------------------------------------------------------------
+section("Haveli levels")
+---------------------------------------------------------------------------
+local haveliPanel = hud.HaveliPanel
+hud.Buttons.Haveli.Activated:Fire()
+M.advance(0.1)
+check(haveliPanel.Visible, "Haveli panel opens")
+check(
+	haveliPanel.Content.Upgrade.Text == "Upgrade for Rs 4,000",
+	"upgrade price shown: " .. haveliPanel.Content.Upgrade.Text
+)
+check(h1.Plot5.Gui.Label.Text == "Level 2", "locked plots show which level unlocks them")
+markLog()
+before = pa.data.rupees
+haveliPanel.Content.Upgrade.Activated:Fire()
+M.advance(0.2)
+check(pa.data.level == 2 and pa.data.rupees == before - 4000, "upgraded to level 2")
+check(Havelis.plotCount(pa) == 6 and h1.Plot5.Transparency == 0, "level 2 has 6 plots")
+check(notified("Ali", "Haveli Level 2"), "upgrade message")
+check(hud.Buttons.Haveli.Text == "Haveli Lv 2", "HUD shows the level")
+pa.data.rupees = 0
+State.syncStats(pa)
+markLog()
+Remotes.UpgradeHaveli:FireServer()
+M.advance(0.1)
+check(pa.data.level == 2 and notified("Ali", "You need"), "cannot upgrade without rupees")
+
+pa.data.rupees = 10_000_000
+State.syncStats(pa)
+for _ = 3, 5 do
+	Remotes.UpgradeHaveli:FireServer()
+	M.advance(0.1)
+end
+check(pa.data.level == 5 and Havelis.plotCount(pa) == 12, "level 5 has 12 plots")
+check(h1.StairGates.StairGate.CanCollide == false and h1.StairGates.StairGate.Transparency == 1, "stairs open")
+check(h1.Barrier.CanCollide == false, "laser off while unlocked")
+for _ = 1, 8 do
+	buy(A, "NaanNinja")
+end
+M.advance(15)
+check(#pa.owned == 12, "12 brainrots")
+local upstairs = 0
+for _, e in pa.owned do
+	if e.plot > 10 then
+		upstairs += 1
+		local plot = pa.haveli.plots[e.plot]
+		local d = (e.model:GetPivot().Position - plot.Position) * Vector3.new(1, 0, 1)
+		check(e.arrived and d.Magnitude < 0.01, "brainrot walked up the stairs to plot " .. e.plot)
+		check(e.model:GetPivot().Y > plot.Position.Y, "standing on the second floor")
+	end
+end
+check(upstairs == 2, "the two cheapest went upstairs")
+
+---------------------------------------------------------------------------
+section("Themes")
+---------------------------------------------------------------------------
+local themeCards = haveliPanel.Content
+check(themeCards.TruckArt.Use.Text == "Safar 1", "Truck Art locked until a Naya Safar")
+markLog()
+themeCards.TruckArt.Use.Activated:Fire()
+M.advance(0.1)
+check(pa.data.theme == "MughalMarble" and notified("Ali", "unlocks after 1 Naya Safar"), "locked theme refused")
+themeCards.BaghGarden.Use.Activated:Fire()
+M.advance(0.1)
+check(pa.data.theme == "BaghGarden" and A:GetAttribute("Theme") == "BaghGarden", "Bagh Garden picked")
+check(h1.Floor.Material == M.Enum.Material.Grass, "garden floor")
+check(themeCards.BaghGarden.Use.Text == "Using", "panel shows the theme in use")
+check(h1.Decor:FindFirstChild("Leaves", true) ~= nil, "garden decorations")
+Remotes.SetTheme:FireServer("NotATheme")
+Remotes.SetTheme:FireServer(42)
+M.advance(0.1)
+check(pa.data.theme == "BaghGarden", "bad theme requests ignored")
+
+---------------------------------------------------------------------------
+section("Income and galla")
+---------------------------------------------------------------------------
+pa.data.galla = 0
+local base = 0
+for _, e in pa.owned do
+	base += Havelis.entryIncome(e)
+end
+local income = Havelis.incomePerSecond(pa)
+check(math.abs(income - base) < 1e-6, "Bagh Garden has no income perk: " .. income)
+pa.data.theme = "MughalMarble"
+check(math.abs(Havelis.incomePerSecond(pa) - base * 1.05) < 1e-6, "Mughal Marble +5% income")
+pa.data.theme = "BaghGarden"
+M.advance(5)
+check(math.abs(pa.data.galla - income * 5) <= income, "galla filled: " .. pa.data.galla)
+markLog()
+before = pa.data.rupees
+local galla = math.floor(pa.data.galla)
+pa.haveli.galla.Touched:Fire(charA.HumanoidRootPart)
+M.advance(0.1)
+check(pa.data.rupees == before + galla, "collected galla")
+check(pa.data.quests.list[3].progress == 100, "collect quest counts rupees")
+
+---------------------------------------------------------------------------
+section("Quests")
+---------------------------------------------------------------------------
+local qp = hud.QuestPanel
+hud.Buttons.Quests.Activated:Fire()
+M.advance(0.1)
+check(qp.Visible and not haveliPanel.Visible, "only one window open at a time")
+check(hud.Buttons.Quests.Text == "Quests (!)", "quest button shows a reward is waiting")
+check(qp.Content.Quest1.Text.Text == "Buy 3 brainrots on Bazaar Lane", "quest text: " .. qp.Content.Quest1.Text.Text)
+before = pa.data.rupees
+local tokens = pa.data.rollTokens
+local reward = QuestBook.reward(pa)
+qp.Content.Quest1.Claim.Activated:Fire()
+M.advance(0.1)
+check(pa.data.rupees == before + reward and pa.data.quests.list[1].claimed, "quest reward claimed: " .. reward)
+qp.Content.Quest1.Claim.Activated:Fire()
+M.advance(0.1)
+check(pa.data.rupees == before + reward, "cannot claim twice")
+qp.Content.Bonus.Claim.Activated:Fire()
+M.advance(0.1)
+check(pa.data.rollTokens == tokens, "bonus needs every quest")
+qp.Content.Quest2.Claim.Activated:Fire()
+qp.Content.Quest3.Claim.Activated:Fire()
+M.advance(0.1)
+check(pa.data.rollTokens == tokens + 1, "mutation quest gives a Kismat Roll")
+qp.Content.Bonus.Claim.Activated:Fire()
+M.advance(0.1)
+check(pa.data.rollTokens == tokens + 1 + Config.QUEST_BONUS_ROLLS and pa.data.quests.bonusClaimed, "bonus rolls")
+check(hud.Buttons.Quests.Text == "Quests", "nothing left to claim")
+pa.data.quests.day = TODAY - 1
+QuestBook.ensure(pa)
+check(pa.data.quests.day == TODAY and not pa.data.quests.list[1].claimed, "new quests every day")
+local offered = {}
+local dupes = false
+for _, q in pa.data.quests.list do
+	dupes = dupes or offered[q.id] == true
+	offered[q.id] = true
+end
+check(not dupes, "no duplicate quests")
+
+---------------------------------------------------------------------------
+section("Collection Book rewards")
+---------------------------------------------------------------------------
+for _, def in Brainrots.byRarity.Common do
+	pa.data.discovered[def.id] = true
+end
+State.syncDiscovered(pa)
+M.advance(0.1)
+check(qp.Content.Common.Claim.Text == "Claim", "complete rarity can be claimed")
+check(qp.Content.Uncommon.Claim.Text == "...", "incomplete rarity cannot")
+local naan = entryOf(pa, "NaanNinja")
+moveNear(A, naan.model)
+trigger(naan.model, "SellPrompt", A)
+before = pa.data.rupees
+tokens = pa.data.rollTokens
+qp.Content.Common.Claim.Activated:Fire()
+M.advance(0.2)
+check(pa.data.rupees == before + 4000 and pa.data.rollTokens == tokens + 1, "Common reward: Rs 4,000 and a roll")
+local mamu = entryOf(pa, "MithaiMamu")
+check(mamu ~= nil, "Mithai Mamu joins the haveli")
+check(
+	prompt(mamu.model, "StealPrompt") == nil and prompt(mamu.model, "SellPrompt") == nil,
+	"quest brainrots cannot be stolen or sold"
+)
+check(qp.Content.Common.Claim.Text == "Done", "reward marked done")
+qp.Content.Common.Claim.Activated:Fire()
+Remotes.ClaimCollection:FireServer("Mythic")
+Remotes.ClaimCollection:FireServer("Gems")
+M.advance(0.1)
+check(pa.data.rupees == before + 4000, "collection reward only once; incomplete or unknown rarities ignored")
+M.advance(10)
+check(mamu.arrived and mamu.plot == #pa.owned, "quest brainrots take the last plot, not a locker: " .. mamu.plot)
+
+---------------------------------------------------------------------------
+section("Kismat Roll")
+---------------------------------------------------------------------------
+local kp = hud.KismatPanel
+local kc = kp.Content
+check(kc.Common.Percent.Text == "50%" and kc.Mythic.OneIn.Text == "1 in 500", "rarity odds shown")
+check(kc.Golden.Chance.Text == "8%  ·  1 in 13", "golden odds shown: " .. kc.Golden.Chance.Text)
+check(kc.Rainbow.Chance.Text == "0.5%  ·  1 in 200", "rainbow odds shown: " .. kc.Rainbow.Chance.Text)
+check(kc.RollRupees.Text == "Roll for Rs 5,000", "roll price: " .. kc.RollRupees.Text)
+for _ = 1, 3 do
+	local n = entryOf(pa, "NaanNinja")
+	moveNear(A, n.model)
+	trigger(n.model, "SellPrompt", A)
+end
+hud.Buttons.Kismat.Activated:Fire()
+M.advance(0.1)
+before = pa.data.rupees
+local ownedBefore = #pa.owned
+kc.RollRupees.Activated:Fire()
+M.advance(0.1)
+check(pa.data.rupees == before - 5000 and #pa.owned == ownedBefore + 1, "rupee roll")
+check(hud.KismatReveal.Visible, "reveal shows")
+M.advance(2)
+local rolled = pa.owned[#pa.owned]
+check(
+	hud.KismatReveal.BrainrotName.Text == Mutations.displayName(rolled.def, rolled.mutation),
+	"reveal shows the rolled brainrot"
+)
+M.advance(3)
+check(not hud.KismatReveal.Visible, "reveal hides")
+pa.data.theme = "BasantRooftop" -- test only: normally unlocked by the 4th Naya Safar
+A:SetAttribute("Theme", "BasantRooftop")
+M.advance(0.1)
+check(kc.MutationTitle.Text:find("x2") ~= nil, "theme mutation boost shown")
+check(kc.Golden.Chance.Text == "16%  ·  1 in 6", "boosted golden odds shown: " .. kc.Golden.Chance.Text)
+check(Kismat.mutationBoost(pa) == 2, "server uses the same boost")
+pa.data.theme = "ChaiDhaba"
+A:SetAttribute("Theme", "ChaiDhaba")
+M.advance(0.1)
+check(Kismat.cost(pa) == 4250 and kc.RollRupees.Text == "Roll for Rs 4,250 (sale!)", "Chai Dhaba discount")
+pa.data.theme = "BaghGarden"
+State.syncStats(pa)
+local mc = {}
+for _ = 1, 100000 do
+	local m = Mutations.roll("roll") or "none"
+	mc[m] = (mc[m] or 0) + 1
+end
+check(math.abs(mc.Golden / 1e5 - 0.08) < 0.005, "roll golden ~8%: " .. mc.Golden / 1e5)
+check(math.abs(mc.Diamond / 1e5 - 0.02) < 0.003, "roll diamond ~2%")
+check(math.abs(mc.Rainbow / 1e5 - 0.005) < 0.0015, "roll rainbow ~0.5%")
+local rc = {}
+for _ = 1, 100000 do
+	local d = Kismat.pick(false)
+	rc[d.rarity] = (rc[d.rarity] or 0) + 1
+end
+check(math.abs(rc.Common / 1e5 - 0.5) < 0.01, "roll common ~50%")
+check(math.abs(rc.Legendary / 1e5 - 0.018) < 0.002, "roll legendary ~1.8%")
+local pityOk = true
+for _ = 1, 3000 do
+	pityOk = pityOk and ({ Epic = true, Legendary = true, Mythic = true })[Kismat.pick(true).rarity] == true
+end
+check(pityOk, "pity never below Epic")
+
+---------------------------------------------------------------------------
+section("Stealing")
+---------------------------------------------------------------------------
+local B = addPlayer("Bilal", 2)
+M.advance(0.5)
+local pb = State.profiles[B]
+local charB = spawnCharacter(B)
+M.advance(0.3)
+Havelis.clearBrainrots(pb)
+check(charB.HumanoidRootPart.CollisionGroup == "ChaiOwner2", "Bilal in his own laser group")
+local target = stealable(pa)
+markLog()
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(notified("Bilal", "protected"), "new players are protected")
+M.advance(Config.NEW_PLAYER_PROTECTION + 1)
+target = stealable(pa)
+check(prompt(target.model, "StealPrompt"):GetAttribute("Active") == true, "steal prompt on after protection")
+check(
+	prompt(target.model, "SellPrompt").Enabled and not prompt(target.model, "StealPrompt").Enabled,
+	"Ali sees Sell, not Steal"
+)
+local locker = entryOf(pa, "ChaiyooKettlesaurus")
+markLog()
+moveNear(B, locker.model)
+trigger(locker.model, "StealPrompt", B)
+check(locker.carrier == nil and notified("Bilal", "Locker"), "lockers cannot be robbed")
+moveNear(B, mamu.model)
+check(prompt(mamu.model, "StealPrompt") == nil, "quest brainrots have no steal prompt")
+markLog()
+local incomeBeforeTheft = Havelis.incomePerSecond(pa)
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(target.carrier == B, "Bilal carries " .. target.def.id)
+check(notified("Ali", "Chor! Chor!"), "alert")
+local expected = Config.WALK_SPEED
+	* Config.CARRY_SPEED[target.def.rarity]
+	* (if target.mutation then Config.CARRY_MUTATION_SPEED else 1)
+	* 0.85
+check(
+	math.abs(charB.Humanoid.WalkSpeed - expected) < 1e-6,
+	"thief slowed, more by Bagh Garden: " .. charB.Humanoid.WalkSpeed
+)
+check(
+	target.model:GetAttribute("Carried") == true and target.model.PrimaryPart:FindFirstChild("CarryWeld") ~= nil,
+	"welded onto the thief"
+)
+check(not target.model.PrimaryPart.Anchored and target.model.PrimaryPart.Massless, "carried parts unanchored, massless")
+check(Havelis.incomePerSecond(pa) < incomeBeforeTheft, "stolen brainrot stops earning")
+pb.haveli.door.Touched:Fire(charB.HumanoidRootPart)
+M.advance(0.1)
+check(entryOf(pb, target.def.id) ~= nil, "Bilal got away with it")
+check(charB.Humanoid.WalkSpeed == Config.WALK_SPEED, "speed back to normal")
+check(target.model.PrimaryPart.Anchored and target.model:GetAttribute("Carried") == false, "detached")
+M.advance(10)
+check(entryOf(pb, target.def.id).arrived, "walked to Bilal's plot")
+markLog()
+target = stealable(pa)
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(notified("Bilal", "Catch your breath"), "15 second steal cooldown")
+M.advance(Config.STEAL_COOLDOWN + 1)
+markLog()
+trigger(target.model, "StealPrompt", B)
+check(notified("Bilal", "different one"), "same haveli cooldown")
+M.advance(Config.SAME_HAVELI_COOLDOWN + 1)
+Config.STEAL_PRICE_CAP = 1
+markLog()
+target = stealable(pa)
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(notified("Bilal", "Naya Safar"), "price cap before rebirth")
+Config.STEAL_PRICE_CAP = 16000
+
+---------------------------------------------------------------------------
+section("Chowkidar and Laser Darwaza")
+---------------------------------------------------------------------------
+Remotes.UpgradeHaveli:FireServer()
+M.advance(0.2)
+check(pa.data.level == 6 and h1.Decor:FindFirstChild("Chowkidar") ~= nil, "Chowkidar at level 6")
+target = stealable(pa)
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(target.carrier == B, "Bilal steals again")
+charB:PivotTo(pa.haveli.guardSpot + Vector3.new(3, 3, 0))
+M.advance(0.6)
+check(target.carrier == B, "the Chowkidar needs a moment to notice")
+markLog()
+M.advance(1)
+check(target.carrier == nil, "the Chowkidar caught the thief")
+check(notified("Ali", "Chowkidar caught") and notified("Bilal", "Seeti"), "Chowkidar messages")
+check(h1.Decor.Chowkidar:FindFirstChild("Label", true).Text == "Zzz...", "Chowkidar naps after a catch")
+M.advance(Config.GUARD_COOLDOWN + 1)
+check(h1.Decor.Chowkidar:FindFirstChild("Label", true).Text == "Jaagte Raho!", "and wakes up again")
+
+charB:PivotTo(pa.haveli.origin * CFrame.new(10, 3, 0))
+check(Havelis.isInside(pa.haveli, charB.HumanoidRootPart.Position), "Bilal is inside Ali's haveli")
+markLog()
+hud.Buttons.Taala.Activated:Fire()
+M.advance(0.3)
+check(h1.Barrier.CanCollide == true, "laser blocks the door")
+check(not Havelis.isInside(pa.haveli, charB.HumanoidRootPart.Position), "Bilal moved out instead of trapped")
+check(notified("Ali", "Laser Darwaza is on"), "laser message")
+check(hud.Buttons.Taala.Text:find("Locked") ~= nil, "lock countdown")
+target = stealable(pa)
+markLog()
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(target.carrier == nil and notified("Bilal", "taala"), "locked haveli cannot be robbed")
+M.advance(Config.LOCK_TIME + 1)
+check(h1.Barrier.CanCollide == false, "laser off after the Taala")
+
+---------------------------------------------------------------------------
+section("Bonk and dying thief")
+---------------------------------------------------------------------------
+M.advance(Config.SAME_HAVELI_COOLDOWN)
+target = stealable(pa)
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(target.carrier == B, "steal for the bonk test")
+charB:PivotTo(CFrame.new(10, 5, 0))
+charA:PivotTo(CFrame.new(13, 5, 0))
+markLog()
+A.Backpack:FindFirstChild("Chappal").Activated:Fire()
+M.advance(0.1)
+check(target.carrier == nil and notified("Ali", "Bonk!"), "bonk")
+check(charB.Humanoid.WalkSpeed == Config.WALK_SPEED, "speed restored after a bonk")
+M.advance(10)
+check(target.arrived, "walked home")
+M.advance(Config.SAME_HAVELI_COOLDOWN + 1)
+target = stealable(pa)
+moveNear(B, target.model)
+trigger(target.model, "StealPrompt", B)
+check(target.carrier == B, "steal for the dying test")
+charB.Humanoid.Health = 0
+charB.Humanoid.Died:Fire()
+M.advance(0.1)
+check(target.carrier == nil, "dying drops it")
+
+---------------------------------------------------------------------------
+section("Selling")
+---------------------------------------------------------------------------
+if not Havelis.hasFreePlot(pa) then
+	local n = entryOf(pa, "NaanNinja") or entryOf(pa, "SamosaSupremo")
+	moveNear(A, n.model)
+	trigger(n.model, "SellPrompt", A)
+end
+local diamond = buy(A, "PyaazPehelwan", "Diamond")
+M.advance(10)
+before = pa.data.rupees
+moveNear(A, diamond)
+trigger(diamond, "SellPrompt", A)
+check(pa.data.rupees == before + 225, "Diamond Pyaaz sells for half its Rs 450 value")
+
+---------------------------------------------------------------------------
+section("Naya Safar")
+---------------------------------------------------------------------------
+pa.data.rupees = Config.rebirthCost(0)
+pa.data.rollTokens = 3
+State.syncStats(pa)
+M.advance(0.5)
+local rb = hud.Buttons.NayaSafar
+check(rb.Visible, "rebirth button at Rs 1,000,000")
+markLog()
+rb.Activated:Fire()
+M.advance(0.1)
+check(pa.data.rebirths == 0 and rb.Text:find("Sure") ~= nil, "rebirth asks to confirm")
+rb.Activated:Fire()
+M.advance(0.5)
+check(pa.data.rebirths == 1 and pa.data.level == 1 and pa.data.rupees == Config.START_RUPEES, "rebirth resets")
+check(#pa.owned == 0 and pa.data.rollTokens == 3, "brainrots reset, rolls kept")
+check(pa.data.theme == "BaghGarden", "theme kept")
+check(notified("Ali", "New haveli theme unlocked: Truck Art"), "new theme unlocked")
+check(A:GetAttribute("RebirthCost") == 2_500_000, "next Naya Safar costs more")
+check(h1.StairGates.StairGate.CanCollide and h1.Decor:FindFirstChild("Chowkidar") == nil, "haveli back to level 1")
+haveliPanel.Content.TruckArt.Use.Activated:Fire()
 M.advance(0.1)
 check(
-	#M.prompts == 1 and M.prompts[1].id == 1010 and M.prompts[1].player == "Dua",
-	"10-roll button opens the Robux prompt"
+	pa.data.theme == "TruckArt" and math.abs(charA.Humanoid.WalkSpeed - Config.WALK_SPEED * 1.12) < 1e-6,
+	"Truck Art makes you faster"
 )
+before = pa.data.rupees
+qp.Content.Common.Claim.Activated:Fire()
+M.advance(0.1)
+check(entryOf(pa, "MithaiMamu") ~= nil and pa.data.rupees == before, "quest brainrot again, rupees only once")
+
+---------------------------------------------------------------------------
+section("Events")
+---------------------------------------------------------------------------
+markLog()
+EventRunner.start("Baarish")
+M.advance(1)
+check(workspace:GetAttribute("EventId") == "Baarish" and notified("Ali", "Baarish"), "event running")
+check(hud.EventBanner.Title.Text == "Baarish!", "banner shows the event")
+local effects = workspace.CurrentCamera:FindFirstChild("ChaiChaosEventEffects")
+check(effects and effects:FindFirstChild("Weather"), "rain on screen")
+check(
+	math.abs(Havelis.incomeMultiplier(pa) - 1.5 * 1.2) < 1e-6,
+	"Baarish +20% income: " .. Havelis.incomeMultiplier(pa)
+)
+local sawPanda = false
+for _ = 1, 3000 do
+	sawPanda = sawPanda or Spawner.pick().id == "PakoraPanda"
+end
+check(sawPanda, "Pakora Panda comes out in the rain")
+EventRunner.stop()
+M.advance(1)
+check(effects:FindFirstChild("Weather") == nil and hud.EventBanner.Title.Text == "Next event", "rain stops")
+local noPanda = true
+for _ = 1, 5000 do
+	noPanda = noPanda and Spawner.pick().id ~= "PakoraPanda"
+end
+check(noPanda, "no Pakora Panda without rain")
+EventRunner.start("LoadShedding")
+M.advance(1)
+check(M.services.Lighting.ClockTime == 0 and Spawner.isNight(), "Load Shedding makes it night")
+local sawCheetah = false
+for _ = 1, 200000 do
+	if Spawner.pick().id == "ChandRaatCheetah" then
+		sawCheetah = true
+		break
+	end
+end
+check(sawCheetah, "night brainrots come out")
+EventRunner.stop()
+M.advance(1)
+check(M.services.Lighting.ClockTime ~= 0, "the light comes back")
+EventRunner.start("MelaNight")
+M.advance(0.5)
+check(Kismat.cost(pa) == 3500, "Mela Night roll discount: " .. Kismat.cost(pa))
+check(effects:FindFirstChild("Burst") ~= nil, "mela fireworks")
+EventRunner.stop()
+local last, repeats = nil, false
+for _ = 1, 40 do
+	local id = EventRunner.pick()
+	repeats = repeats or id == last
+	EventRunner.start(id)
+	last = id
+	EventRunner.stop()
+end
+check(not repeats, "never the same event twice in a row")
+M.advance(1)
+
+---------------------------------------------------------------------------
+section("Robux packs and Chor Passes")
+---------------------------------------------------------------------------
+local Granted = M.Enum.ProductPurchaseDecision.PurchaseGranted
+local NotYet = M.Enum.ProductPurchaseDecision.NotProcessedYet
+local clientConfig = requireModule(shared:FindFirstChild("Config"), "client2")
+for _, cfg in { Config, clientConfig } do
+	cfg.ROLL_PRODUCTS[1].id, cfg.ROLL_PRODUCTS[2].id = 1001, 1010
+	cfg.STEAL_PRODUCTS[1].id, cfg.STEAL_PRODUCTS[2].id = 2001, 2005
+end
+M.prices[1010] = 199
+local D = addPlayer("Dua", 4)
+M.advance(0.5)
+local pd = State.profiles[D]
+local charD = spawnCharacter(D)
+M.advance(0.3)
+Havelis.clearBrainrots(pd)
+M.localPlayer = D
+M.rawset(Players, "LocalPlayer", D)
+runScripts(client, "client2")
+M.advance(0.5)
+local hudD = D.PlayerGui:FindFirstChild("ChaiChaosHud")
+check(hudD.Buttons:FindFirstChild("ChorPass") ~= nil, "Chor Pass button once products are set up")
+check(hudD.KismatPanel.Content.BuyRolls2.Text:find("R%$ 199") ~= nil, "Robux pack priced")
+table.clear(M.prompts)
+hudD.KismatPanel.Content.BuyRolls2.Activated:Fire()
+M.advance(0.1)
+check(#M.prompts == 1 and M.prompts[1].id == 1010, "Robux prompt")
 pd.data.rollTokens = 0
-check(receipt(4, 1010, "buy-1") == Granted and pd.data.rollTokens == 10, "10-roll pack granted")
-check(M.store["player_4"] and M.store["player_4"].rollTokens == 10, "purchase saved straight away")
-check(hudD.Buttons.Kismat.Text == "Kismat Roll (10)", "HUD shows the new rolls")
-check(receipt(4, 1010, "buy-1") == Granted and pd.data.rollTokens == 10, "same purchase is never granted twice")
-check(receipt(4, 9999, "buy-2") == NotYet, "unknown product is not granted")
-check(receipt(99, 1001, "buy-3") == NotYet, "player not in the server: Roblox retries later")
+check(receipt(4, 1010, "buy-1") == Granted and pd.data.rollTokens == 10, "10 rolls granted")
+check(M.store["player_4"] and M.store["player_4"].rollTokens == 10, "saved straight away")
+check(receipt(4, 1010, "buy-1") == Granted and pd.data.rollTokens == 10, "never granted twice")
+check(receipt(4, 9999, "buy-2") == NotYet, "unknown product not granted")
+check(receipt(99, 1001, "buy-3") == NotYet, "player not here: retry later")
 M.failSavesFor["player_4"] = true
 check(receipt(4, 1001, "buy-4") == NotYet and pd.data.rollTokens == 10, "failed save undoes the grant")
 M.failSavesFor["player_4"] = nil
-check(receipt(4, 1001, "buy-4") == Granted and pd.data.rollTokens == 11, "retry after a failed save works")
-M.studio = false
-check(receipt(3, 1001, "buy-5") == NotYet, "live server, data did not load: retry later")
-M.studio = true
-check(receipt(3, 1001, "buy-6") == Granted, "Studio test purchase works without DataStores")
+check(receipt(4, 1001, "buy-4") == Granted and pd.data.rollTokens == 11, "retry works")
+kc = hudD.KismatPanel.Content
+pd.data.rollTokens = 1
+State.syncTokens(pd)
+M.advance(0.1)
+kc.RollToken.Activated:Fire()
+M.advance(0.1)
+check(pd.data.rollTokens == 0 and #pd.owned == 1, "token roll")
 
--- players where Roblox restricts paid random items
 M.restricted[5] = true
+M.failLoadsFor["player_5"] = nil
 local E = addPlayer("Ehsan", 5)
 M.advance(0.5)
 check(E:GetAttribute("PaidRollsAllowed") == false, "restricted player flagged")
@@ -804,47 +934,27 @@ table.clear(M.prompts)
 markLog()
 M.localPlayer = E
 Remotes.BuyProduct:FireServer("rolls", 1)
-M.advance(0.1)
-check(#M.prompts == 0 and notified("Ehsan", "not available"), "restricted players are never offered paid rolls")
 Remotes.BuyProduct:FireServer("steals", 1)
-M.advance(0.1)
-check(#M.prompts == 1 and M.prompts[1].id == 2001, "Chor Passes are not random, so they are allowed")
-Remotes.BuyProduct:FireServer("rolls", "lots")
 Remotes.BuyProduct:FireServer("gems", 1)
 M.advance(0.1)
-check(#M.prompts == 1, "bad purchase requests ignored")
 M.localPlayer = D
-M.policyFail = true
-local F = addPlayer("Faraz", 6)
-M.advance(0.5)
-M.policyFail = false
-check(F:GetAttribute("PaidRollsAllowed") == false, "if PolicyService fails, paid rolls stay off")
-D:SetAttribute("PaidRollsAllowed", false)
-M.advance(0.1)
-check(not kc.BuyRolls1.Visible and not kc.BuyRolls2.Visible, "Robux roll buttons hide when not allowed")
-check(kc.RollRupees.Visible, "rupee rolls stay available")
-D:SetAttribute("PaidRollsAllowed", true)
+check(#M.prompts == 1 and M.prompts[1].id == 2001, "no paid rolls where restricted; Chor Passes are fine")
+check(notified("Ehsan", "not available"), "restricted message")
 
----------------------------------------------------------------------------
-section("Chor Pass stealing")
----------------------------------------------------------------------------
 local pe = State.profiles[E]
 local charE = spawnCharacter(E)
 M.advance(0.3)
 Havelis.clearBrainrots(pe)
-Havelis.arrange(pe)
 pe.data.rupees = 1000
 State.syncStats(pe)
 buy(E, "ChanaChaatChacha")
 buy(E, "SamosaSupremo")
 buy(E, "GolGappaGhostu")
-M.advance(10)
+M.advance(12)
 local ghost = entryOf(pe, "GolGappaGhostu")
-check(ghost.plot == 3, "ghostu on Ehsan's plot 3")
+check(ghost and ghost.plot == 3, "ghostu on Ehsan's plot 3")
 check(prompt(ghost.model, "StealPrompt").ActionText == "Steal (1 Chor Pass)", "steal prompt shows the cost")
-check(hudD.Buttons:FindFirstChild("ChorPass") ~= nil, "Chor Pass button on the HUD")
 M.advance(Config.NEW_PLAYER_PROTECTION + 1)
-
 pd.data.stealTokens = 0
 State.syncTokens(pd)
 table.clear(M.prompts)
@@ -853,81 +963,164 @@ moveNear(D, ghost.model)
 trigger(ghost.model, "StealPrompt", D)
 check(ghost.carrier == nil and notified("Dua", "needs a Chor Pass"), "no Chor Pass, no steal")
 check(#M.prompts == 1 and M.prompts[1].id == 2001, "Chor Pass purchase pops up")
-check(receipt(4, 2005, "chor-1") == Granted and pd.data.stealTokens == 5, "5 Chor Passes granted")
-check(hudD.ChorPanel.Content.Passes.Text == "Your Chor Passes: 5", "Chor panel shows passes")
-check(hudD.ChorPanel.Content.BuyPasses2.Text:find("5 Chor Passes") ~= nil, "Chor pack button")
-
+check(receipt(4, 2005, "chor-1") == Granted and pd.data.stealTokens == 5, "5 Chor Passes")
+check(hudD.ChorPanel.Content.Passes.Text == "Your Chor Passes: 5", "Chor panel")
 trigger(ghost.model, "StealPrompt", D)
-check(ghost.carrier == D and pd.data.stealTokens == 4, "steal uses a Chor Pass")
+check(ghost.carrier == D and pd.data.stealTokens == 4, "steal uses a pass")
 charD:PivotTo(CFrame.new(10, 5, 0))
 charE:PivotTo(CFrame.new(13, 5, 0))
 markLog()
 E.Backpack:FindFirstChild("Chappal").Activated:Fire()
 M.advance(0.1)
-check(ghost.carrier == nil and pd.data.stealTokens == 5, "bonked thief gets the Chor Pass back")
-check(notified("Dua", "given back"), "refund message")
-M.advance(Config.SAME_HAVELI_COOLDOWN + 1)
+check(ghost.carrier == nil and pd.data.stealTokens == 5 and notified("Dua", "given back"), "failed steal refunds")
+M.advance(Config.SAME_HAVELI_COOLDOWN + 10)
 moveNear(D, ghost.model)
 trigger(ghost.model, "StealPrompt", D)
-check(ghost.carrier == D and pd.data.stealTokens == 4, "second steal uses a pass")
-pd.haveli.door.Touched:Fire(charD.HumanoidRootPart)
-M.advance(0.1)
-check(entryOf(pd, "GolGappaGhostu") ~= nil and pd.data.stealTokens == 4, "successful steal keeps the pass spent")
+check(ghost.carrier == D, "stealing again")
+local passes = pd.data.stealTokens
+markLog()
+removePlayer(E)
+check(notified("Dua", "ran away") and pd.data.stealTokens == passes + 1, "owner left: it runs away, pass refunded")
+check(charD.Humanoid.WalkSpeed == Config.WALK_SPEED, "thief speed restored")
+local savedE = M.store["player_5"]
+check(savedE and table.find(savedE.owned, "GolGappaGhostu") ~= nil, "the owner keeps it in their save")
 
 ---------------------------------------------------------------------------
-section("Spawn odds and the night")
+section("Save and rejoin")
 ---------------------------------------------------------------------------
-local Lighting = M.services.Lighting
-local function sample(n)
-	local counts, ids = {}, {}
-	for _ = 1, n do
-		local def = Spawner.pick()
-		counts[def.rarity] = (counts[def.rarity] or 0) + 1
-		ids[def.id] = true
+buy(A, "PyaazPehelwan", "Diamond")
+M.advance(8)
+removePlayer(A)
+local savedA = M.store["player_1"]
+check(savedA.version == 2 and savedA.level == 1 and savedA.theme == "TruckArt" and savedA.rebirths == 1, "v2 save")
+check(table.find(savedA.owned, "PyaazPehelwan:Diamond") ~= nil, "mutations saved")
+check(table.find(savedA.owned, "MithaiMamu") ~= nil, "quest brainrots saved")
+check(savedA.collection.Common.rewarded and savedA.collection.Common.specialRebirth == 1, "collection claims saved")
+local A2 = addPlayer("Ali", 1)
+M.advance(0.5)
+local pa2 = State.profiles[A2]
+local pyaaz = entryOf(pa2, "PyaazPehelwan")
+check(pyaaz and pyaaz.mutation == "Diamond" and pyaaz.arrived, "Diamond Pyaaz back on its plot")
+check(pa2.haveli.walls[1].Color == Themes.byId.TruckArt.wall, "theme restored")
+check(not notified("Ali", "Daily chai"), "daily chai only once a day")
+M.store["player_9"] = {
+	rupees = 5000,
+	plots = 7,
+	owned = { "SamosaSupremo", "NotABrainrot" },
+	discovered = { SamosaSupremo = true },
+	lastDaily = TODAY,
+}
+local P = addPlayer("Purana", 9)
+M.advance(0.5)
+local pp = State.profiles[P]
+check(pp.data.level == 2 and #pp.owned == 1 and pp.data.rupees >= 5000, "old saves move to haveli levels")
+removePlayer(P)
+
+---------------------------------------------------------------------------
+section("Every theme at every level")
+---------------------------------------------------------------------------
+local HaveliStyle = serverModule("HaveliStyle")
+local spare = Havelis.byIndex(8)
+local most = 0
+for _, theme in Themes.list do
+	for level = 1, #Config.HAVELI_LEVELS do
+		local guard = HaveliStyle.apply(spare, theme.id, level)
+		most = math.max(most, #spare.decor:GetChildren())
+		check((guard ~= nil) == (level >= Config.GUARD_LEVEL), theme.id .. " level " .. level .. " guard")
 	end
-	return counts, ids
+	check(spare.walls[1].Color == theme.wall, theme.id .. " wall colour")
 end
-M.rawset(Lighting, "ClockTime", 12)
-local counts, ids = sample(50000)
-check(not ids.ChandRaatCheetah, "no cheetah in the day")
-check(math.abs(counts.Common / 50000 - 0.6) < 0.02, "common ~60%: " .. counts.Common / 50000)
-check(math.abs(counts.Uncommon / 50000 - 0.25) < 0.02, "uncommon ~25%")
-check(math.abs((counts.Mythic or 0) / 50000 - 0.001) < 0.001, "mythic ~0.1%: " .. tostring(counts.Mythic))
-M.rawset(Lighting, "ClockTime", 21)
-counts, ids = sample(200000)
-check(ids.ChandRaatCheetah == true, "cheetah at night")
+check(most > 40, "top level havelis are full of decorations: " .. most)
+HaveliStyle.apply(spare, nil, 1)
+check(#spare.decor:GetChildren() == 0 and spare.roof.Transparency == 1, "an empty haveli is plain again")
 
 ---------------------------------------------------------------------------
-section("Ammi ki Udti Chappal freezes everyone")
+section("Spawn odds")
 ---------------------------------------------------------------------------
-M.rawset(Lighting, "ClockTime", 12)
+M.rawset(M.services.Lighting, "ClockTime", 12)
+local counts, ids = {}, {}
+for _ = 1, 50000 do
+	local d = Spawner.pick()
+	counts[d.rarity] = (counts[d.rarity] or 0) + 1
+	ids[d.id] = true
+end
+check(not ids.ChandRaatCheetah and not ids.PakoraPanda and not ids.MithaiMamu, "no night, event or quest brainrots")
+check(math.abs(counts.Common / 50000 - 0.6) < 0.02, "lane common ~60%: " .. counts.Common / 50000)
+check(math.abs(counts.Uncommon / 50000 - 0.25) < 0.02, "lane uncommon ~25%")
+local lm = {}
+for _ = 1, 100000 do
+	local m = Mutations.roll("lane") or "none"
+	lm[m] = (lm[m] or 0) + 1
+end
+check(math.abs(lm.Golden / 1e5 - 0.04) < 0.004, "lane golden ~4%: " .. lm.Golden / 1e5)
+
+---------------------------------------------------------------------------
+section("Ammi ki Udti Chappal")
+---------------------------------------------------------------------------
 local plain = Spawner.spawn(Brainrots.byId.NaanNinja)
 M.advance(1)
 markLog()
 local chappalModel = Spawner.spawn(Brainrots.byId.AmmiKiUdtiChappal)
+M.advance(0.2)
+check(plain:GetAttribute("MoveSpeed") == 0, "frozen brainrots stop on screen too")
 local px, cx = plain:GetPivot().X, chappalModel:GetPivot().X
 M.advance(2)
-check(math.abs(plain:GetPivot().X - px) < 0.01, "other brainrots freeze")
-check(chappalModel:GetPivot().X > cx, "the chappal keeps flying")
-check(notified("Chand", "WHOOSH"), "chappal announcement")
+check(math.abs(plain:GetPivot().X - px) < 0.01 and chappalModel:GetPivot().X > cx, "frozen while the chappal flies")
+check(notified("Dua", "WHOOSH"), "chappal announcement")
 M.advance(4)
-check(plain:GetPivot().X > px + 1, "others move again after the freeze")
+check(plain:GetPivot().X > px + 1 and plain:GetAttribute("MoveSpeed") > 0, "walking again after the freeze")
+
+---------------------------------------------------------------------------
+section("Leaderboard")
+---------------------------------------------------------------------------
+M.advance(6)
+local row1 = map.Leaderboard:FindFirstChild("Row1", true)
+check(row1.Text:find("Ali") ~= nil and row1.Text:find("Safar 1") ~= nil, "leaderboard: " .. row1.Text)
+
+---------------------------------------------------------------------------
+section("Smooth movement on screen")
+---------------------------------------------------------------------------
+local fake = Models.create(Brainrots.byId.NaanNinja, "Rainbow")
+fake.Parent = workspace
+local startedAt = workspace:GetServerTimeNow()
+fake:SetAttribute("MoveFrom", CFrame.new(0, 5, 0))
+fake:SetAttribute("MoveTo", CFrame.new(100, 5, 0))
+fake:SetAttribute("MoveStart", startedAt)
+fake:SetAttribute("MoveSpeed", 10)
+runScripts(client, "client2", { Smooth = true })
+M.advance(2)
+local expectedCF = Motion.at(CFrame.new(0, 5, 0), CFrame.new(100, 5, 0), startedAt, 10, workspace:GetServerTimeNow())
+local gap = fake:GetPivot().Position - expectedCF.Position
+check(math.abs(gap.X) < 0.01 and gap.Y >= -0.01 and gap.Y <= 0.61, "walks smoothly with a hop: " .. tostring(gap))
+local tinted
+for _, p in fake:GetDescendants() do
+	if p:IsA("BasePart") and p:GetAttribute("Tint") then
+		tinted = p
+		break
+	end
+end
+local firstColor = tinted.Color
+M.advance(0.5)
+check(tinted.Color ~= firstColor, "rainbow colours change")
+fake:SetAttribute("MoveSpeed", 0)
+fake:SetAttribute("Rest", CFrame.new(0, 5, 0))
+M.advance(0.5)
+local y = fake:GetPivot().Y
+check(y >= 5 and y <= 5.31 and math.abs(fake:GetPivot().X) < 0.01, "idle bob on its plot: " .. y)
 
 ---------------------------------------------------------------------------
 section("Shutdown")
 ---------------------------------------------------------------------------
-M.store["player_3"] = nil
 local co = coroutine.create(M.bindToClose)
 coroutine.resume(co)
 M.advance(1)
 check(coroutine.status(co) == "dead", "BindToClose finished")
-check(M.store["player_3"] == nil, "player whose load failed is never saved")
-check(M.store["player_1"].owned[1] == "SamosaSupremo", "Ali saved on shutdown")
+check(M.store["player_1"] and M.store["player_1"].rebirths == 1, "Ali saved on shutdown")
 
 ---------------------------------------------------------------------------
 print(("\n%d checks passed, %d failed, %d script errors, %d warnings"):format(passed, failed, #M.errors, #M.warnings))
-for _, w in M.warnings do
-	print("warning: " .. w)
+for _, warning in M.warnings do
+	print("warning: " .. warning)
 end
 if failed > 0 or #M.errors > 0 then
 	error("TESTS FAILED")

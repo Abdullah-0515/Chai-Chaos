@@ -1,94 +1,149 @@
--- Moves brainrot models around without physics: walking down Bazaar Lane,
--- walking to a plot, or riding on a thief's back. Everything runs in one
--- Heartbeat loop. All brainrot parts are anchored, so PivotTo is all we need.
+-- Moves brainrot models: walking down Bazaar Lane or walking to a plot.
+--
+-- For smooth movement the server does not move models every frame. When a
+-- brainrot starts walking, the server writes where from, where to, when and
+-- how fast into attributes, and every player's screen animates it smoothly
+-- (Smooth.client.luau). The server still updates the real position 10 times
+-- a second so prompts and distance checks stay right.
+--
+-- Carrying a brainrot is done with a weld (Models.attach), not here.
 
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Motion = require(Shared.Motion)
 
 local Mover = {}
 
+local UPDATE_EVERY = 0.1
+
 local jobs: { [Model]: any } = {}
-local freezeUntil = 0
-local freezeExempt: Model? = nil
+local frozenUntil: number? = nil
+local sinceUpdate = 0
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+local function rest(model: Model, cf: CFrame)
+	model:SetAttribute("MoveSpeed", 0)
+	model:SetAttribute("Rest", cf)
+end
 
 local function startSegment(model: Model, job)
-	local from = model:GetPivot()
-	local to: CFrame = job.points[job.index]
-	job.from = from
-	job.t = 0
-	job.duration = math.max((to.Position - from.Position).Magnitude / job.speed, 0.05)
+	job.from = model:GetPivot()
+	job.startedAt = now()
+	model:SetAttribute("MoveFrom", job.from)
+	model:SetAttribute("MoveTo", job.points[job.index])
+	model:SetAttribute("MoveStart", job.startedAt)
+	model:SetAttribute("MoveSpeed", job.speed)
+end
+
+local function current(job, t: number): (CFrame, boolean)
+	return Motion.at(job.from, job.points[job.index], job.startedAt, job.speed, t)
 end
 
 -- Walk through each CFrame in `points` at `speed` studs per second.
 -- `onDone` runs after the last point is reached (not if the walk is replaced or stopped).
 function Mover.walk(model: Model, points: { CFrame }, speed: number, onDone: (() -> ())?)
-	local job = {
-		kind = "walk",
-		points = points,
-		index = 1,
-		speed = speed,
-		onDone = onDone,
-		phase = math.random() * math.pi * 2,
-	}
-	startSegment(model, job)
+	local old = jobs[model]
+	if old and not old.paused then
+		model:PivotTo((current(old, now())))
+	end
+	local job = { points = points, index = 1, speed = speed, onDone = onDone, paused = false }
 	jobs[model] = job
+	if frozenUntil then
+		job.paused = true
+		job.from = model:GetPivot()
+		rest(model, job.from)
+	else
+		startSegment(model, job)
+	end
 end
 
--- Stick to `part` (for example a thief's HumanoidRootPart) with an offset.
-function Mover.follow(model: Model, part: BasePart, offset: CFrame)
-	jobs[model] = { kind = "follow", part = part, offset = offset }
-end
-
-function Mover.stop(model: Model)
+-- Put a model somewhere instantly.
+function Mover.place(model: Model, cf: CFrame)
 	jobs[model] = nil
+	model:PivotTo(cf)
+	rest(model, cf)
+end
+
+-- Stop walking right where it is.
+function Mover.stop(model: Model)
+	local job = jobs[model]
+	if not job then
+		return
+	end
+	jobs[model] = nil
+	local cf = if job.paused then model:GetPivot() else (current(job, now()))
+	model:PivotTo(cf)
+	rest(model, cf)
+end
+
+-- Where a model is right now, even mid-walk.
+function Mover.pivot(model: Model): CFrame
+	local job = jobs[model]
+	if job and not job.paused then
+		return (current(job, now()))
+	end
+	return model:GetPivot()
+end
+
+function Mover.isWalking(model: Model): boolean
+	return jobs[model] ~= nil
 end
 
 -- Every walking brainrot except `exempt` stops for `seconds`.
 function Mover.freeze(seconds: number, exempt: Model?)
-	freezeUntil = os.clock() + seconds
-	freezeExempt = exempt
+	local t = now()
+	for model, job in jobs do
+		if model ~= exempt and not job.paused then
+			local cf = current(job, t)
+			model:PivotTo(cf)
+			job.paused = true
+			rest(model, cf)
+		end
+	end
+	frozenUntil = os.clock() + seconds
 end
 
 RunService.Heartbeat:Connect(function(dt)
-	local now = os.clock()
-	local frozen = now < freezeUntil
-	local finished = {}
+	sinceUpdate += dt
+	if sinceUpdate < UPDATE_EVERY then
+		return
+	end
+	sinceUpdate = 0
+	local t = now()
 
+	if frozenUntil and os.clock() >= frozenUntil then
+		frozenUntil = nil
+		for model, job in jobs do
+			if job.paused and model.Parent then
+				job.paused = false
+				startSegment(model, job)
+			end
+		end
+	end
+
+	local finished = {}
 	for model, job in jobs do
 		if model.Parent == nil then
 			jobs[model] = nil
 			continue
 		end
-
-		if job.kind == "follow" then
-			if job.part.Parent then
-				model:PivotTo(job.part.CFrame * job.offset)
-			end
+		if job.paused then
 			continue
 		end
-
-		if frozen and model ~= freezeExempt then
-			continue
-		end
-
-		job.t += dt
-		local to: CFrame = job.points[job.index]
-		local alpha = math.min(job.t / job.duration, 1)
-
-		if alpha < 1 then
-			local position = job.from.Position:Lerp(to.Position, alpha)
-			local flat = (to.Position - job.from.Position) * Vector3.new(1, 0, 1)
-			local facing = if flat.Magnitude > 0.01
-				then CFrame.lookAt(position, position + flat)
-				else job.from.Rotation + position
-			local hop = math.abs(math.sin(now * 8 + job.phase)) * 0.6
-			model:PivotTo(facing + Vector3.new(0, hop, 0))
-		else
-			model:PivotTo(to)
+		local cf, arrived = current(job, t)
+		model:PivotTo(cf)
+		if arrived then
 			if job.index < #job.points then
 				job.index += 1
 				startSegment(model, job)
 			else
 				jobs[model] = nil
+				rest(model, cf)
 				if job.onDone then
 					table.insert(finished, job.onDone)
 				end
@@ -96,7 +151,7 @@ RunService.Heartbeat:Connect(function(dt)
 		end
 	end
 
-	-- Run callbacks after the loop so they can safely start new jobs.
+	-- Run callbacks after the loop so they can safely start new walks.
 	for _, callback in finished do
 		task.spawn(callback)
 	end

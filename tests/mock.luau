@@ -380,6 +380,10 @@ local Color3 = {
 	fromRGB = function(r, g, b)
 		return setmetatable({ R = r / 255, G = g / 255, B = b / 255 }, C3MT)
 	end,
+	fromHSV = function(h, s, v)
+		assert(h >= 0 and h <= 1 and s >= 0 and s <= 1 and v >= 0 and v <= 1, "fromHSV values must be 0-1")
+		return setmetatable({ R = v, G = v * (1 - s), B = v * (1 - s * h) }, C3MT)
+	end,
 }
 M.Color3 = Color3
 
@@ -697,6 +701,11 @@ function Methods.Destroy(self)
 	end
 	setParent(self, nil)
 	d.destroyed = true
+	for tag, set in M.tags or {} do
+		if set[self] then
+			Methods.RemoveTag(self, tag)
+		end
+	end
 	for _, sig in d.signals do
 		sig:DisconnectAll()
 	end
@@ -895,8 +904,10 @@ InstanceMT.__newindex = function(self, key, value)
 	if key == "CFrame" then
 		assert(isCF(value), "CFrame must be a CFrame")
 	end
-	if key == "Size" then
-		assert(isV3(value) or type(value) == "table", "Size must be a Vector3 or UDim2")
+	if key == "Size" and isA(d.ClassName, "BasePart") then
+		assert(isV3(value), "Size must be a Vector3")
+	elseif key == "Size" and isA(d.ClassName, "GuiObject") then
+		assert(type(value) == "table" and value.X and value.X.Scale, "Size must be a UDim2")
 	end
 	if key == "PrimaryPart" and value ~= nil then
 		assert(Methods.IsDescendantOf(value, self), "PrimaryPart must be a descendant of the model")
@@ -962,6 +973,9 @@ for _, name in
 		"Debris",
 		"PolicyService",
 		"MarketplaceService",
+		"PhysicsService",
+		"HttpService",
+		"CollectionService",
 	}
 do
 	service(name)
@@ -969,6 +983,13 @@ end
 local spsFolder = newInstance("StarterPlayerScripts", true)
 M.rawset(spsFolder, "Name", "StarterPlayerScripts")
 spsFolder.Parent = services.StarterPlayer
+
+local camera = newInstance("Camera", true)
+M.rawset(camera, "Name", "Camera")
+M.rawset(camera, "CFrame", CFrame.new(0, 20, 0))
+data[camera].parent = services.Workspace
+table.insert(data[services.Workspace].children, camera)
+M.rawset(services.Workspace, "CurrentCamera", camera)
 
 M.game = game
 M.workspace = services.Workspace
@@ -1062,6 +1083,192 @@ function M.deepcopy(v)
 	return out
 end
 
+-- Tags
+M.tags = {} -- [tag] = { [instance] = true }
+local function tagSignal(kind, tag)
+	local key = kind .. ":" .. tag
+	M.tagSignals = M.tagSignals or {}
+	M.tagSignals[key] = M.tagSignals[key] or Signal()
+	return M.tagSignals[key]
+end
+function Methods.AddTag(self, a, b)
+	local inst, tag = a, b
+	if b == nil then
+		inst, tag = self, a
+	end
+	M.tags[tag] = M.tags[tag] or {}
+	if not M.tags[tag][inst] then
+		M.tags[tag][inst] = true
+		tagSignal("added", tag):Fire(inst)
+	end
+end
+function Methods.RemoveTag(self, a, b)
+	local inst, tag = a, b
+	if b == nil then
+		inst, tag = self, a
+	end
+	if M.tags[tag] and M.tags[tag][inst] then
+		M.tags[tag][inst] = nil
+		tagSignal("removed", tag):Fire(inst)
+	end
+end
+function Methods.HasTag(self, a, b)
+	local inst, tag = a, b
+	if b == nil then
+		inst, tag = self, a
+	end
+	return M.tags[tag] ~= nil and M.tags[tag][inst] == true
+end
+function Methods.GetTagged(_, tag)
+	local list = {}
+	for inst in M.tags[tag] or {} do
+		table.insert(list, inst)
+	end
+	return list
+end
+function Methods.GetInstanceAddedSignal(_, tag)
+	return tagSignal("added", tag)
+end
+function Methods.GetInstanceRemovedSignal(_, tag)
+	return tagSignal("removed", tag)
+end
+
+-- Collision groups
+M.groups = { Default = true }
+M.noCollide = {}
+function Methods.IsCollisionGroupRegistered(_, name)
+	return M.groups[name] == true
+end
+function Methods.RegisterCollisionGroup(_, name)
+	assert(not M.groups[name], "collision group already registered: " .. name)
+	M.groups[name] = true
+	local count = 0
+	for _ in M.groups do
+		count += 1
+	end
+	assert(count <= 32, "Roblox allows at most 32 collision groups")
+end
+function Methods.CollisionGroupSetCollidable(_, a, b, collidable)
+	assert(M.groups[a] and M.groups[b], "unregistered collision group")
+	M.noCollide[a .. "|" .. b] = not collidable
+	M.noCollide[b .. "|" .. a] = not collidable
+end
+
+-- JSON (HttpService)
+local function encode(v)
+	local t = type(v)
+	if t == "nil" then
+		return "null"
+	elseif t == "boolean" or t == "number" then
+		return tostring(v)
+	elseif t == "string" then
+		return '"' .. v:gsub('[%c"\\]', function(c)
+			return string.format("\\u%04x", string.byte(c))
+		end) .. '"'
+	elseif t == "table" then
+		assert(getmetatable(v) == nil, "cannot JSON encode a Roblox type")
+		if #v > 0 or next(v) == nil then
+			local parts = {}
+			for _, x in ipairs(v) do
+				table.insert(parts, encode(x))
+			end
+			return "[" .. table.concat(parts, ",") .. "]"
+		end
+		local parts = {}
+		for k, x in v do
+			table.insert(parts, encode(tostring(k)) .. ":" .. encode(x))
+		end
+		return "{" .. table.concat(parts, ",") .. "}"
+	end
+	error("cannot JSON encode " .. t)
+end
+local function decode(s)
+	local i = 1
+	local value
+	local function ws()
+		i = s:find("[^%s]", i) or #s + 1
+	end
+	function value()
+		ws()
+		local c = s:sub(i, i)
+		if c == "{" then
+			local out = {}
+			i += 1
+			ws()
+			if s:sub(i, i) == "}" then
+				i += 1
+				return out
+			end
+			while true do
+				ws()
+				local k = value()
+				ws()
+				assert(s:sub(i, i) == ":", "JSON: expected :")
+				i += 1
+				out[k] = value()
+				ws()
+				local d = s:sub(i, i)
+				i += 1
+				if d == "}" then
+					return out
+				end
+				assert(d == ",", "JSON: expected ,")
+			end
+		elseif c == "[" then
+			local out = {}
+			i += 1
+			ws()
+			if s:sub(i, i) == "]" then
+				i += 1
+				return out
+			end
+			while true do
+				table.insert(out, value())
+				ws()
+				local d = s:sub(i, i)
+				i += 1
+				if d == "]" then
+					return out
+				end
+				assert(d == ",", "JSON: expected ,")
+			end
+		elseif c == '"' then
+			local j = i + 1
+			local buf = {}
+			while s:sub(j, j) ~= '"' do
+				if s:sub(j, j) == "\\" then
+					local n = tonumber(s:sub(j + 2, j + 5), 16)
+					table.insert(buf, string.char(n))
+					j += 6
+				else
+					table.insert(buf, s:sub(j, j))
+					j += 1
+				end
+			end
+			i = j + 1
+			return table.concat(buf)
+		else
+			local token = s:match("^[%w%.%-+]+", i)
+			i += #token
+			if token == "true" then
+				return true
+			elseif token == "false" then
+				return false
+			elseif token == "null" then
+				return nil
+			end
+			return tonumber(token)
+		end
+	end
+	return value()
+end
+function Methods.JSONEncode(_, v)
+	return encode(v)
+end
+function Methods.JSONDecode(_, s)
+	return decode(s)
+end
+
 -- Policy and purchases
 M.restricted = {} -- [userId] = true when paid random items are restricted
 M.policyFail = false
@@ -1134,6 +1341,10 @@ function Methods.Play(self)
 	end)
 end
 
+function Methods.Emit(_, count)
+	assert(type(count) == "number", "Emit needs a number")
+end
+
 function Methods.AddItem(_, inst, lifetime)
 	task.delay(lifetime or 10, function()
 		Methods.Destroy(inst)
@@ -1145,6 +1356,7 @@ end
 ---------------------------------------------------------------------------
 function M.step(dt)
 	clock += dt
+	signalOf(services.RunService, "RenderStepped"):Fire(dt)
 	signalOf(services.RunService, "Heartbeat"):Fire(dt)
 	runDue()
 end

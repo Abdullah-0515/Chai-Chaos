@@ -11,6 +11,9 @@ local Config = require(Shared:WaitForChild("Config"))
 local Brainrots = require(Shared:WaitForChild("Brainrots"))
 local Format = require(Shared:WaitForChild("Format"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Mutations = require(Shared:WaitForChild("Mutations"))
+local Themes = require(Shared:WaitForChild("Themes"))
+local Events = require(Shared:WaitForChild("Events"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
 local rgb = Ui.rgb
@@ -77,7 +80,7 @@ end
 -- Kismat Roll window
 ---------------------------------------------------------------------------
 local kismatButton = Ui.sideButton(buttons, "Kismat", "Kismat Roll", rgb(230, 140, 30), 3)
-local panel, content = Ui.panel(gui, "KismatPanel", "Kismat Roll", Vector2.new(440, 520))
+local panel, content = Ui.panel(gui, "KismatPanel", "Kismat Roll", Vector2.new(440, 560))
 local order = 0
 local function nextOrder(): number
 	order += 1
@@ -125,13 +128,73 @@ for _, rarity in Brainrots.RARITY_ORDER do
 	})
 end
 Ui.label({
-	Size = UDim2.new(1, 0, 0, 36),
-	Text = "Every brainrot in a rarity is equally likely. Chand Raat Cheetah only comes out at night.",
+	Size = UDim2.new(1, 0, 0, 48),
+	Text = "Every brainrot in a rarity is equally likely. Chand Raat Cheetah only comes out at night, "
+		.. "Pakora Panda only during Baarish and Gajar Halwa Gorilla only during Sardi.",
 	TextWrapped = true,
 	TextColor3 = rgb(255, 235, 170),
 	LayoutOrder = nextOrder(),
 	Parent = content,
 })
+
+-- Mutation chances, for this player right now (theme perk and event included)
+local mutationTitle = Ui.label({
+	Name = "MutationTitle",
+	Size = UDim2.new(1, 0, 0, 22),
+	TextXAlignment = Enum.TextXAlignment.Left,
+	LayoutOrder = nextOrder(),
+	Parent = content,
+})
+local mutationRows = {}
+for _, m in Mutations.list do
+	local row = Ui.create("Frame", {
+		Name = m.id,
+		Size = UDim2.new(1, 0, 0, 24),
+		BackgroundColor3 = ROW_COLOR,
+		LayoutOrder = nextOrder(),
+		Parent = content,
+	}, { Ui.corner(8) })
+	Ui.label({
+		Size = UDim2.new(0.5, -8, 1, -4),
+		Position = UDim2.fromOffset(8, 2),
+		Text = ("%s (x%d income)"):format(m.name, m.income),
+		TextColor3 = m.color,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = row,
+	})
+	mutationRows[m.id] = Ui.label({
+		Name = "Chance",
+		Size = UDim2.new(0.5, -8, 1, -4),
+		Position = UDim2.new(0.5, 0, 0, 2),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Parent = row,
+	})
+end
+
+local function mutationBoost(): number
+	local event = Events.current()
+	return (Themes.perk(player:GetAttribute("Theme"), "rollMutation") or 1)
+		* (if event then event.mutationMult or 1 else 1)
+end
+
+local function rollCost(): number
+	local event = Events.current()
+	local discount = (1 - (Themes.perk(player:GetAttribute("Theme"), "rollDiscount") or 0))
+		* (1 - (if event then event.rollDiscount or 0 else 0))
+	return math.floor(Config.ROLL_RUPEE_COST * discount)
+end
+
+local function refreshMutations()
+	local boost = mutationBoost()
+	mutationTitle.Text = if boost > 1
+		then ("Mutation chances (x%s right now!):"):format(tostring(boost))
+		else "Mutation chances:"
+	for _, m in Mutations.list do
+		local odds = m.roll * boost
+		local pct = string.format("%.2f", odds * 100):gsub("0+$", ""):gsub("%.$", "")
+		mutationRows[m.id].Text = ("%s%%  ·  1 in %s"):format(pct, Format.commas(math.floor(1 / odds + 0.5)))
+	end
+end
 local pityLabel = Ui.label({
 	Name = "Pity",
 	Size = UDim2.new(1, 0, 0, 24),
@@ -187,7 +250,7 @@ rollToken.Activated:Connect(function()
 	roll("token")
 end)
 kismatButton.Activated:Connect(function()
-	panel.Visible = not panel.Visible
+	Ui.toggle(panel)
 end)
 
 local function refreshKismat()
@@ -198,21 +261,27 @@ local function refreshKismat()
 	rollToken.Visible = tokens > 0
 	rollToken.Text = ("Use a Kismat Roll (%d left)"):format(tokens)
 	kismatButton.Text = if tokens > 0 then ("Kismat Roll (%d)"):format(tokens) else "Kismat Roll"
+	local cost = rollCost()
+	rollRupees.Text = if cost < Config.ROLL_RUPEE_COST
+		then ("Roll for %s (sale!)"):format(Format.rupees(cost))
+		else "Roll for " .. Format.rupees(cost)
+	refreshMutations()
 	local paidAllowed = attribute("PaidRollsAllowed", false) == true
 	for _, packButton in rollPacks do
 		packButton.Visible = paidAllowed
 	end
 end
-for _, name in { "RollTokens", "RollPity", "PaidRollsAllowed" } do
+for _, name in { "RollTokens", "RollPity", "PaidRollsAllowed", "Theme" } do
 	player:GetAttributeChangedSignal(name):Connect(refreshKismat)
 end
+workspace:GetAttributeChangedSignal("EventId"):Connect(refreshKismat)
 refreshKismat()
 
 ---------------------------------------------------------------------------
 -- Chor Pass window (only when stealing costs Robux)
 ---------------------------------------------------------------------------
 if Config.stealsCostRobux() then
-	local chorButton = Ui.sideButton(buttons, "ChorPass", "Chor Pass", rgb(200, 50, 70), 4)
+	local chorButton = Ui.sideButton(buttons, "ChorPass", "Chor Pass", rgb(200, 50, 70), 7)
 	local chorPanel, chorContent = Ui.panel(gui, "ChorPanel", "Chor Pass", Vector2.new(420, 340))
 	local chorOrder = 0
 	local function add(props)
@@ -252,7 +321,7 @@ if Config.stealsCostRobux() then
 	player:GetAttributeChangedSignal("StealTokens"):Connect(refreshChor)
 	refreshChor()
 	chorButton.Activated:Connect(function()
-		chorPanel.Visible = not chorPanel.Visible
+		Ui.toggle(chorPanel)
 	end)
 end
 
@@ -303,11 +372,12 @@ local revealNew = Ui.label({
 })
 
 local revealCount = 0
-local function showRoll(id: string, isNew: boolean, wasPity: boolean)
+local function showRoll(id: string, mutationId: string, isNew: boolean, wasPity: boolean)
 	local def = Brainrots.byId[id]
 	if not def then
 		return
 	end
+	local mutation = Mutations.byId[mutationId]
 	revealCount += 1
 	local mine = revealCount
 	reveal.Visible = true
@@ -328,9 +398,12 @@ local function showRoll(id: string, isNew: boolean, wasPity: boolean)
 		end
 	end
 
-	revealHeader.Text = if wasPity then "Pity roll! Kismat says..." else "Kismat says..."
-	revealName.Text = def.name
-	revealName.TextColor3 = Brainrots.RARITY_COLORS[def.rarity]
+	revealHeader.Text = if mutation
+		then ("%s! Kismat says..."):format(mutation.name:upper())
+		elseif wasPity then "Pity roll! Kismat says..."
+		else "Kismat says..."
+	revealName.Text = Mutations.displayName(def, mutation and mutation.id)
+	revealName.TextColor3 = if mutation then mutation.color else Brainrots.RARITY_COLORS[def.rarity]
 	revealRarity.Text = ("%s  ·  %s"):format(def.rarity, oneIn(def.rarity))
 	revealRarity.TextColor3 = Brainrots.RARITY_COLORS[def.rarity]
 	revealNew.Visible = isNew
@@ -344,6 +417,6 @@ local function showRoll(id: string, isNew: boolean, wasPity: boolean)
 	end)
 end
 
-Remotes.RollResult.OnClientEvent:Connect(function(id, isNew, wasPity)
-	task.spawn(showRoll, id, isNew, wasPity)
+Remotes.RollResult.OnClientEvent:Connect(function(id, mutationId, isNew, wasPity)
+	task.spawn(showRoll, id, mutationId, isNew, wasPity)
 end)

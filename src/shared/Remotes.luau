@@ -11,7 +11,11 @@ local NAMES = {
 	"Rebirth", -- client -> server: start a Naya Safar
 	"Roll", -- client -> server: ("rupees" or "token") do a Kismat Roll
 	"BuyProduct", -- client -> server: ("rolls" or "steals", pack index) show a Robux purchase prompt
-	"RollResult", -- server -> client: (brainrot id, isNew, wasPity)
+	"RollResult", -- server -> client: (brainrot id, mutation or "", isNew, wasPity)
+	"UpgradeHaveli", -- client -> server: buy the next haveli level
+	"SetTheme", -- client -> server: (theme id) change your haveli theme
+	"ClaimQuest", -- client -> server: (quest index, or "bonus") claim a finished quest
+	"ClaimCollection", -- client -> server: (rarity) claim a Collection Book reward
 }
 
 local folder: Instance
@@ -37,4 +41,8 @@ return {
 	Roll = folder:WaitForChild("Roll") :: RemoteEvent,
 	BuyProduct = folder:WaitForChild("BuyProduct") :: RemoteEvent,
 	RollResult = folder:WaitForChild("RollResult") :: RemoteEvent,
+	UpgradeHaveli = folder:WaitForChild("UpgradeHaveli") :: RemoteEvent,
+	SetTheme = folder:WaitForChild("SetTheme") :: RemoteEvent,
+	ClaimQuest = folder:WaitForChild("ClaimQuest") :: RemoteEvent,
+	ClaimCollection = folder:WaitForChild("ClaimCollection") :: RemoteEvent,
 }

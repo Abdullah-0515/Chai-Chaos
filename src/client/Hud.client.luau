@@ -12,6 +12,7 @@ local Brainrots = require(Shared:WaitForChild("Brainrots"))
 local Format = require(Shared:WaitForChild("Format"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
+local Mutations = require(Shared:WaitForChild("Mutations"))
 
 local player = Players.LocalPlayer
 local leaderstats = player:WaitForChild("leaderstats")
@@ -66,10 +67,17 @@ local statusLabel = label({
 	Parent = gui,
 })
 
+-- the rupee number counts up smoothly instead of jumping
+local shown = create("NumberValue", { Value = rupeesValue.Value })
+shown.Changed:Connect(function()
+	rupeesLabel.Text = Format.rupees(math.floor(shown.Value + 0.5))
+end)
+rupeesLabel.Text = Format.rupees(rupeesValue.Value)
+
 local lastRupees = rupeesValue.Value
 local function updateRupees()
 	local value = rupeesValue.Value
-	rupeesLabel.Text = Format.rupees(value)
+	TweenService:Create(shown, TweenInfo.new(0.4, Enum.EasingStyle.Quad), { Value = value }):Play()
 	if value > lastRupees then
 		panelScale.Scale = 1.07
 		TweenService:Create(panelScale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
@@ -171,13 +179,18 @@ Remotes.Notify.OnClientEvent:Connect(toast)
 local buttons = create("Frame", {
 	Name = "Buttons",
 	AnchorPoint = Vector2.new(0, 0.5),
-	Position = UDim2.new(0, 12, 0.45, 0),
-	Size = UDim2.fromOffset(150, 0),
+	Position = UDim2.new(0, 10, 0.5, 0),
+	Size = UDim2.fromOffset(276, 0),
 	AutomaticSize = Enum.AutomaticSize.Y,
 	BackgroundTransparency = 1,
 	Parent = gui,
 }, {
-	create("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	create("UIGridLayout", {
+		CellSize = UDim2.fromOffset(134, 40),
+		CellPadding = UDim2.fromOffset(8, 6),
+		FillDirectionMaxCells = 2,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+	}),
 })
 
 local function button(name: string, text: string, color: Color3, order: number): TextButton
@@ -188,7 +201,7 @@ local LOCK_READY = rgb(190, 70, 50)
 local LOCK_ON = rgb(40, 150, 80)
 local LOCK_WAIT = rgb(100, 100, 110)
 local lockButton = button("Taala", "Taala (Lock)", LOCK_READY, 1)
-local bookButton = button("Collection", "Collection Book", rgb(60, 120, 195), 2)
+local bookButton = button("Collection", "Collection", rgb(60, 120, 195), 5)
 local rebirthButton = button("NayaSafar", "Naya Safar!", rgb(150, 70, 205), 10)
 rebirthButton.Visible = false
 
@@ -237,7 +250,8 @@ task.spawn(function()
 		local protectedUntil = player:GetAttribute("ProtectedUntil") or 0
 		statusLabel.Text = if now < protectedUntil then "Steal protection " .. formatTime(protectedUntil - now) else ""
 
-		rebirthButton.Visible = rupeesValue.Value >= Config.REBIRTH_COST
+		local rebirthCost = player:GetAttribute("RebirthCost") or Config.REBIRTH_COST
+		rebirthButton.Visible = rupeesValue.Value >= rebirthCost
 		task.wait(0.2)
 	end
 end)
@@ -301,7 +315,7 @@ local grid = create("ScrollingFrame", {
 
 local cards = {}
 local order = 0
-for _, rarity in Brainrots.RARITY_ORDER do
+for _, rarity in Brainrots.BOOK_ORDER do
 	for _, def in Brainrots.byRarity[rarity] do
 		order += 1
 		local card = create("Frame", {
@@ -334,14 +348,31 @@ for _, rarity in Brainrots.RARITY_ORDER do
 			Parent = card,
 		})
 		local phraseLabel = label({
-			Size = UDim2.new(1, -10, 0, 32),
-			Position = UDim2.fromOffset(5, 66),
+			Size = UDim2.new(1, -10, 0, 26),
+			Position = UDim2.fromOffset(5, 64),
 			TextColor3 = rgb(255, 230, 150),
 			TextWrapped = true,
 			ZIndex = 7,
 			Parent = card,
 		})
-		table.insert(cards, { def = def, frame = card, name = nameLabel, info = infoLabel, phrase = phraseLabel })
+		-- G D R badges for the Golden, Diamond and Rainbow versions found
+		local badges = {}
+		for i, m in Mutations.list do
+			badges[m.id] = label({
+				Name = m.id,
+				Size = UDim2.fromOffset(18, 14),
+				Position = UDim2.new(1, -66 + (i - 1) * 20, 1, -16),
+				Text = m.id:sub(1, 1),
+				TextColor3 = m.color,
+				TextTransparency = 0.8,
+				ZIndex = 7,
+				Parent = card,
+			})
+		end
+		table.insert(
+			cards,
+			{ def = def, frame = card, name = nameLabel, info = infoLabel, phrase = phraseLabel, badges = badges }
+		)
 	end
 end
 
@@ -362,8 +393,15 @@ local function refreshBook()
 		else
 			card.name.Text = "???"
 			card.info.Text = def.rarity
-			card.phrase.Text = if def.nightOnly then "Only comes out at night..." else "Not found yet"
+			card.phrase.Text = if def.questOnly
+				then "Collection Book reward"
+				elseif def.nightOnly then "Only comes out at night..."
+				elseif def.eventOnly then ("Only during %s"):format(def.eventOnly)
+				else "Not found yet"
 			card.frame.BackgroundColor3 = rgb(35, 32, 38)
+		end
+		for id, badge in card.badges do
+			badge.TextTransparency = if found[def.id .. ":" .. id] then 0 else 0.8
 		end
 	end
 	bookTitle.Text = ("Collection Book  %d/%d"):format(count, #Brainrots.list)
@@ -372,8 +410,9 @@ end
 player:GetAttributeChangedSignal("Discovered"):Connect(refreshBook)
 refreshBook()
 
+Ui.register(book)
 bookButton.Activated:Connect(function()
-	book.Visible = not book.Visible
+	Ui.toggle(book)
 end)
 closeButton.Activated:Connect(function()
 	book.Visible = false

@@ -1,14 +1,22 @@
--- All 36 brainrots from docs/game-design.md.
+-- All 36 brainrots from docs/game-design.md, plus 6 special quest brainrots.
 --
 -- id     : the Model name to use in ServerStorage/Brainrots if you build your own model.
+-- price  : the price from the design doc; the game multiplies it by Config.PRICE_MULTIPLIER.
 -- shape  : the body of the blocky placeholder that is made when no model exists yet.
 -- extras : small add-ons for the placeholder (glasses, crown, legs and so on).
 -- float  : hovers above the ground instead of standing on it.
 -- nightOnly : only spawns at night.
+-- eventOnly : only spawns during that event (see Events.luau).
+-- questOnly : never spawns; earned from the Collection Book. Cannot be stolen or sold.
+
+local Config = require(script.Parent.Config)
 
 local Brainrots = {}
 
+-- The rarities that spawn on the lane and in Kismat Rolls.
 Brainrots.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
+-- The Collection Book also shows the special quest brainrots.
+Brainrots.BOOK_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Special" }
 
 Brainrots.RARITY_COLORS = {
 	Common = Color3.fromRGB(190, 190, 190),
@@ -17,6 +25,7 @@ Brainrots.RARITY_COLORS = {
 	Epic = Color3.fromRGB(180, 90, 255),
 	Legendary = Color3.fromRGB(255, 195, 40),
 	Mythic = Color3.fromRGB(255, 80, 170),
+	Special = Color3.fromRGB(40, 225, 200),
 }
 
 export type Def = {
@@ -32,6 +41,9 @@ export type Def = {
 	float: boolean?,
 	eyes: number?,
 	nightOnly: boolean?,
+	eventOnly: string?,
+	questOnly: boolean?,
+	basePrice: number?,
 }
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -57,7 +69,7 @@ Brainrots.list = {
 	-- Batch 2
 	{ id = "ChanaChaatChacha", name = "Chana Chaat Chacha", rarity = "Common", price = 40, income = 2, phrase = "Imli wali, imli wali!", color = rgb(200, 150, 70), shape = "Cylinder", extras = { "moustache", "legs" } },
 	{ id = "KulfiKangaroo", name = "Kulfi Kangaroo", rarity = "Common", price = 75, income = 3, phrase = "Pighla... phir jam gaya!", color = rgb(245, 225, 180), shape = "Tall", extras = { "ears", "legs" } },
-	{ id = "PakoraPanda", name = "Pakora Panda", rarity = "Common", price = 120, income = 5, phrase = "Baarish? Pakora time!", color = rgb(190, 120, 40), shape = "Ball", extras = { "ears" } },
+	{ id = "PakoraPanda", name = "Pakora Panda", rarity = "Common", price = 120, income = 5, phrase = "Baarish? Pakora time!", color = rgb(190, 120, 40), shape = "Ball", extras = { "ears" }, eventOnly = "Baarish" },
 	{ id = "LassiLlama", name = "Lassi Llama", rarity = "Uncommon", price = 400, income = 13, phrase = "Malai moochh, full style!", color = rgb(250, 248, 235), shape = "Cylinder", extras = { "moustache", "ears" } },
 	{ id = "BunKebabBhai", name = "Bun Kebab Bhai", rarity = "Uncommon", price = 800, income = 24, phrase = "Ek dum garam!", color = rgb(170, 100, 45), shape = "Disc", extras = { "legs" } },
 	{ id = "RoohAfzaRhino", name = "Rooh Afza Rhino", rarity = "Uncommon", price = 1000, income = 30, phrase = "Sab kuch pink!", color = rgb(220, 30, 60), shape = "Block", extras = { "horn", "legs" } },
@@ -73,7 +85,7 @@ Brainrots.list = {
 	-- Batch 3
 	{ id = "NaanNinja", name = "Naan Ninja", rarity = "Common", price = 60, income = 2, phrase = "Roti star! Hiyaa!", color = rgb(235, 200, 140), shape = "Disc", extras = { "headband" } },
 	{ id = "PyaazPehelwan", name = "Pyaaz Pehelwan", rarity = "Common", price = 90, income = 4, phrase = "Ro kyun rahe ho?", color = rgb(170, 60, 120), shape = "Ball", extras = { "moustache", "legs" } },
-	{ id = "GajarHalwaGorilla", name = "Gajar Halwa Gorilla", rarity = "Uncommon", price = 500, income = 15, phrase = "Sardi aa gayi!", color = rgb(240, 110, 30), shape = "Block", extras = { "ears", "legs" } },
+	{ id = "GajarHalwaGorilla", name = "Gajar Halwa Gorilla", rarity = "Uncommon", price = 500, income = 15, phrase = "Sardi aa gayi!", color = rgb(240, 110, 30), shape = "Block", extras = { "ears", "legs" }, eventOnly = "Sardi" },
 	{ id = "DoodhPattiDolphin", name = "Doodh Patti Dolphin", rarity = "Uncommon", price = 900, income = 26, phrase = "Chai mein chhalaang!", color = rgb(185, 135, 95), shape = "Ball", extras = { "wings", "tail" }, float = true },
 	{ id = "GeneratorGainda", name = "Generator Gainda", rarity = "Rare", price = 2500, income = 65, phrase = "Light gayi? Main aaya! Brrrr!", color = rgb(115, 115, 125), shape = "Block", extras = { "horn", "legs" } },
 	{ id = "ShaadiShehnaiShark", name = "Shaadi Shehnai Shark", rarity = "Rare", price = 5000, income = 120, phrase = "Shaadi kahan hai?", color = rgb(90, 130, 185), shape = "Wedge", extras = { "wings" } },
@@ -81,19 +93,29 @@ Brainrots.list = {
 	{ id = "RishtaAuntyRobot", name = "Rishta Aunty Robot", rarity = "Epic", price = 25000, income = 500, phrase = "Beta, kya karte ho?", color = rgb(200, 200, 215), shape = "Tall", extras = { "glasses" } },
 	{ id = "CycleWalaCyclops", name = "Cycle Wala Cyclops", rarity = "Legendary", price = 120000, income = 2200, phrase = "Cylinder le lo, cylinder!", color = rgb(120, 160, 80), shape = "Ball", extras = { "legs" }, eyes = 1 },
 	{ id = "ChandRaatCheetah", name = "Chand Raat Cheetah", rarity = "Mythic", price = 400000, income = 6500, phrase = "Choorian chamak rahi hain!", color = rgb(250, 210, 80), shape = "Block", extras = { "ears", "tail", "legs" }, nightOnly = true },
+
+	-- Special quest brainrots: rewards for finishing a rarity in the Collection Book
+	{ id = "MithaiMamu", name = "Mithai Mamu", rarity = "Special", price = 2000, income = 60, phrase = "Ek aur laddoo, beta!", color = rgb(255, 170, 60), shape = "Block", extras = { "moustache", "legs" }, questOnly = true },
+	{ id = "LassiLightning", name = "Lassi Lightning", rarity = "Special", price = 8000, income = 220, phrase = "Thandi thandi... ZAP!", color = rgb(235, 245, 255), shape = "Tall", extras = { "goggles", "wings" }, float = true, questOnly = true },
+	{ id = "ChowkidarChoocha", name = "Chowkidar Choocha", rarity = "Special", price = 30000, income = 800, phrase = "Jaagte raho!", color = rgb(255, 225, 70), shape = "Ball", extras = { "headband", "legs" }, questOnly = true },
+	{ id = "RangeelaRaja", name = "Rangeela Raja", rarity = "Special", price = 120000, income = 3000, phrase = "Rang hi rang!", color = rgb(40, 160, 220), shape = "Ball", extras = { "crown", "wings", "tail" }, questOnly = true },
+	{ id = "ShalimarSultan", name = "Shalimar Sultan", rarity = "Special", price = 500000, income = 11000, phrase = "Bagh mein khush aamdeed!", color = rgb(60, 190, 120), shape = "Cylinder", extras = { "crown" }, float = true, questOnly = true },
+	{ id = "TaaronWalaTonga", name = "Taaron Wala Tonga", rarity = "Special", price = 2000000, income = 40000, phrase = "Chalo, taaron ki sair!", color = rgb(70, 70, 170), shape = "Wheel", extras = { "ears", "crown" }, float = true, questOnly = true },
 } :: { Def }
 -- stylua: ignore end
 
 Brainrots.byId = {} :: { [string]: Def }
 Brainrots.byRarity = {} :: { [string]: { Def } }
 
-for _, rarity in Brainrots.RARITY_ORDER do
+for _, rarity in Brainrots.BOOK_ORDER do
 	Brainrots.byRarity[rarity] = {}
 end
 
 for _, def in Brainrots.list do
 	assert(Brainrots.byId[def.id] == nil, "Duplicate brainrot id: " .. def.id)
 	assert(Brainrots.byRarity[def.rarity], "Unknown rarity: " .. def.rarity)
+	def.basePrice = def.price
+	def.price = def.price * Config.PRICE_MULTIPLIER
 	Brainrots.byId[def.id] = def
 	table.insert(Brainrots.byRarity[def.rarity], def)
 end

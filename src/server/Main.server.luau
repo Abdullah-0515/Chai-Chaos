@@ -1,12 +1,11 @@
 -- Chai Chaos server entry point. Wires the map, players, income, prompts,
--- the Taala lock, the chappal, daily chai, Kismat Rolls, Robux purchases and
--- Naya Safar (rebirth) together.
+-- haveli levels and themes, the Taala lock, the chappal, daily chai, quests,
+-- events, Kismat Rolls, Robux purchases and Naya Safar (rebirth) together.
 
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
 local Debris = game:GetService("Debris")
 
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
@@ -14,6 +13,7 @@ local Config = require(Shared.Config)
 local Brainrots = require(Shared.Brainrots)
 local Format = require(Shared.Format)
 local Remotes = require(Shared.Remotes)
+local Themes = require(Shared.Themes)
 
 local State = require(script.Parent.State)
 local PlayerData = require(script.Parent.PlayerData)
@@ -24,24 +24,23 @@ local Spawner = require(script.Parent.Spawner)
 local Stealing = require(script.Parent.Stealing)
 local Shop = require(script.Parent.Shop)
 local Kismat = require(script.Parent.Kismat)
+local World = require(script.Parent.World)
+local Defenses = require(script.Parent.Defenses)
+local EventRunner = require(script.Parent.EventRunner)
+local QuestBook = require(script.Parent.QuestBook)
+local Leaderboard = require(script.Parent.Leaderboard)
 
+World.init()
 local map = MapBuilder.ensure()
 Havelis.init(map)
+Defenses.init(map)
 Stealing.init(map)
 Spawner.init(map)
 Shop.init()
 Kismat.init()
-
----------------------------------------------------------------------------
--- Day and night (Chand Raat Cheetah only comes out at night)
----------------------------------------------------------------------------
-Lighting.ClockTime = 14
-task.spawn(function()
-	while true do
-		local dt = task.wait(0.25)
-		Lighting.ClockTime = (Lighting.ClockTime + dt * 24 / Config.DAY_LENGTH) % 24
-	end
-end)
+QuestBook.init()
+EventRunner.init()
+Leaderboard.init(map)
 
 ---------------------------------------------------------------------------
 -- The chappal tool: bonk a thief to make them drop your brainrot
@@ -138,14 +137,15 @@ local function dailyChai(profile)
 
 	if math.random() < 0.5 and Havelis.hasFreePlot(profile) then
 		local pool = {}
-		for _, def in Brainrots.byRarity.Common do
-			table.insert(pool, def)
-		end
-		for _, def in Brainrots.byRarity.Uncommon do
-			table.insert(pool, def)
+		for _, rarity in { "Common", "Uncommon" } do
+			for _, def in Brainrots.byRarity[rarity] do
+				if not def.eventOnly then
+					table.insert(pool, def)
+				end
+			end
 		end
 		local def = pool[math.random(#pool)]
-		Havelis.adopt(profile, def, nil)
+		Havelis.adopt(profile, def)
 		State.notify(
 			profile.player,
 			"good",
@@ -179,7 +179,10 @@ local function onCharacterAdded(profile, character: Model)
 	character:WaitForChild("HumanoidRootPart", 10)
 	task.wait()
 	if State.profiles[profile.player] == profile then
+		profile.carrySpeed = nil
 		Havelis.teleportHome(profile)
+		Havelis.applyWalkSpeed(profile)
+		Defenses.applyCharacter(profile)
 	end
 end
 
@@ -222,12 +225,17 @@ local function onPlayerAdded(player: Player)
 	Havelis.refreshPrompts(profile)
 	State.syncTokens(profile)
 	task.spawn(Shop.setup, profile)
+	QuestBook.ensure(profile)
+	State.syncQuests(profile)
 	dailyChai(profile)
 	State.notify(
 		player,
 		"info",
 		"Welcome to Chai Chaos! Buy brainrots on Bazaar Lane and collect rupees from your galla."
 	)
+	if next(data.discovered) == nil then
+		State.notify(player, "info", "Open the Haveli menu to pick your haveli's theme!")
+	end
 	if not canSave then
 		State.notify(player, "bad", "Saving is off right now, so your progress will not be kept.")
 		if RunService:IsStudio() then
@@ -309,18 +317,11 @@ end)
 -- Every ProximityPrompt in the game is handled here
 ---------------------------------------------------------------------------
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, player: Player)
-	local name = prompt.Name
-	if name == "UnlockPrompt" then
-		local plot = prompt.Parent
-		if plot and plot:IsA("BasePart") then
-			Havelis.unlock(player, plot)
-		end
-		return
-	end
 	local model = Models.ownerModel(prompt)
 	if not model then
 		return
 	end
+	local name = prompt.Name
 	if name == "BuyPrompt" then
 		Spawner.buy(player, model)
 	elseif name == "SellPrompt" then
@@ -331,34 +332,14 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 end)
 
 ---------------------------------------------------------------------------
--- Taala: lock your haveli for 30 seconds, then wait 60 seconds
+-- Haveli buttons: Taala lock, upgrades and themes
 ---------------------------------------------------------------------------
-Remotes.LockHaveli.OnServerEvent:Connect(function(player: Player)
-	local profile = State.profiles[player]
-	if not profile or not profile.haveli then
-		return
-	end
-	local now = workspace:GetServerTimeNow()
-	if now < profile.lockReadyAt then
-		State.notify(player, "bad", ("Your taala is not ready yet (%ds)."):format(math.ceil(profile.lockReadyAt - now)))
-		return
-	end
-	profile.lockedUntil = now + Config.LOCK_TIME
-	profile.lockReadyAt = now + Config.LOCK_TIME + Config.LOCK_COOLDOWN
-	player:SetAttribute("LockedUntil", profile.lockedUntil)
-	player:SetAttribute("LockReadyAt", profile.lockReadyAt)
-	Havelis.refreshPrompts(profile)
-	State.notify(player, "good", ("Taala laga diya! Your haveli is locked for %d seconds."):format(Config.LOCK_TIME))
-	task.delay(Config.LOCK_TIME + 0.1, function()
-		if State.profiles[player] == profile then
-			Havelis.refreshPrompts(profile)
-			State.notify(player, "info", "Your taala is open again.")
-		end
-	end)
-end)
+Remotes.LockHaveli.OnServerEvent:Connect(Havelis.lock)
+Remotes.UpgradeHaveli.OnServerEvent:Connect(Havelis.upgrade)
+Remotes.SetTheme.OnServerEvent:Connect(Havelis.setTheme)
 
 ---------------------------------------------------------------------------
--- Naya Safar (rebirth)
+-- Naya Safar (rebirth): costs more every time, unlocks a new theme
 ---------------------------------------------------------------------------
 Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 	local profile = State.profiles[player]
@@ -366,19 +347,21 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 		return
 	end
 	local data = profile.data
-	if data.rupees < Config.REBIRTH_COST then
-		State.notify(player, "bad", ("You need %s for a Naya Safar."):format(Format.rupees(Config.REBIRTH_COST)))
+	local cost = Config.rebirthCost(data.rebirths)
+	if data.rupees < cost then
+		State.notify(player, "bad", ("You need %s for a Naya Safar."):format(Format.rupees(cost)))
 		return
 	end
 	Stealing.releasePlayer(profile)
 	Havelis.clearBrainrots(profile)
 	data.rebirths += 1
 	data.rupees = Config.START_RUPEES
-	data.plots = Config.START_PLOTS
+	data.level = 1
 	data.galla = 0
 	data.owned = {}
 	State.syncStats(profile)
-	Havelis.repaint(profile)
+	State.syncQuests(profile)
+	Havelis.restyle(profile)
 	State.notifyAll(
 		"rare",
 		("%s started a Naya Safar! Rebirth %d, now earning +%d%% forever."):format(
@@ -387,6 +370,11 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 			math.floor(Config.REBIRTH_BONUS * data.rebirths * 100)
 		)
 	)
+	for _, theme in Themes.list do
+		if theme.rebirths == data.rebirths then
+			State.notify(player, "rare", ("New haveli theme unlocked: %s! %s"):format(theme.name, theme.perkText))
+		end
+	end
 	task.spawn(saveProfile, profile)
 end)
 

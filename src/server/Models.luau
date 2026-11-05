@@ -4,13 +4,18 @@
 -- brainrot's id (for example "SamosaSupremo"), that model is used. Otherwise a
 -- blocky placeholder is built from the shape, colour and extras in Brainrots.luau.
 -- The front of a model is its -Z side (the way Roblox models face by default).
+--
+-- Mutated brainrots (Golden, Diamond, Rainbow) are tinted; Rainbow ones change
+-- colour on every player's screen (see Smooth.client.luau).
 
+local CollectionService = game:GetService("CollectionService")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Brainrots = require(Shared.Brainrots)
 local Format = require(Shared.Format)
+local Mutations = require(Shared.Mutations)
 
 local Models = {}
 
@@ -21,12 +26,14 @@ local RARITY_SIZE = {
 	Epic = 4.6,
 	Legendary = 5.4,
 	Mythic = 6.4,
+	Special = 5,
 }
 
 local PARTICLE_RATE = {
 	Epic = 4,
 	Legendary = 8,
 	Mythic = 16,
+	Special = 10,
 }
 
 local WHITE = Color3.new(1, 1, 1)
@@ -363,8 +370,34 @@ local function newLabel(name: string, position: number, height: number, color: C
 	return label
 end
 
+local NOT_TINTED = { Eye = true, Pupil = true, Root = true }
+
+local function tint(model: Model, mutation: string?)
+	local m = mutation and Mutations.byId[mutation]
+	if not m then
+		return
+	end
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") and not NOT_TINTED[p.Name] and p.Transparency < 1 then
+			p:SetAttribute("Tint", true)
+			if m.id == "Golden" then
+				p.Color = m.color:Lerp(p.Color, 0.15)
+				p.Material = Enum.Material.Foil
+			elseif m.id == "Diamond" then
+				p.Color = m.color
+				p.Material = Enum.Material.Glass
+				p.Reflectance = 0.25
+				p.Transparency = 0.1
+			else
+				p.Color = m.color
+				p.Material = Enum.Material.Neon
+			end
+		end
+	end
+end
+
 -- Anchors the model, adds the rarity ring, sparkles and the name pop-up.
-local function decorate(model: Model, def: Brainrots.Def)
+local function decorate(model: Model, def: Brainrots.Def, mutation: string?)
 	local primary = model.PrimaryPart :: BasePart
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
@@ -373,6 +406,7 @@ local function decorate(model: Model, def: Brainrots.Def)
 			p.CastShadow = false
 		end
 	end
+	tint(model, mutation)
 
 	local rarityColor = Brainrots.RARITY_COLORS[def.rarity]
 	local boxCFrame, boxSize = model:GetBoundingBox()
@@ -398,6 +432,32 @@ local function decorate(model: Model, def: Brainrots.Def)
 	local hover = if def.float then 1.5 else 0
 	model:SetAttribute("GroundOffset", -(bottom - 0.2) + hover)
 	model:SetAttribute("BrainrotId", def.id)
+	model:SetAttribute("Mutation", mutation)
+
+	-- welds hold the parts together while a thief carries the brainrot
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") and p ~= primary then
+			local weld = Instance.new("WeldConstraint")
+			weld.Name = "Hold"
+			weld.Part0 = primary
+			weld.Part1 = p
+			weld.Parent = p
+		end
+	end
+
+	local m = mutation and Mutations.byId[mutation]
+	if m then
+		local glitter = Instance.new("ParticleEmitter")
+		glitter.Name = "MutationSparkles"
+		glitter.Rate = 8
+		glitter.Lifetime = NumberRange.new(0.8, 1.4)
+		glitter.Speed = NumberRange.new(1, 2.5)
+		glitter.SpreadAngle = Vector2.new(180, 180)
+		glitter.Size = NumberSequence.new(0.5, 0)
+		glitter.LightEmission = 1
+		glitter.Color = ColorSequence.new(m.color)
+		glitter.Parent = primary
+	end
 
 	local rate = PARTICLE_RATE[def.rarity]
 	if rate then
@@ -431,8 +491,8 @@ local function decorate(model: Model, def: Brainrots.Def)
 	billboard.MaxDistance = 90
 	billboard.LightInfluence = 0
 
-	local nameLabel = newLabel("NameLabel", 0, 0.3, WHITE)
-	nameLabel.Text = def.name
+	local nameLabel = newLabel("NameLabel", 0, 0.3, if m then m.color else WHITE)
+	nameLabel.Text = Mutations.displayName(def, mutation)
 	nameLabel.Parent = billboard
 	local rarityLabel = newLabel("RarityLabel", 0.3, 0.2, rarityColor)
 	rarityLabel.Text = def.rarity
@@ -441,12 +501,16 @@ local function decorate(model: Model, def: Brainrots.Def)
 	phraseLabel.Text = '"' .. def.phrase .. '"'
 	phraseLabel.Parent = billboard
 	local infoLabel = newLabel("InfoLabel", 0.76, 0.24, Color3.fromRGB(140, 255, 140))
-	infoLabel.Text = ("%s  ·  +%s/s"):format(Format.rupees(def.price), Format.short(def.income))
+	infoLabel.Text = ("%s  ·  +%s/s"):format(
+		Format.rupees(Mutations.value(def, mutation)),
+		Format.short(Mutations.income(def, mutation))
+	)
 	infoLabel.Parent = billboard
 	billboard.Parent = primary
+	CollectionService:AddTag(model, "ChaiBrainrot")
 end
 
-function Models.create(def: Brainrots.Def): Model
+function Models.create(def: Brainrots.Def, mutation: string?): Model
 	local folder = ServerStorage:FindFirstChild("Brainrots")
 	local template = folder and folder:FindFirstChild(def.id)
 	local model: Model
@@ -466,8 +530,39 @@ function Models.create(def: Brainrots.Def): Model
 		model = buildPlaceholder(def)
 	end
 	model.Name = def.id
-	decorate(model, def)
+	decorate(model, def, mutation)
 	return model
+end
+
+-- Welds the brainrot onto a thief so it moves smoothly with their character.
+function Models.attach(model: Model, root: BasePart, offset: CFrame)
+	model:SetAttribute("Carried", true)
+	model:PivotTo(root.CFrame * offset)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Massless = true
+			p.Anchored = false
+		end
+	end
+	local weld = Instance.new("WeldConstraint")
+	weld.Name = "CarryWeld"
+	weld.Part0 = root
+	weld.Part1 = model.PrimaryPart
+	weld.Parent = model.PrimaryPart
+end
+
+function Models.detach(model: Model)
+	local primary = model.PrimaryPart
+	local weld = primary and primary:FindFirstChild("CarryWeld")
+	if weld then
+		weld:Destroy()
+	end
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Anchored = true
+		end
+	end
+	model:SetAttribute("Carried", false)
 end
 
 -- The brainrot model that a prompt (or any part) belongs to.

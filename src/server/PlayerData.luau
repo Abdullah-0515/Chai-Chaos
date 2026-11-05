@@ -11,6 +11,8 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Config = require(Shared.Config)
 local Brainrots = require(Shared.Brainrots)
+local Mutations = require(Shared.Mutations)
+local Themes = require(Shared.Themes)
 
 local PlayerData = {}
 
@@ -26,25 +28,36 @@ do
 	end
 end
 
-local function key(userId: number): string
+local function storeKey(userId: number): string
 	return "player_" .. userId
 end
 
 function PlayerData.default()
 	return {
-		version = 1,
+		version = 2,
 		rupees = Config.START_RUPEES,
 		galla = 0,
 		rebirths = 0,
-		plots = Config.START_PLOTS,
-		owned = {}, -- list of brainrot ids
+		level = 1, -- haveli level (see Config.HAVELI_LEVELS)
+		theme = Themes.DEFAULT,
+		owned = {}, -- brainrot keys: "SamosaSupremo" or "SamosaSupremo:Golden"
 		discovered = {}, -- [id] = true
+		mutations = {}, -- ["SamosaSupremo:Golden"] = true, for the Collection Book
 		lastDaily = 0, -- day number of the last daily chai
-		rollTokens = 0, -- Kismat Rolls from daily chai and Robux packs
+		rollTokens = 0, -- Kismat Rolls from daily chai, quests and Robux packs
 		rollPity = 0, -- rolls since the last Epic or better
 		stealTokens = 0, -- Chor Passes, one is used for every steal
 		receipts = {}, -- recent Robux purchase ids, so a purchase is never granted twice
+		quests = { day = 0, list = {}, bonusClaimed = false },
+		collection = {}, -- [rarity] = { rewarded = true, specialRebirth = n }
 	}
+end
+
+local function whole(value: any, minimum: number): number?
+	if type(value) == "number" and value == value then
+		return math.max(minimum, math.floor(value))
+	end
+	return nil
 end
 
 -- Fill in anything missing or broken so old saves keep working.
@@ -53,30 +66,28 @@ local function reconcile(saved: any)
 	if type(saved) ~= "table" then
 		return data
 	end
-	if type(saved.rupees) == "number" then
-		data.rupees = math.max(0, math.floor(saved.rupees))
+	data.rupees = whole(saved.rupees, 0) or data.rupees
+	data.galla = if type(saved.galla) == "number" then math.max(0, saved.galla) else 0
+	data.rebirths = whole(saved.rebirths, 0) or 0
+	data.lastDaily = whole(saved.lastDaily, 0) or 0
+	data.rollTokens = whole(saved.rollTokens, 0) or 0
+	data.stealTokens = whole(saved.stealTokens, 0) or 0
+	data.rollPity = whole(saved.rollPity, 0) or 0
+
+	if type(saved.level) == "number" then
+		data.level = math.clamp(math.floor(saved.level), 1, #Config.HAVELI_LEVELS)
+	elseif type(saved.plots) == "number" then
+		-- version 1 saved a plot count instead of a level
+		for level, info in Config.HAVELI_LEVELS do
+			if info.plots <= saved.plots then
+				data.level = level
+			end
+		end
 	end
-	if type(saved.galla) == "number" then
-		data.galla = math.max(0, saved.galla)
+	if type(saved.theme) == "string" and Themes.isUnlocked(saved.theme, data.rebirths) then
+		data.theme = saved.theme
 	end
-	if type(saved.rebirths) == "number" then
-		data.rebirths = math.max(0, math.floor(saved.rebirths))
-	end
-	if type(saved.plots) == "number" then
-		data.plots = math.clamp(math.floor(saved.plots), Config.START_PLOTS, Config.MAX_PLOTS)
-	end
-	if type(saved.lastDaily) == "number" then
-		data.lastDaily = saved.lastDaily
-	end
-	if type(saved.rollTokens) == "number" then
-		data.rollTokens = math.max(0, math.floor(saved.rollTokens))
-	end
-	if type(saved.stealTokens) == "number" then
-		data.stealTokens = math.max(0, math.floor(saved.stealTokens))
-	end
-	if type(saved.rollPity) == "number" then
-		data.rollPity = math.max(0, math.floor(saved.rollPity))
-	end
+
 	if type(saved.receipts) == "table" then
 		for _, id in saved.receipts do
 			if type(id) == "string" then
@@ -91,16 +102,54 @@ local function reconcile(saved: any)
 			end
 		end
 	end
+	if type(saved.mutations) == "table" then
+		for key, value in saved.mutations do
+			local id, mutation = Mutations.parse(key)
+			if value == true and Brainrots.byId[id] and mutation then
+				data.mutations[key] = true
+			end
+		end
+	end
+	local plots = Config.HAVELI_LEVELS[data.level].plots
 	if type(saved.owned) == "table" then
-		for _, id in saved.owned do
-			if Brainrots.byId[id] and #data.owned < data.plots then
-				table.insert(data.owned, id)
-				data.discovered[id] = true
+		for _, key in saved.owned do
+			if type(key) == "string" then
+				local id, mutation = Mutations.parse(key)
+				if Brainrots.byId[id] and #data.owned < plots then
+					table.insert(data.owned, Mutations.key(id, mutation))
+					data.discovered[id] = true
+				end
+			end
+		end
+	end
+	if type(saved.quests) == "table" and type(saved.quests.list) == "table" then
+		local quests =
+			{ day = whole(saved.quests.day, 0) or 0, list = {}, bonusClaimed = saved.quests.bonusClaimed == true }
+		for _, q in saved.quests.list do
+			if type(q) == "table" and type(q.id) == "string" and type(q.target) == "number" then
+				table.insert(quests.list, {
+					id = q.id,
+					target = q.target,
+					progress = whole(q.progress, 0) or 0,
+					claimed = q.claimed == true,
+				})
+			end
+		end
+		data.quests = quests
+	end
+	if type(saved.collection) == "table" then
+		for rarity, entry in saved.collection do
+			if Config.COLLECTION_REWARDS[rarity] and type(entry) == "table" then
+				data.collection[rarity] = {
+					rewarded = entry.rewarded == true,
+					specialRebirth = whole(entry.specialRebirth, -1),
+				}
 			end
 		end
 	end
 	return data
 end
+PlayerData.reconcile = reconcile
 
 -- Returns the data and whether it is safe to save over it later.
 -- If loading fails we never save, so a hiccup cannot wipe someone's progress.
@@ -111,7 +160,7 @@ function PlayerData.load(userId: number): (any, boolean)
 	local attempts = if RunService:IsStudio() then 1 else 3
 	for attempt = 1, attempts do
 		local ok, result = pcall(function()
-			return store:GetAsync(key(userId))
+			return store:GetAsync(storeKey(userId))
 		end)
 		if ok then
 			return reconcile(result), true
@@ -129,7 +178,7 @@ function PlayerData.save(userId: number, data: any): boolean
 		return false
 	end
 	local ok, err = pcall(function()
-		store:UpdateAsync(key(userId), function()
+		store:UpdateAsync(storeKey(userId), function()
 			return data
 		end)
 	end)

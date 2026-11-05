@@ -13,6 +13,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Config = require(Shared.Config)
 local Format = require(Shared.Format)
+local Mutations = require(Shared.Mutations)
+local Themes = require(Shared.Themes)
 
 local State = require(script.Parent.State)
 local Models = require(script.Parent.Models)
@@ -87,6 +89,15 @@ local function refund(thief: Player, carry)
 	end
 end
 
+-- Puts the thief's walking speed back to normal.
+local function unslow(thief: Player)
+	local profile = State.profiles[thief]
+	if profile then
+		profile.carrySpeed = nil
+		Havelis.applyWalkSpeed(profile)
+	end
+end
+
 -- Sends a carried brainrot back to its owner.
 function Stealing.returnToOwner(thief: Player, reason: string?)
 	local carry = carrying[thief]
@@ -96,21 +107,30 @@ function Stealing.returnToOwner(thief: Player, reason: string?)
 	carrying[thief] = nil
 	cleanup(carry)
 	refund(thief, carry)
+	unslow(thief)
 
 	local entry = carry.entry
+	Models.detach(entry.model)
 	Models.setPanic(entry.model, entry.def, false)
 	if State.entries[entry.model] ~= entry or not entry.model.Parent then
 		return
 	end
 	Havelis.returnHome(entry)
 	local owner = entry.owner.player
+	local name = Mutations.displayName(entry.def, entry.mutation)
 	if reason == "bonk" then
-		State.notify(owner, "good", ("Bonk! Your %s is coming back home."):format(entry.def.name))
+		State.notify(owner, "good", ("Bonk! Your %s is coming back home."):format(name))
+	elseif reason == "guard" then
+		State.notify(owner, "good", ("Your Chowkidar caught the chor! Your %s is safe."):format(name))
 	else
-		State.notify(owner, "good", ("Your %s escaped from the chor and is walking home!"):format(entry.def.name))
+		State.notify(owner, "good", ("Your %s escaped from the chor and is walking home!"):format(name))
 	end
 	if thief.Parent then
-		State.notify(thief, "bad", ("You dropped %s!"):format(entry.def.name))
+		if reason == "guard" then
+			State.notify(thief, "bad", "Seeti! The Chowkidar caught you and took it back!")
+		else
+			State.notify(thief, "bad", ("You dropped %s!"):format(name))
+		end
 	end
 end
 
@@ -127,16 +147,18 @@ function Stealing.complete(thief: Player)
 	end
 	carrying[thief] = nil
 	cleanup(carry)
+	unslow(thief)
 
 	local entry = carry.entry
 	local ownerProfile = entry.owner
-	Mover.stop(entry.model)
+	Models.detach(entry.model)
 	Models.setPanic(entry.model, entry.def, false)
 	Havelis.remove(ownerProfile, entry)
-	Havelis.adopt(thiefProfile, entry.def, entry.model)
+	Havelis.adopt(thiefProfile, entry.def, entry.mutation, entry.model)
 
-	State.notify(thief, "good", ("You got away with %s!"):format(entry.def.name))
-	State.notify(ownerProfile.player, "bad", ("%s got away with your %s."):format(thief.DisplayName, entry.def.name))
+	local name = Mutations.displayName(entry.def, entry.mutation)
+	State.notify(thief, "good", ("You got away with %s!"):format(name))
+	State.notify(ownerProfile.player, "bad", ("%s got away with your %s."):format(thief.DisplayName, name))
 end
 
 local function deny(player: Player, text: string)
@@ -158,6 +180,9 @@ function Stealing.start(thief: Player, model: Model)
 	end
 
 	local now = workspace:GetServerTimeNow()
+	if entry.def.questOnly then
+		return deny(thief, "Quest brainrots cannot be stolen.")
+	end
 	if Havelis.isLocker(entry.plot) then
 		return deny(thief, "Locker plots cannot be robbed.")
 	end
@@ -175,7 +200,7 @@ function Stealing.start(thief: Player, model: Model)
 	if target and target.ownerId == owner.player.UserId and now - target.time < Config.SAME_HAVELI_COOLDOWN then
 		return deny(thief, "You just robbed this haveli. Try a different one!")
 	end
-	if entry.def.price > Config.STEAL_PRICE_CAP and thiefProfile.data.rebirths < 1 then
+	if Havelis.entryValue(entry) > Config.STEAL_PRICE_CAP and thiefProfile.data.rebirths < 1 then
 		return deny(
 			thief,
 			("Do a Naya Safar first to steal brainrots worth more than %s."):format(
@@ -186,7 +211,7 @@ function Stealing.start(thief: Player, model: Model)
 	if not Havelis.hasFreePlot(thiefProfile) then
 		return deny(thief, "You have no empty plot to keep it in!")
 	end
-	if not State.isNear(thief, model:GetPivot().Position, Config.PROMPT_DISTANCE + 4) then
+	if not State.isNear(thief, Mover.pivot(model).Position, Config.PROMPT_DISTANCE + 4) then
 		return
 	end
 
@@ -211,8 +236,16 @@ function Stealing.start(thief: Player, model: Model)
 	lastTarget[thief] = { ownerId = owner.player.UserId, time = now }
 	entry.carrier = thief
 	Havelis.refreshPrompts(owner)
-	Mover.follow(model, root, CARRY_OFFSET)
+	Mover.stop(model)
+	Models.attach(model, root, CARRY_OFFSET)
 	Models.setPanic(model, entry.def, true)
+
+	-- heavier (rarer) brainrots slow the thief down more
+	local slow = (Config.CARRY_SPEED[entry.def.rarity] or 0.8)
+		* (if entry.mutation then Config.CARRY_MUTATION_SPEED else 1)
+		* (Themes.perk(owner.data.theme, "thiefSlow") or 1)
+	thiefProfile.carrySpeed = slow
+	Havelis.applyWalkSpeed(thiefProfile)
 
 	local marker, tag = markThief(character)
 	carrying[thief] = {
@@ -220,6 +253,7 @@ function Stealing.start(thief: Player, model: Model)
 		marker = marker,
 		tag = tag,
 		usedPass = usedPass,
+		guardSeen = 0,
 		connections = {
 			humanoid.Died:Connect(function()
 				Stealing.returnToOwner(thief)
@@ -230,12 +264,13 @@ function Stealing.start(thief: Player, model: Model)
 		},
 	}
 
+	local name = Mutations.displayName(entry.def, entry.mutation)
 	State.notify(
 		owner.player,
 		"alert",
-		("Chor! Chor! %s stole your %s! Bonk them with your chappal!"):format(thief.DisplayName, entry.def.name)
+		("Chor! Chor! %s stole your %s! Bonk them with your chappal!"):format(thief.DisplayName, name)
 	)
-	State.notify(thief, "info", "Run through your own haveli door to keep it!")
+	State.notify(thief, "info", "Run through your own haveli door to keep it! You are slower while carrying it.")
 end
 
 -- Swinging the chappal near a thief makes them drop what they are carrying.
@@ -249,12 +284,54 @@ function Stealing.bonk(player: Player)
 	if not root then
 		return
 	end
+	local profile = State.profiles[player]
+	local range = Config.BONK_RANGE * (Themes.perk(profile and profile.data.theme, "bonkRange") or 1)
 	for thief in carrying do
 		local thiefRoot = State.rootPart(thief)
-		if thief ~= player and thiefRoot and (thiefRoot.Position - root.Position).Magnitude <= Config.BONK_RANGE then
+		if thief ~= player and thiefRoot and (thiefRoot.Position - root.Position).Magnitude <= range then
 			State.notify(thief, "bad", player.DisplayName .. " bonked you with a chappal!")
 			Stealing.returnToOwner(thief, "bonk")
 			return
+		end
+	end
+end
+
+-- The Chowkidar (haveli Level 6+) catches thieves who stay near him too long.
+local guardNaps: { [any]: number } = {}
+
+local function guardStatus(h, text: string)
+	local guard = h.guard
+	local label = guard and guard:FindFirstChild("Label", true)
+	if label and label:IsA("TextLabel") then
+		label.Text = text
+	end
+end
+
+function Stealing.guardTick(dt: number)
+	local now = os.clock()
+	for h, wakeAt in guardNaps do
+		if now >= wakeAt then
+			guardNaps[h] = nil
+			guardStatus(h, "Jaagte Raho!")
+		end
+	end
+	for thief, carry in carrying do
+		local owner = carry.entry.owner
+		local h = owner.haveli
+		local root = State.rootPart(thief)
+		if not h or not h.guard or guardNaps[h] or not root or owner.data.level < Config.GUARD_LEVEL then
+			carry.guardSeen = 0
+			continue
+		end
+		if (root.Position - h.guardSpot.Position).Magnitude <= Config.GUARD_RANGE then
+			carry.guardSeen += dt
+			if carry.guardSeen >= Config.GUARD_SPOT_TIME then
+				guardNaps[h] = now + Config.GUARD_COOLDOWN
+				guardStatus(h, "Zzz...")
+				Stealing.returnToOwner(thief, "guard")
+			end
+		else
+			carry.guardSeen = 0
 		end
 	end
 end
@@ -270,8 +347,9 @@ function Stealing.releasePlayer(profile)
 			carrying[thief] = nil
 			cleanup(carry)
 			refund(thief, carry)
+			unslow(thief)
 			carry.entry.carrier = nil
-			Mover.stop(carry.entry.model)
+			Models.detach(carry.entry.model)
 			State.notify(thief, "bad", ("The %s ran away!"):format(carry.entry.def.name))
 		end
 	end
@@ -288,6 +366,11 @@ function Stealing.isCarrying(player: Player): boolean
 end
 
 function Stealing.init(map)
+	task.spawn(function()
+		while true do
+			Stealing.guardTick(task.wait(0.2))
+		end
+	end)
 	for _, h in map.havelis do
 		h.door.Touched:Connect(function(hit)
 			local player = Players:GetPlayerFromCharacter(hit.Parent)

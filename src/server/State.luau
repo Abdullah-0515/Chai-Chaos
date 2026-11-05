@@ -1,8 +1,10 @@
 -- Shared server state: one profile per player and one entry per owned brainrot.
 
+local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 
 local State = {}
@@ -13,7 +15,7 @@ local State = {}
 -- }
 State.profiles = {} :: { [Player]: any }
 
--- entries[model] = { uid, def, model, plot, carrier, arrived, owner (a profile) }
+-- entries[model] = { uid, def, mutation, model, plot, carrier, arrived, owner (a profile) }
 State.entries = {} :: { [Model]: any }
 
 function State.newProfile(player: Player, data: any, canSave: boolean)
@@ -27,6 +29,14 @@ function State.newProfile(player: Player, data: any, canSave: boolean)
 		lockReadyAt = 0,
 		protectedUntil = 0,
 	}
+end
+
+-- Quest progress: any module can report what a player did; QuestBook listens.
+State.tracker = nil :: ((any, string, number) -> ())?
+function State.track(profile, kind: string, amount: number?)
+	if State.tracker then
+		State.tracker(profile, kind, amount or 1)
+	end
 end
 
 function State.notify(player: Player, kind: string, text: string)
@@ -53,6 +63,18 @@ function State.syncStats(profile)
 	if rebirths then
 		rebirths.Value = profile.data.rebirths
 	end
+	profile.player:SetAttribute("RebirthCost", Config.rebirthCost(profile.data.rebirths))
+	profile.player:SetAttribute("HaveliLevel", profile.data.level)
+	profile.player:SetAttribute("Theme", profile.data.theme)
+end
+
+-- Quests and Collection Book claims, as JSON for the HUD.
+function State.syncQuests(profile)
+	local data = profile.data
+	profile.player:SetAttribute(
+		"QuestState",
+		HttpService:JSONEncode({ quests = data.quests, collection = data.collection, rebirths = data.rebirths })
+	)
 end
 
 function State.addRupees(profile, amount: number)
@@ -73,18 +95,28 @@ function State.syncDiscovered(profile)
 	for id in profile.data.discovered do
 		table.insert(ids, id)
 	end
+	for key in profile.data.mutations do
+		table.insert(ids, key)
+	end
 	table.sort(ids)
 	profile.player:SetAttribute("Discovered", table.concat(ids, ","))
 end
 
 -- Returns true the first time a player gets this brainrot.
-function State.discover(profile, def): boolean
-	if profile.data.discovered[def.id] then
+function State.discover(profile, def, mutation: string?): boolean
+	local data = profile.data
+	local isNew = not data.discovered[def.id]
+	local mutationKey = mutation and (def.id .. ":" .. mutation)
+	local newMutation = mutationKey ~= nil and not data.mutations[mutationKey]
+	if not isNew and not newMutation then
 		return false
 	end
-	profile.data.discovered[def.id] = true
+	data.discovered[def.id] = true
+	if mutationKey then
+		data.mutations[mutationKey] = true
+	end
 	State.syncDiscovered(profile)
-	return true
+	return isNew
 end
 
 function State.rootPart(player: Player): BasePart?

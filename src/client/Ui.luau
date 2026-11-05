@@ -1,6 +1,42 @@
 -- Small helpers for building the HUD out of code.
 
+local TweenService = game:GetService("TweenService")
+
 local Ui = {}
+
+-- Pop-up windows. Only one is open at a time and they pop in smoothly.
+Ui.panels = {} :: { GuiObject }
+
+function Ui.open(frame: GuiObject)
+	for _, other in Ui.panels do
+		if other ~= frame then
+			other.Visible = false
+		end
+	end
+	frame.Visible = true
+	local scale = frame:FindFirstChild("Pop")
+	if scale and scale:IsA("UIScale") then
+		scale.Scale = 0.85
+		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+end
+
+function Ui.toggle(frame: GuiObject)
+	if frame.Visible then
+		frame.Visible = false
+	else
+		Ui.open(frame)
+	end
+end
+
+function Ui.register(frame: GuiObject)
+	if not frame:FindFirstChild("Pop") then
+		local scale = Instance.new("UIScale")
+		scale.Name = "Pop"
+		scale.Parent = frame
+	end
+	table.insert(Ui.panels, frame)
+end
 
 Ui.WHITE = Color3.new(1, 1, 1)
 Ui.GOLD = Color3.fromRGB(255, 215, 90)
@@ -56,11 +92,11 @@ function Ui.textButton(props: { [string]: any }): TextButton
 	})
 end
 
--- A button in the column on the left of the screen.
+-- A button in the grid on the left of the screen.
 function Ui.sideButton(parent: Instance, name: string, text: string, color: Color3, order: number): TextButton
 	return Ui.textButton({
 		Name = name,
-		Size = UDim2.new(1, 0, 0, 46),
+		Size = UDim2.new(1, 0, 0, 40),
 		BackgroundColor3 = color,
 		Text = text,
 		LayoutOrder = order,
@@ -111,6 +147,7 @@ function Ui.panel(parent: Instance, name: string, title: string, maxSize: Vector
 	close.Activated:Connect(function()
 		frame.Visible = false
 	end)
+	Ui.register(frame)
 	local content = Ui.create("ScrollingFrame", {
 		Name = "Content",
 		Position = UDim2.fromOffset(12, 56),
