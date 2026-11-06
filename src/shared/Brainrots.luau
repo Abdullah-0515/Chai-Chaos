@@ -89,7 +89,7 @@ Brainrots.list = {
 	{ id = "ShaadiShehnaiShark", name = "Shaadi Shehnai Shark", rarity = "Rare", price = 5000, income = 120, phrase = "Shaadi kahan hai?", color = rgb(90, 130, 185), shape = "Wedge", extras = { "wings" } },
 	{ id = "TikkaTiger", name = "Tikka Tiger", rarity = "Epic", price = 12000, income = 270, phrase = "Apna tikka khud banata hoon!", color = rgb(245, 140, 30), shape = "Block", extras = { "ears", "tail", "legs" } },
 	{ id = "RishtaAuntyRobot", name = "Rishta Aunty Robot", rarity = "Epic", price = 25000, income = 500, phrase = "Beta, kya karte ho?", color = rgb(200, 200, 215), shape = "Tall", extras = { "glasses" } },
-	{ id = "CycleWalaCyclops", name = "Cycle Wala Cyclops", rarity = "Legendary", price = 120000, income = 2200, phrase = "Cylinder le lo, cylinder!", color = rgb(120, 160, 80), shape = "Ball", extras = { "legs" }, eyes = 1 },
+	{ id = "CylinderCycleChacha", name = "Cylinder Cycle Chacha", rarity = "Legendary", price = 120000, income = 2200, phrase = "Cylinder le lo, cylinder!", color = rgb(200, 40, 40), shape = "Wheel", extras = { "moustache" } },
 	{ id = "ChandRaatCheetah", name = "Chand Raat Cheetah", rarity = "Mythic", price = 400000, income = 6500, phrase = "Choorian chamak rahi hain!", color = rgb(250, 210, 80), shape = "Block", extras = { "ears", "tail", "legs" } },
 
 	-- Special quest brainrots: rewards for finishing a rarity in the Collection Book

@@ -1,12 +1,17 @@
--- Makes the 3D model for a brainrot.
+-- Makes the 3D model for a brainrot. It picks the first of these that exists:
 --
--- If ServerStorage has a folder "Brainrots" with a Model named after the
--- brainrot's id (for example "SamosaSupremo"), that model is used. Otherwise a
--- blocky placeholder is built from the shape, colour and extras in Brainrots.luau.
+--   1. Your own model: a Model in ServerStorage > Brainrots named after the
+--      brainrot's id (for example "SamosaSupremo").
+--   2. The Blender model from blender/brainrots_*.py (all 42 have one). It is
+--      built from parts, or uses the smoother imported mesh if you imported
+--      assets/props/ChaiChaosProps.fbx (see the README).
+--   3. A blocky placeholder made from the shape, colour and extras in Brainrots.luau.
+--
 -- The front of a model is its -Z side (the way Roblox models face by default).
 --
 -- Mutated brainrots (Golden, Diamond, Rainbow) are tinted; Rainbow ones change
--- colour on every player's screen (see Smooth.client.luau).
+-- colour on every player's screen (see Smooth.client.luau). They always use the
+-- parts version, so every part can be tinted while the eyes keep their colour.
 
 local CollectionService = game:GetService("CollectionService")
 local ServerStorage = game:GetService("ServerStorage")
@@ -17,7 +22,25 @@ local Brainrots = require(Shared.Brainrots)
 local Format = require(Shared.Format)
 local Mutations = require(Shared.Mutations)
 
+local Props = require(script.Parent.Props)
+
 local Models = {}
+
+-- Blender models are shrunk if needed so they fit on an 8x8 plot and under the upstairs roof.
+local MAX_FOOTPRINT = 7.4
+local MAX_HEIGHT = 7.6
+
+-- Writing on a brainrot (an anchor in its Blender model, and which way the text faces).
+local SIGNS = {
+	TruckArtTotaa = {
+		anchor = "Tail",
+		text = "Dekh magar pyar se",
+		width = 1.25,
+		height = 0.42,
+		turn = CFrame.Angles(0, math.pi, 0) * CFrame.Angles(math.rad(35), 0, 0), -- faces back and up
+		color = Color3.fromRGB(215, 35, 45),
+	},
+}
 
 local RARITY_SIZE = {
 	Common = 3,
@@ -355,6 +378,29 @@ local function buildPlaceholder(def: Brainrots.Def): Model
 	return model
 end
 
+-- The brainrot's Blender model (see blender/brainrots_*.py), or nil if it has none.
+local function buildFromBlender(def: Brainrots.Def, mutation: string?): Model?
+	if not Props.exists(def.id) then
+		return nil
+	end
+	local size = Props.size(def.id)
+	local scale = math.min(1, MAX_FOOTPRINT / math.max(size.X, size.Z), MAX_HEIGHT / size.Y)
+	-- mutations tint every part, so they need the parts version even if a mesh was imported
+	local model = Props.place(def.id, CFrame.new(), nil, scale, { parts = mutation ~= nil, noColliders = true })
+
+	-- an invisible Root in the middle holds everything together
+	local root = newPart(model, "Root", Vector3.one, CFrame.new(0, size.Y * scale / 2, 0), WHITE)
+	root.Transparency = 1
+	model.PrimaryPart = root
+
+	local sign = SIGNS[def.id]
+	if sign then
+		local at = Props.anchor(def.id, sign.anchor, CFrame.new(), scale)
+		Props.text(model, sign.turn, at, sign.width * scale, sign.height * scale, sign.text, sign.color)
+	end
+	return model
+end
+
 local function newLabel(name: string, position: number, height: number, color: Color3): TextLabel
 	local label = Instance.new("TextLabel")
 	label.Name = name
@@ -528,7 +574,7 @@ function Models.create(def: Brainrots.Def, mutation: string?): Model
 			model.PrimaryPart = biggest
 		end
 	else
-		model = buildPlaceholder(def)
+		model = buildFromBlender(def, mutation) or buildPlaceholder(def)
 	end
 	model.Name = def.id
 	decorate(model, def, mutation)

@@ -531,6 +531,127 @@ do
 	scratch:Destroy()
 end
 
+do
+	---------------------------------------------------------------------------
+	section("Brainrot models from Blender")
+	---------------------------------------------------------------------------
+	local Props = serverModule("Props")
+	local PropData = serverModule("PropData")
+	local function eyesOf(model)
+		local eyes = {}
+		for _, p in model:GetDescendants() do
+			if p:IsA("BasePart") and p.Name == "Eye" then
+				table.insert(eyes, p)
+			end
+		end
+		return eyes
+	end
+	local brainrotProps = 0
+	for _, spec in PropData.props do
+		brainrotProps += if spec.category == "brainrot" then 1 else 0
+	end
+	check(brainrotProps == #Brainrots.list, "a Blender model for every brainrot: " .. brainrotProps)
+	for _, def in Brainrots.list do
+		check(Props.exists(def.id) and PropData.props[def.id].category == "brainrot", def.id .. " is modelled")
+		local model = Models.create(def)
+		local root = model.PrimaryPart
+		check(root and root.Name == "Root" and root.Transparency == 1, def.id .. " has an invisible Root")
+		-- Samosa Supremo hides its eyes behind shades; Mela Maharaja laughs with its eyes shut
+		local eyeless = def.id == "SamosaSupremo" or def.id == "MelaMaharaja"
+		check(#eyesOf(model) >= 3 or eyeless, def.id .. " has big eyes")
+		check(model:FindFirstChild("RarityRing") ~= nil and model:GetAttribute("Height") > 2, def.id .. " decorated")
+		local size = Props.size(def.id)
+		local scale = math.min(1, 7.4 / math.max(size.X, size.Z), 7.6 / size.Y)
+		check(math.max(size.X, size.Z) * scale <= 7.41 and size.Y * scale <= 7.61, def.id .. " fits on a plot")
+		local loose = 0
+		for _, p in model:GetDescendants() do
+			if p:IsA("BasePart") then
+				loose += if p ~= root and p:FindFirstChild("Hold") == nil then 1 else 0
+				loose += if p.CanCollide then 1 else 0
+			end
+		end
+		check(loose == 0, def.id .. " parts are welded and never collide")
+		model:Destroy()
+	end
+	-- mutated brainrots are tinted, but their eyes keep their colour
+	local golden = Models.create(Brainrots.byId.PakoraPanda, "Golden")
+	local foil, plain = 0, 0
+	for _, p in golden:GetDescendants() do
+		if p:IsA("BasePart") and p.Transparency < 1 and p.Name ~= "RarityRing" then
+			if p.Name == "Eye" then
+				plain += if p.Material ~= M.Enum.Material.Foil then 1 else 0
+			else
+				foil += if p.Material == M.Enum.Material.Foil then 1 else 0
+			end
+		end
+	end
+	check(
+		foil > 8 and plain > 0 and plain == #eyesOf(golden),
+		"Golden Pakora Panda is gold all over but its eyes: " .. foil
+	)
+	golden:Destroy()
+	-- the parrot's tail says "Dekh magar pyar se"
+	local totaa = Models.create(Brainrots.byId.TruckArtTotaa)
+	local tail = totaa:FindFirstChild("SignText")
+	check(tail and tail.Gui.Text.Text == "Dekh magar pyar se", "truck art lettering on the parrot's tail")
+	check(tail and tail.CFrame.LookVector.Z > 0.5 and tail.CFrame.LookVector.Y > 0.3, "the lettering faces back")
+	check(tail and tail:FindFirstChild("Hold") ~= nil, "and moves with the parrot")
+	totaa:Destroy()
+	-- an imported mesh is used for normal brainrots; mutated ones stay parts so they can be tinted
+	local meshes = M.Instance.new("Folder")
+	meshes.Name = "ChaiChaosProps"
+	local panda = M.newInstance("MeshPart", true)
+	panda.Name = "PakoraPanda"
+	local ms = PropData.props.PakoraPanda.mesh.size
+	panda.Size = Vector3.new(ms[1], ms[2], ms[3])
+	panda.Parent = meshes
+	meshes.Parent = M.services.ServerStorage
+	Props.reload()
+	local smooth = Models.create(Brainrots.byId.PakoraPanda)
+	check(smooth:FindFirstChildWhichIsA("MeshPart") ~= nil and #eyesOf(smooth) == 0, "the panda uses the imported mesh")
+	local diamond = Models.create(Brainrots.byId.PakoraPanda, "Diamond")
+	check(diamond:FindFirstChildWhichIsA("MeshPart") == nil and #eyesOf(diamond) > 0, "a Diamond panda uses parts")
+	smooth:Destroy()
+	diamond:Destroy()
+	meshes:Destroy()
+	Props.reload()
+	-- your own model in ServerStorage.Brainrots still comes first
+	local custom = M.Instance.new("Folder")
+	custom.Name = "Brainrots"
+	local mine = M.Instance.new("Model")
+	mine.Name = "NaanNinja"
+	local body = M.Instance.new("Part")
+	body.Name = "MyNaan"
+	body.Parent = mine
+	mine.Parent = custom
+	custom.Parent = M.services.ServerStorage
+	local naan = Models.create(Brainrots.byId.NaanNinja)
+	check(naan:FindFirstChild("MyNaan") ~= nil and naan.PrimaryPart.Name == "MyNaan", "a custom model wins")
+	naan:Destroy()
+	custom:Destroy()
+	-- Cycle Wala Cyclops became Cylinder Cycle Chacha; old saves keep it
+	local PlayerData = serverModule("PlayerData")
+	local migrated = PlayerData.reconcile({
+		level = 3,
+		owned = { "CycleWalaCyclops", "CycleWalaCyclops:Golden" },
+		discovered = { CycleWalaCyclops = true },
+		mutations = { ["CycleWalaCyclops:Golden"] = true },
+		ride = "CycleWalaCyclops:Rainbow",
+		incubators = { { slot = 1, biome = "Registan", id = "CycleWalaCyclops", hatchAt = 1 } },
+	})
+	check(
+		migrated.owned[1] == "CylinderCycleChacha" and migrated.owned[2] == "CylinderCycleChacha:Golden",
+		"renamed brainrots stay in your haveli"
+	)
+	check(
+		migrated.discovered.CylinderCycleChacha and migrated.mutations["CylinderCycleChacha:Golden"],
+		"and in your Collection Book"
+	)
+	check(migrated.ride == "CylinderCycleChacha:Rainbow", "and as your ride")
+	check(migrated.incubators[1] and migrated.incubators[1].id == "CylinderCycleChacha", "and in your incubator")
+	check(Brainrots.byId.CycleWalaCyclops == nil, "the old id is gone")
+end
+
 local TODAY = math.floor(M.os.time() / 86400)
 local function setQuests(profile, list)
 	profile.data.quests = { day = TODAY, list = list, bonusClaimed = false }

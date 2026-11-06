@@ -73,7 +73,7 @@ Spawn odds: new Commons and Uncommons share the same 60% and 25% pools as before
 | Shaadi Shehnai Shark | Rare | 5,000 | 120 | A shark that plays the shehnai and dances at every wedding it finds. |
 | Tikka Tiger | Epic | 12,000 | 270 | A tiger on a skewer that roasts on its own tail flame. |
 | Rishta Aunty Robot | Epic | 25,000 | 500 | A robot with a clipboard that asks every player "Beta, kya karte ho?" |
-| Cycle Wala Cyclops | Legendary | 120,000 | 2,200 | A one-eyed giant on a bicycle loaded with 50 gas cylinders. |
+| Cylinder Cycle Chacha | Legendary | 120,000 | 2,200 | A living bicycle with headlight eyes and a handlebar moustache, carrying a tower of gas cylinders. |
 | Chand Raat Cheetah | Mythic | 400,000 | 6,500 | A sparkly cheetah covered in bangles and glow. Only spawns at night. |
 
 ## Map

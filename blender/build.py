@@ -1,4 +1,4 @@
-"""Builds every Chai Chaos prop in Blender and exports it for the game.
+"""Builds every Chai Chaos prop and brainrot in Blender and exports it for the game.
 
 Run it with Blender's Python module (Python 3.13):
 
@@ -11,11 +11,14 @@ It writes:
   assets/props/ChaiChaosProps.fbx  every prop as one mesh each, to import into Studio
   assets/props/palette.png         the colour palette texture the meshes use
   assets/props/ChaiChaosProps.blend  the models, to open and tweak in Blender
-  docs/props/*.jpg                 preview pictures
+  docs/props/*.jpg                 preview pictures of the props
+  docs/brainrots/*.jpg             preview pictures of the brainrots, one per rarity
+  README.md                        the brainrot character sheets (see characters.py)
 """
 
 import math
 import os
+import re
 import sys
 
 import bpy
@@ -29,9 +32,14 @@ import kit  # noqa: E402
 import props_desi  # noqa: E402,F401
 import props_landmarks  # noqa: E402,F401
 import props_plants  # noqa: E402,F401
+import brainrots_a  # noqa: E402,F401
+import brainrots_b  # noqa: E402,F401
+import brainrots_c  # noqa: E402,F401
 
 ASSETS = os.path.join(ROOT, "assets", "props")
 DOCS = os.path.join(ROOT, "docs", "props")
+BRAINROT_DOCS = os.path.join(ROOT, "docs", "brainrots")
+BRAINROTS_LUAU = os.path.join(ROOT, "src", "shared", "Brainrots.luau")
 PROPDATA = os.path.join(ROOT, "src", "server", "PropData.luau")
 MAX_TRIANGLES = 10000  # Roblox allows 20,000 per mesh; stay well under
 
@@ -39,7 +47,16 @@ CATEGORY_TITLES = {
     "landmark": "Landmarks",
     "plant": "Plants and nature",
     "desi": "Desi props",
+    "brainrot": "Brainrots",
 }
+
+
+def brainrot_info():
+    """Reads each brainrot's display name and rarity from src/shared/Brainrots.luau."""
+    with open(BRAINROTS_LUAU, encoding="utf-8") as f:
+        text = f.read()
+    found = re.findall(r'id = "(\w+)", name = "([^"]+)", rarity = "(\w+)"', text)
+    return {i: n for i, n, _ in found}, {i: r for i, _, r in found}
 
 
 def fmt(n, places=3):
@@ -63,7 +80,8 @@ def write_propdata(entries):
         "-- parts: { shape (B block, C cylinder, L ball), x, y, z, size x, y, z,",
         "--          rotation quaternion x, y, z, w, palette colour, material, flags }",
         "-- flags: 1 no collide, 2 always a part (never merged into the mesh),",
-        "--        4 see-through, 8 gives off light, 16 no shadow, 32 parts version only",
+        "--        4 see-through, 8 gives off light, 16 no shadow, 32 parts version only,",
+        "--        64 an eye (keeps its colour on mutated brainrots)",
         "",
         "-- stylua: ignore start",
         "local PropData = {}",
@@ -196,6 +214,67 @@ def render_sheet(category, props, path):
         move(prop, -offset)
 
 
+def render_grid(props, path, names, columns=4, size=(1600, 1000)):
+    """Brainrot sheets: a tidy grid, seen from the front, with each one's name below it."""
+    scene = bpy.context.scene
+    cell = max(max(p.bounds_size[0], p.bounds_size[2]) for p in props) + 3.0
+    columns = min(len(props), columns)
+    rows = math.ceil(len(props) / columns)
+    labels = bpy.data.collections.new("Labels_grid")
+    scene.collection.children.link(labels)
+    moved = []
+    for i, prop in enumerate(props):
+        col, row = i % columns, i // columns
+        # the first row is at the back, so the sheet reads top to bottom
+        offset = Vector(((col - (columns - 1) / 2) * cell, (rows - 1 - row) * cell * 2.0, 0))
+        move(prop, offset)
+        moved.append((prop, offset))
+        text = names.get(prop.name, prop.name)
+        lbl = label(text, (offset.x, offset.y - cell * 0.5, 0.05), 0.75, labels)
+        lbl.rotation_euler = (math.radians(60), 0, 0)
+    bpy.context.view_layer.update()
+    corners = []
+    for prop, _ in moved:
+        for obj in prop.pieces:
+            if obj.hide_render:
+                continue
+            corners.extend(obj.matrix_world @ v.co for v in obj.data.vertices)
+    for obj in labels.objects:
+        corners.extend(obj.matrix_world @ Vector(c) for c in obj.bound_box)
+    lo = Vector((min(c.x for c in corners), min(c.y for c in corners), min(c.z for c in corners)))
+    hi = Vector((max(c.x for c in corners), max(c.y for c in corners), max(c.z for c in corners)))
+    center = (lo + hi) / 2
+    cam_data = bpy.data.cameras.new("GridCam")
+    cam_data.type = "ORTHO"
+    cam = bpy.data.objects.new("GridCam", cam_data)
+    scene.collection.objects.link(cam)
+    view = Vector((0.15, -1.0, 0.65)).normalized()
+    cam.location = center + view * 300
+    cam.rotation_euler = (-view).to_track_quat("-Z", "Y").to_euler()
+    rot = cam.rotation_euler.to_matrix()
+    right, up = rot.col[0], rot.col[1]
+    xs = [(c - center).dot(right) for c in corners]
+    ys = [(c - center).dot(up) for c in corners]
+    aspect = size[0] / size[1]
+    cam_data.ortho_scale = max(max(xs) - min(xs), (max(ys) - min(ys)) * aspect) * 1.08
+    cam.location += right * (max(xs) + min(xs)) / 2 + up * (max(ys) + min(ys)) / 2
+    cam_data.clip_end = 1000
+    scene.camera = cam
+    scene.render.resolution_x = size[0]
+    scene.render.resolution_y = size[1]
+    scene.render.image_settings.file_format = "JPEG"
+    scene.render.image_settings.quality = 88
+    scene.render.filepath = path
+    bpy.ops.render.render(write_still=True)
+
+    bpy.data.objects.remove(cam)
+    for obj in list(labels.objects):
+        bpy.data.objects.remove(obj)
+    bpy.data.collections.remove(labels)
+    for prop, offset in moved:
+        move(prop, -offset)
+
+
 def setup_render():
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
@@ -302,22 +381,32 @@ def main():
 
     if render:
         ground = setup_render()
-        by_category = {}
+        names, rarities = brainrot_info()
+        sheets = {}  # path -> props; brainrots get one sheet per rarity
         for prop in props:
-            if only is None or prop.category in only:
-                by_category.setdefault(prop.category, []).append(prop)
-        hidden = []
-        for category, group in by_category.items():
-            # hide the other categories while rendering this one
+            if only is not None and prop.category not in only:
+                continue
+            if prop.category == "brainrot":
+                rarity = rarities.get(prop.name)
+                assert rarity, f"{prop.name} is not in Brainrots.luau"
+                path = os.path.join(BRAINROT_DOCS, f"{rarity.lower()}.jpg")
+            else:
+                path = os.path.join(DOCS, f"{prop.category}.jpg")
+            sheets.setdefault(path, []).append(prop)
+        os.makedirs(BRAINROT_DOCS, exist_ok=True)
+        for path, group in sheets.items():
+            # hide everything else while rendering this sheet
+            showing = set(group)
             for prop in props:
-                prop.coll.hide_render = prop.category != category
-            path = os.path.join(DOCS, f"{category}.jpg")
-            render_sheet(category, group, path)
+                prop.coll.hide_render = prop not in showing
+            if group[0].category == "brainrot":
+                render_grid(group, path, names)
+            else:
+                render_sheet(os.path.basename(path), group, path)
             print(f"wrote {path}")
         for prop in props:
             prop.coll.hide_render = False
         bpy.data.objects.remove(ground)
-        del hidden
 
     # lay everything out in a grid for the .blend file
     x = 0.0
@@ -327,6 +416,11 @@ def main():
     blend_path = os.path.join(ASSETS, "ChaiChaosProps.blend")
     bpy.ops.wm.save_as_mainfile(filepath=blend_path, compress=True)
     print(f"wrote {blend_path}")
+
+    import characters  # the brainrot character sheets in the README use the new sizes
+
+    if characters.write_readme():
+        print("updated the character sheets in README.md")
 
 
 if __name__ == "__main__":

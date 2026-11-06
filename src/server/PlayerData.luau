@@ -59,6 +59,18 @@ function PlayerData.default()
 	}
 end
 
+-- Brainrots that were renamed, so old saves keep them under their new id.
+local RENAMED = {
+	CycleWalaCyclops = "CylinderCycleChacha",
+}
+PlayerData.RENAMED = RENAMED
+
+-- A saved brainrot key ("Id" or "Id:Mutation") as its current id and mutation.
+local function parseKey(key: string): (string, string?)
+	local id, mutation = Mutations.parse(key)
+	return RENAMED[id] or id, mutation
+end
+
 local function whole(value: any, minimum: number): number?
 	if type(value) == "number" and value == value then
 		return math.max(minimum, math.floor(value))
@@ -113,6 +125,7 @@ local function reconcile(saved: any)
 	end
 	if type(saved.discovered) == "table" then
 		for id, value in saved.discovered do
+			id = RENAMED[id] or id
 			if value == true and Brainrots.byId[id] then
 				data.discovered[id] = true
 			end
@@ -120,15 +133,15 @@ local function reconcile(saved: any)
 	end
 	if type(saved.mutations) == "table" then
 		for key, value in saved.mutations do
-			local id, mutation = Mutations.parse(key)
+			local id, mutation = parseKey(key)
 			if value == true and Brainrots.byId[id] and mutation then
-				data.mutations[key] = true
+				data.mutations[Mutations.key(id, mutation)] = true
 			end
 		end
 	end
 	local plots = Config.HAVELI_LEVELS[data.level].plots
 	if type(saved.ride) == "string" then
-		local id, mutation = Mutations.parse(saved.ride)
+		local id, mutation = parseKey(saved.ride)
 		local def = Brainrots.byId[id]
 		if def and not def.questOnly then
 			data.ride = Mutations.key(id, mutation)
@@ -138,6 +151,7 @@ local function reconcile(saved: any)
 	if type(saved.incubators) == "table" then
 		local used = {}
 		for _, egg in saved.incubators do
+			local eggId = type(egg) == "table" and type(egg.id) == "string" and (RENAMED[egg.id] or egg.id)
 			local slot = type(egg) == "table" and whole(egg.slot, 1)
 			if
 				slot
@@ -145,8 +159,8 @@ local function reconcile(saved: any)
 				and slot <= Config.HAVELI_LEVELS[data.level].incubators
 				and type(egg.biome) == "string"
 				and Biomes.byId[egg.biome]
-				and type(egg.id) == "string"
-				and Brainrots.byId[egg.id]
+				and eggId
+				and Brainrots.byId[eggId]
 				and type(egg.hatchAt) == "number"
 			then
 				used[slot] = true
@@ -154,7 +168,7 @@ local function reconcile(saved: any)
 					slot = slot,
 					biome = egg.biome,
 					golden = egg.golden == true,
-					id = egg.id,
+					id = eggId,
 					mutation = if type(egg.mutation) == "string" and Mutations.byId[egg.mutation]
 						then egg.mutation
 						else nil,
@@ -166,7 +180,7 @@ local function reconcile(saved: any)
 	if type(saved.owned) == "table" then
 		for _, key in saved.owned do
 			if type(key) == "string" then
-				local id, mutation = Mutations.parse(key)
+				local id, mutation = parseKey(key)
 				if Brainrots.byId[id] and #data.owned < plots then
 					table.insert(data.owned, Mutations.key(id, mutation))
 					data.discovered[id] = true

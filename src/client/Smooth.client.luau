@@ -12,7 +12,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Motion = require(Shared:WaitForChild("Motion"))
 
-local IDLE_DISTANCE = 120 -- only animate idle brainrots this close to the camera
+local IDLE_DISTANCE = 90 -- only animate idle brainrots this close to the camera (they have ~40 parts each)
 local TAG = "ChaiBrainrot"
 
 local tracked: { [Model]: { phase: number, tinted: { BasePart }? } } = {}

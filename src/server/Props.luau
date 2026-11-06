@@ -17,7 +17,7 @@ local PropData = require(script.Parent.PropData)
 
 local Props = {}
 
-local NOCOLLIDE, KEEP, GLASS, LIGHT, NOSHADOW = 1, 2, 4, 8, 16
+local NOCOLLIDE, KEEP, GLASS, LIGHT, NOSHADOW, EYE = 1, 2, 4, 8, 16, 64
 local SHAPES = { B = Enum.PartType.Block, C = Enum.PartType.Cylinder, L = Enum.PartType.Ball }
 local MESH_FOLDER = "ChaiChaosProps"
 
@@ -137,6 +137,9 @@ local function newPart(entry, cf: CFrame, scale: number, visible: boolean): Part
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.CanCollide = not hasFlag(flags, NOCOLLIDE)
 	if visible then
+		if hasFlag(flags, EYE) then
+			p.Name = "Eye" -- eyes keep their colour on Golden, Diamond and Rainbow brainrots
+		end
 		p.Color = palette[entry[12]]
 		p.Material = materials[entry[13]]
 		p.CastShadow = not hasFlag(flags, NOSHADOW)
@@ -159,20 +162,27 @@ local function newPart(entry, cf: CFrame, scale: number, visible: boolean): Part
 	return p
 end
 
+export type PlaceOptions = {
+	parts: boolean?, -- always build from parts, even if a mesh was imported
+	noColliders: boolean?, -- with a mesh, leave out the invisible walls
+}
+
 -- Builds a prop standing at `cf` (its ground point; it faces cf's front).
-function Props.place(name: string, cf: CFrame, parent: Instance, scale: number?): Model
+-- Pass nil as the parent to get the model without putting it anywhere yet.
+function Props.place(name: string, cf: CFrame, parent: Instance?, scale: number?, options: PlaceOptions?): Model
 	local spec = PropData.props[name]
 	assert(spec, "[ChaiChaos] unknown prop " .. name)
 	local s = scale or 1
 	local model = Instance.new("Model")
 	model.Name = name
-	local mesh = spec.mesh and Props.meshFor(name)
+	local mesh = spec.mesh and not (options and options.parts) and Props.meshFor(name)
+	local colliders = not (options and options.noColliders)
 	for _, entry in spec.parts do
 		local flags = entry[14]
 		local keep = hasFlag(flags, KEEP)
 		if not mesh or keep then
 			newPart(entry, cf, s, true).Parent = model
-		elseif not hasFlag(flags, NOCOLLIDE) then
+		elseif colliders and not hasFlag(flags, NOCOLLIDE) then
 			newPart(entry, cf, s, false).Parent = model
 		end
 	end

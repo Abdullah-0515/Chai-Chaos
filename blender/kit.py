@@ -29,6 +29,7 @@ GLASS = 4  # see-through
 LIGHT = 8  # gives off light (a PointLight in Roblox)
 NOSHADOW = 16
 PARTSONLY = 32  # only in the parts version (the mesh has a nicer shape instead)
+EYE = 64  # eyes and pupils: they keep their colour when a brainrot is Golden, Diamond or Rainbow
 
 # fmt: off
 PALETTE = [
@@ -48,10 +49,33 @@ PALETTE = [
     ("rope", (200, 175, 130)), ("clay", (190, 105, 65)), ("claydark", (150, 80, 50)), ("gold", (240, 190, 60)),
     ("cream", (250, 235, 200)), ("skyblue", (120, 190, 255)), ("maroon", (130, 30, 50)), ("tyre", (40, 40, 45)),
     ("canvas", (225, 215, 185)), ("coconut", (120, 80, 45)), ("mango", (250, 180, 40)), ("grass", (95, 165, 70)),
+    # brainrot colours
+    ("puri", (226, 170, 80)), ("puricrust", (190, 125, 55)), ("imlipani", (150, 140, 60)), ("chickpea", (225, 195, 120)),
+    ("samosa", (215, 150, 70)), ("samosadark", (175, 110, 45)), ("steel", (200, 205, 212)), ("steeldark", (140, 145, 155)),
+    ("chutney", (60, 160, 60)), ("onion", (165, 60, 120)), ("onionpale", (225, 175, 205)), ("coriander", (60, 150, 50)),
+    ("tomato", (220, 60, 40)), ("sev", (240, 190, 70)), ("kulfi", (245, 232, 190)), ("pistachio", (170, 205, 120)),
+    ("kulfistick", (205, 165, 110)), ("pakora", (195, 130, 50)), ("pakoradark", (110, 65, 30)), ("naan", (238, 205, 145)),
+    ("naanchar", (150, 100, 55)), ("paratha", (225, 185, 110)), ("ghee", (255, 215, 90)), ("leather", (130, 80, 45)),
+    ("rickshawgreen", (40, 150, 70)), ("llama", (232, 205, 165)), ("lassi", (240, 245, 235)), ("malai", (255, 250, 230)),
+    ("bun", (205, 140, 70)), ("kebab", (125, 70, 40)), ("eggyolk", (250, 210, 80)), ("rhinored", (215, 30, 55)),
+    ("sharbat", (255, 110, 150)), ("rosepetal", (220, 40, 80)), ("halwa", (240, 115, 35)), ("almond", (230, 200, 160)),
+    ("dolphin", (185, 135, 95)), ("chai", (180, 120, 70)), ("steam", (240, 240, 245)), ("bulb", (255, 240, 150)),
+    ("copper", (190, 110, 60)), ("rice", (250, 245, 230)), ("saffron", (245, 150, 30)), ("potato", (200, 160, 90)),
+    ("willow", (230, 205, 150)), ("jersey", (30, 140, 70)), ("dragon", (205, 55, 40)), ("flame", (255, 150, 30)),
+    ("rhinogrey", (140, 140, 150)), ("shark", (90, 130, 190)), ("sharkbelly", (230, 235, 240)), ("marigold", (250, 165, 30)),
+    ("uncle", (205, 150, 110)), ("vest", (90, 90, 140)), ("newspaper", (235, 230, 215)), ("jalebi", (250, 145, 25)),
+    ("bandage", (240, 228, 200)), ("henna", (150, 75, 35)), ("dino", (90, 170, 80)), ("tiger", (245, 140, 30)),
+    ("tikka", (180, 70, 40)), ("robot", (200, 200, 215)), ("parrot", (50, 180, 80)), ("lion", (230, 160, 50)),
+    ("mane", (180, 95, 30)), ("tennisball", (210, 230, 60)), ("pinenut", (175, 125, 85)), ("honey", (240, 170, 40)),
+    ("chappal", (60, 110, 210)), ("navy", (30, 40, 90)), ("cheetah", (250, 210, 80)), ("spots", (90, 55, 30)),
+    ("laddoo", (250, 150, 40)), ("warq", (220, 220, 230)), ("barfi", (250, 240, 220)), ("gulabjamun", (110, 40, 20)),
+    ("lightning", (90, 180, 255)), ("chick", (255, 225, 70)), ("khaki", (190, 170, 110)), ("peacock", (30, 90, 200)),
+    ("peacockteal", (20, 160, 150)), ("cypress", (30, 110, 60)), ("fountain", (120, 200, 255)), ("starnavy", (30, 35, 100)),
+    ("blush", (255, 150, 160)), ("cream2", (255, 240, 205)), ("lime", (150, 220, 60)), ("magenta", (230, 40, 150)),
 ]
 # fmt: on
 COLOR_INDEX = {name: i for i, (name, _) in enumerate(PALETTE)}
-GRID = 8
+GRID = 16
 CELL_PX = 32
 
 # Blender (x, y, z) -> Roblox (-x, z, y): Z up becomes Y up, front (-Y) becomes front (-Z).
@@ -64,7 +88,7 @@ def srgb_to_linear(c):
 
 
 def write_palette_png(path):
-    """The palette texture: an 8x8 grid of solid colour cells."""
+    """The palette texture: a 16x16 grid of solid colour cells."""
     size = GRID * CELL_PX
     rows = []
     for py in range(size):
@@ -235,7 +259,7 @@ class Prop:
         return self._finish(bm, pos, rot, color, mat, flags, "Mesh", fallback, fallback_scale)
 
     def blob(self, radius, pos, scale=(1, 1, 1), color="leaf", mat="Grass", flags=NOCOLLIDE, seed=0, jitter=0.18,
-             subdiv=1, fallback=None, rot=None):
+             subdiv=1, fallback=None, rot=None, fallback_scale=(1, 1, 1)):
         """A lumpy low-poly ball (tree canopies, bushes, rocks). Mesh only."""
         bm = bmesh.new()
         bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=radius)
@@ -248,7 +272,7 @@ class Prop:
             flat = scale[2] < 0.75 * min(scale[0], scale[1])
             tall = scale[2] > 1.4 * max(scale[0], scale[1])
             fallback = "Disc" if flat else "Cylinder" if tall else "Ball"
-        return self._finish(bm, pos, rot, color, mat, flags, "Mesh", fallback)
+        return self._finish(bm, pos, rot, color, mat, flags, "Mesh", fallback, fallback_scale)
 
     def rock(self, radius, pos, scale=(1, 1, 0.75), color="stone", seed=0, flags=0, mat="Slate"):
         return self.blob(radius, pos, scale, color, mat, flags, seed, jitter=0.3, subdiv=1, fallback="Ball")
@@ -335,6 +359,18 @@ class Prop:
     def anchor(self, name, pos):
         """A named point the game can use (where a chest sits, where you climb from)."""
         self.anchors[name] = Vector(pos)
+
+    def transform(self, scale=1.0, rot=None):
+        """Scales the whole prop about its origin, then turns it (rot in degrees, XYZ)."""
+        q = _rotation(rot)
+        for obj in self.pieces:
+            if scale != 1.0:
+                for v in obj.data.vertices:
+                    v.co *= scale
+            obj.location = q @ (obj.location * scale)
+            obj.rotation_quaternion = q @ obj.rotation_quaternion
+        for key, pos in self.anchors.items():
+            self.anchors[key] = q @ (pos * scale)
 
 
 # ---------------------------------------------------------------------------
