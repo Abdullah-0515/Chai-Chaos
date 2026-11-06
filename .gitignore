@@ -1,6 +1,7 @@
 # Rojo build output and editor files
 *.rbxl
 *.rbxlx
+!/ChaiChaos.rbxlx
 *.rbxl.lock
 *.rbxlx.lock
 sourcemap.json

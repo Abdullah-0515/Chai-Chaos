@@ -191,13 +191,13 @@ The code uses the [Rojo](https://rojo.space) layout, but you can use it without 
 
 ### Option A: open the place file (easiest)
 
-If you have Rojo installed, build a ready-to-play place file:
+A ready-to-play place file, [`ChaiChaos.rbxlx`](ChaiChaos.rbxlx), is in the repo. Download it, open it in Roblox Studio and press **Play**. The world builds itself when the game starts (it takes a few seconds; the terrain is big).
+
+After changing the code, rebuild it with [Rojo](https://rojo.space):
 
 ```bash
 rojo build -o ChaiChaos.rbxlx
 ```
-
-Open `ChaiChaos.rbxlx` in Roblox Studio and press **Play**. The world builds itself when the game starts (it takes a few seconds; the terrain is big).
 
 ### Option B: live sync with Rojo
 
