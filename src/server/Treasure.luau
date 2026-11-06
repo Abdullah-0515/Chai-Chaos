@@ -104,7 +104,10 @@ local function build(folder: Instance, biome, spot, index: number)
 	model:SetAttribute("Kind", spot.kind)
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 	model.Parent = folder
-	table.insert(chests, { model = model, biome = biome, kind = spot.kind, top = spot.position, opened = {} })
+	table.insert(
+		chests,
+		{ model = model, biome = biome, kind = spot.kind, top = spot.position, stand = spot.stand, opened = {} }
+	)
 end
 
 local function find(model: Model?)
@@ -129,7 +132,10 @@ function Treasure.climb(player: Player, model: Model?)
 	end
 	local character = player.Character
 	if character then
-		character:PivotTo(CFrame.new(chest.top + Vector3.new(3, 4, 0)))
+		-- land next to the chest (on the gallery, the lid, the tower top...)
+		character:PivotTo(
+			CFrame.new(if chest.stand then chest.stand + Vector3.new(0, 3, 0) else chest.top + Vector3.new(3, 4, 0))
+		)
 	end
 end
 

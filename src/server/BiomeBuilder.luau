@@ -1,5 +1,6 @@
 -- Builds the 8 biomes out of Roblox Terrain (sand, snow, water, mud, salt...)
--- plus parts for trees, huts, boats, the desert fort and so on.
+-- and the props modelled in Blender (see Props.luau): each biome's landmark,
+-- its trees and plants, and desi things like charpais, boats and tents.
 --
 -- Every biome is planned from a fixed random seed, so the world is the same
 -- every time. Planning (where eggs, chests and hazard zones go) always runs;
@@ -10,17 +11,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Biomes = require(Shared.Biomes)
 
+local Props = require(script.Parent.Props)
+
 local BiomeBuilder = {}
 
 local GROUND_Y = Biomes.GROUND_Y
 local EGG_SPOTS = 40
-local CELL = 24
+local CELL = 16
+local OLD_HALF_ANGLE = 22.5 -- builders place things in degrees off the road, as in a 45 degree wedge
 
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
 end
-
-local UP = CFrame.Angles(0, 0, math.rad(90))
 
 export type Zone = {
 	kind: string, -- water, mud, ice, shore, dark
@@ -34,6 +36,7 @@ export type Chest = {
 	position: Vector3,
 	kind: string, -- "dig" (needs a Shovel) or "climb" (needs a Rope Ladder)
 	base: Vector3?, -- where you climb from
+	stand: Vector3?, -- where you land after climbing (next to the chest)
 }
 
 export type Plan = {
@@ -56,12 +59,19 @@ local function newContext(biome, folder: Instance?)
 		inner = Biomes.innerRadius(biome),
 		terrain = workspace.Terrain,
 		plan = { biome = biome, eggSpots = {}, chests = {}, zones = {}, balls = {} } :: Plan,
+		occupied = {}, -- round areas already taken by props: { position, radius, blocksEggs }
 	}
 end
 
--- A ground position `d` studs from the Chowk, `side` degrees off the biome's road.
+-- A ground position `d` studs from the Chowk and `side` across the biome:
+-- -22.5 is its left edge, 0 the middle, 22.5 its right edge (the numbers are
+-- degrees from when biomes were wedges). The oval narrows near its ends, so
+-- things squeeze in towards the middle there.
 local function at(ctx, d: number, side: number): Vector3
-	return Biomes.point(ctx.biome, d, side)
+	local a, b = Biomes.halfSize(ctx.biome)
+	local along = d - Biomes.centerDistance(ctx.biome)
+	local width = b * 0.86 * math.max(0.4, math.sqrt(math.max(0, 1 - (along / a) ^ 2)))
+	return Biomes.fromLocal(ctx.biome, along, side / OLD_HALF_ANGLE * width)
 end
 
 -- The ground height at x, z (hills and dunes raise it).
@@ -147,8 +157,8 @@ local function zone(ctx, z: Zone)
 	table.insert(ctx.plan.zones, z)
 end
 
-local function chest(ctx, position: Vector3, kind: string, base: Vector3?)
-	table.insert(ctx.plan.chests, { position = position, kind = kind, base = base })
+local function chest(ctx, position: Vector3, kind: string, base: Vector3?, stand: Vector3?)
+	table.insert(ctx.plan.chests, { position = position, kind = kind, base = base, stand = stand })
 end
 
 -- A random spot: distance from the Chowk and degrees off the road.
@@ -173,23 +183,33 @@ local function inZone(ctx, position: Vector3, kinds: { [string]: boolean }): boo
 	return false
 end
 
+-- Every grid cell whose middle is inside the biome's zone (and, with
+-- `minDistance`, at least that far from the Chowk).
+local function cells(ctx, minDistance: number?): { Vector3 }
+	local list = {}
+	local center = Biomes.center(ctx.biome)
+	local a, b = Biomes.halfSize(ctx.biome)
+	local reach = math.max(a, b) * 1.15
+	local x0 = math.floor((center.X - reach) / CELL) * CELL
+	local z0 = math.floor((center.Z - reach) / CELL) * CELL
+	for x = x0, center.X + reach, CELL do
+		for z = z0, center.Z + reach, CELL do
+			local spot = Vector3.new(x, GROUND_Y, z)
+			if Biomes.contains(ctx.biome, spot) and (minDistance == nil or math.sqrt(x * x + z * z) >= minDistance) then
+				table.insert(list, spot)
+			end
+		end
+	end
+	return list
+end
+
 -- Fill the biome's ground with one terrain material, cell by cell.
 local function ground(ctx, material: Enum.Material)
 	if not ctx.building then
 		return
 	end
-	local inner, outer = ctx.inner, ctx.inner + Biomes.DEPTH
-	local angle = ctx.biome.angle
-	for x = -outer, outer, CELL do
-		for z = -outer, outer, CELL do
-			local r = math.sqrt(x * x + z * z)
-			if r >= inner - CELL / 2 and r <= outer + CELL / 2 then
-				local diff = math.abs((math.atan2(z, x) - angle + math.pi) % (2 * math.pi) - math.pi)
-				if diff <= math.rad(22.5) then
-					ctx.terrain:FillBlock(CFrame.new(x, GROUND_Y - 2, z), Vector3.new(CELL, 4, CELL), material)
-				end
-			end
-		end
+	for _, spot in cells(ctx) do
+		ctx.terrain:FillBlock(CFrame.new(spot.X, GROUND_Y - 2, spot.Z), Vector3.new(CELL, 4, CELL), material)
 	end
 end
 
@@ -200,7 +220,13 @@ local function eggSpots(ctx, dMin: number, dMax: number, sideMax: number, avoid:
 		tries += 1
 		local d, side = randomSpot(ctx, dMin, dMax, sideMax)
 		local spot = at(ctx, d, side)
-		if not inZone(ctx, spot, avoid) then
+		local blocked = false
+		for _, o in ctx.occupied do
+			if o.blocksEggs and ((spot - o.position) * Vector3.new(1, 0, 1)).Magnitude < o.radius then
+				blocked = true
+			end
+		end
+		if not blocked and not inZone(ctx, spot, avoid) and Biomes.contains(ctx.biome, spot, 0.05) then
 			table.insert(ctx.plan.eggSpots, onGround(ctx, spot))
 		end
 	end
@@ -217,108 +243,89 @@ local function facing(position: Vector3): CFrame
 end
 
 ---------------------------------------------------------------------------
--- Props
+-- Props (modelled in Blender, see Props.luau)
 ---------------------------------------------------------------------------
-local function tree(ctx, position: Vector3, leaf: Color3, height: number)
-	local base = onGround(ctx, position)
-	part(ctx, {
-		Name = "Trunk",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(height, 1.6, 1.6),
-		CFrame = CFrame.new(base + Vector3.new(0, height / 2, 0)) * UP,
-		Color = rgb(120, 85, 55),
-		Material = Enum.Material.Wood,
-	})
-	for i, offset in
-		{ Vector3.new(0, height + 1, 0), Vector3.new(1.8, height - 0.5, 1), Vector3.new(-1.6, height, -1.2) }
-	do
-		part(ctx, {
-			Name = "Leaves",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * (6 - i),
-			CFrame = CFrame.new(base + offset),
-			Color = leaf:Lerp(rgb(255, 255, 255), (i - 1) * 0.06),
-			Material = Enum.Material.Grass,
-			CanCollide = false,
-		})
+-- Marks a round area as taken so scattered props keep out of it. With
+-- `blocksEggs`, eggs keep out too (inside a fort's walls, under a hut).
+local function occupy(ctx, position: Vector3, radius: number, blocksEggs: boolean?)
+	table.insert(ctx.occupied, { position = position, radius = radius, blocksEggs = blocksEggs == true })
+end
+
+local function isFree(ctx, position: Vector3, radius: number): boolean
+	for _, o in ctx.occupied do
+		local dx, dz = position.X - o.position.X, position.Z - o.position.Z
+		if dx * dx + dz * dz < (radius + o.radius) ^ 2 then
+			return false
+		end
+	end
+	return true
+end
+
+-- Builds a prop at `cf` (only when building; planning just needs the numbers).
+local function place(ctx, name: string, cf: CFrame, scale: number?)
+	if ctx.building then
+		Props.place(name, cf, ctx.folder, scale)
 	end
 end
 
-local function pine(ctx, position: Vector3, snowy: boolean)
+-- A prop standing on the ground: turned `yaw` degrees, or facing the Chowk.
+local function prop(ctx, name: string, position: Vector3, yaw: number?, scale: number?): CFrame
 	local base = onGround(ctx, position)
-	part(ctx, {
-		Name = "Trunk",
-		Size = Vector3.new(1.2, 4, 1.2),
-		CFrame = CFrame.new(base + Vector3.new(0, 2, 0)),
-		Color = rgb(100, 70, 45),
-		Material = Enum.Material.Wood,
-	})
-	for i = 0, 3 do
-		local size = 8 - i * 1.8
-		part(ctx, {
-			Name = "Needles",
-			Size = Vector3.new(size, 2.4, size),
-			CFrame = CFrame.new(base + Vector3.new(0, 4.5 + i * 2.2, 0)) * CFrame.Angles(0, math.rad(i * 25), 0),
-			Color = if snowy and i == 3 then rgb(245, 250, 255) else rgb(40, 110, 60),
-			Material = Enum.Material.Grass,
-			CanCollide = false,
-		})
+	local cf = if yaw then CFrame.new(base) * CFrame.Angles(0, math.rad(yaw), 0) else facing(base)
+	place(ctx, name, cf, scale)
+	return cf
+end
+
+-- A prop floating on the water (boats, lily pads).
+local function afloat(ctx, name: string, position: Vector3, yaw: number, sink: number?)
+	local cf = CFrame.new(position.X, GROUND_Y - (sink or 0), position.Z) * CFrame.Angles(0, math.rad(yaw), 0)
+	place(ctx, name, cf)
+	return cf
+end
+
+-- Writes on a prop's sign (see the anchors in PropData.luau).
+local function sign(ctx, name: string, cf: CFrame, anchor: string, width: number, height: number, text: string)
+	if ctx.building then
+		Props.text(ctx.folder, cf, Props.anchor(name, anchor, cf), width, height, text)
 	end
 end
 
-local function palm(ctx, position: Vector3)
-	local base = onGround(ctx, position)
-	local height = 14 + ctx.rng:NextNumber(0, 5)
-	for i = 1, 5 do
-		part(ctx, {
-			Name = "Trunk",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(height / 5 + 0.1, 1.4 - i * 0.08, 1.4 - i * 0.08),
-			CFrame = CFrame.new(base + Vector3.new(math.sin(i * 0.4) * 0.6, (i - 0.5) * height / 5, 0)) * UP,
-			Color = if i % 2 == 0 then rgb(150, 105, 65) else rgb(170, 120, 75),
-			Material = Enum.Material.Wood,
-		})
-	end
-	local top = base + Vector3.new(math.sin(2) * 0.6, height, 0)
-	for i = 0, 5 do
-		part(ctx, {
-			Name = "Leaf",
-			Size = Vector3.new(1.4, 0.3, 7),
-			CFrame = CFrame.new(top)
-				* CFrame.Angles(0, math.rad(i * 60), 0)
-				* CFrame.new(0, 0, -3)
-				* CFrame.Angles(math.rad(-25), 0, 0),
-			Color = rgb(60, 185, 80),
-			CanCollide = false,
-			CastShadow = false,
-		})
-	end
-end
+type ScatterOptions = {
+	dMin: number?, -- distance range from the Chowk
+	dMax: number?,
+	side: number?, -- how far across (22.5 = the zone's edge)
+	spacing: number?, -- studs to keep from other props
+	scale: { number }?, -- random size range
+	avoid: { [string]: boolean }?, -- hazard zones to keep out of
+	clearPath: number?, -- keep this many studs either side of the middle clear
+	maxHeight: number?, -- not higher up a hill than this
+}
 
-local function hut(ctx, position: Vector3, wall: Color3, roof: Color3)
-	local base = onGround(ctx, position)
-	local cf = facing(base)
-	part(ctx, {
-		Name = "Hut",
-		Size = Vector3.new(10, 7, 9),
-		CFrame = cf * CFrame.new(0, 3.5, 0),
-		Color = wall,
-		Material = Enum.Material.Brick,
-	})
-	part(ctx, {
-		Name = "Roof",
-		Size = Vector3.new(12, 1.4, 11),
-		CFrame = cf * CFrame.new(0, 7.7, 0),
-		Color = roof,
-		Material = Enum.Material.Fabric,
-	})
-	part(ctx, {
-		Name = "Doorway",
-		Size = Vector3.new(3, 5, 0.3),
-		CFrame = cf * CFrame.new(0, 2.5, -4.6),
-		Color = rgb(70, 45, 30),
-		Material = Enum.Material.Wood,
-	})
+-- Sprinkles `count` of a prop (or of a list of props) at random free spots.
+local function scatter(ctx, names: string | { string }, count: number, opts: ScatterOptions)
+	local list = if type(names) == "string" then { names } else names
+	local placed, tries = 0, 0
+	while placed < count and tries < count * 10 do
+		tries += 1
+		local d, side =
+			randomSpot(ctx, opts.dMin or ctx.inner + 10, opts.dMax or ctx.inner + Biomes.DEPTH - 10, opts.side or 21)
+		local name = list[ctx.rng:NextInteger(1, #list)]
+		local scale = if opts.scale then ctx.rng:NextNumber(opts.scale[1], opts.scale[2]) else 1
+		local yaw = ctx.rng:NextNumber(0, 360)
+		local spot = at(ctx, d, side)
+		local radius = (opts.spacing or 4) * scale
+		local _, lateral = Biomes.toLocal(ctx.biome, spot)
+		local ok = Biomes.contains(ctx.biome, spot, 0.06)
+			and isFree(ctx, spot, radius)
+			and not (opts.avoid and inZone(ctx, spot, opts.avoid))
+			and not (opts.clearPath and math.abs(lateral) < opts.clearPath)
+			and not (opts.maxHeight and surface(ctx, spot) > GROUND_Y + opts.maxHeight)
+		if ok then
+			prop(ctx, name, spot, yaw, scale)
+			occupy(ctx, spot, radius * 0.6)
+			placed += 1
+		end
+	end
 end
 
 local function animal(ctx, position: Vector3, color: Color3, size: number, name: string)
@@ -348,54 +355,6 @@ local function animal(ctx, position: Vector3, color: Color3, size: number, name:
 	end
 end
 
-local function boat(ctx, position: Vector3, color: Color3, afloat: boolean)
-	local base = if afloat then Vector3.new(position.X, GROUND_Y - 0.6, position.Z) else onGround(ctx, position)
-	local cf = CFrame.new(base) * CFrame.Angles(0, ctx.rng:NextNumber(0, math.pi * 2), 0)
-	part(ctx, { Name = "Boat", Size = Vector3.new(5, 1.6, 12), CFrame = cf * CFrame.new(0, 0.8, 0), Color = color })
-	part(ctx, {
-		Name = "BoatStripe",
-		Size = Vector3.new(5.1, 0.5, 12.1),
-		CFrame = cf * CFrame.new(0, 1.4, 0),
-		Color = rgb(255, 255, 255),
-	})
-	part(ctx, {
-		Name = "Mast",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(9, 0.5, 0.5),
-		CFrame = cf * CFrame.new(0, 5.5, 1) * UP,
-		Color = rgb(130, 90, 60),
-	})
-	part(ctx, {
-		Name = "Sail",
-		Size = Vector3.new(0.2, 6, 5),
-		CFrame = cf * CFrame.new(0, 6, 2.5),
-		Color = rgb(255, 245, 225),
-		Material = Enum.Material.Fabric,
-		CanCollide = false,
-	})
-end
-
-local function crystal(ctx, position: Vector3, height: number, light: boolean)
-	local p = part(ctx, {
-		Name = "SaltCrystal",
-		Size = Vector3.new(1.4, height, 1.4),
-		CFrame = CFrame.new(position + Vector3.new(0, height / 2, 0))
-			* CFrame.Angles(ctx.rng:NextNumber(-0.4, 0.4), ctx.rng:NextNumber(0, 3), ctx.rng:NextNumber(-0.4, 0.4)),
-		Color = rgb(255, 120, 180),
-		Material = Enum.Material.Neon,
-		Transparency = 0.15,
-		CanCollide = false,
-		CastShadow = false,
-	})
-	if p and light then
-		local glow = Instance.new("PointLight")
-		glow.Color = rgb(255, 140, 190)
-		glow.Range = 18
-		glow.Brightness = 1.5
-		glow.Parent = p
-	end
-end
-
 -- A tall rock pillar with treasure on top that needs a Rope Ladder.
 local function climbChest(ctx, position: Vector3, height: number, material: Enum.Material)
 	local base = onGround(ctx, position)
@@ -412,120 +371,121 @@ local BUILDERS = {}
 function BUILDERS.Khet(ctx)
 	local inner = ctx.inner
 	ground(ctx, Enum.Material.Ground) -- ploughed farmland
-	-- wheat and sarson fields, with a path down the middle
-	local wheat, sarson = rgb(226, 186, 72), rgb(250, 220, 40)
-	local i = 0
-	for d = inner + 35, inner + 250, 32 do
-		for side = -16, 16, 7 do
-			if math.abs(side) > 3 then
-				i += 1
-				local spot = at(ctx, d, side)
-				part(ctx, {
-					Name = "Crop",
-					Size = Vector3.new(22, 2.6, 22),
-					CFrame = facing(spot) * CFrame.new(0, 1.3, 0),
-					Color = if i % 3 == 0 then sarson else wheat,
-					Material = Enum.Material.Grass,
-					CanCollide = false,
-					CastShadow = false,
-				})
-			end
+	-- the canal across the fields, and the rehat (Persian water wheel) over it
+	local canalD = inner + 150
+	for side = -24, 24, 1.2 do
+		local spot = at(ctx, canalD, side)
+		if Biomes.contains(ctx.biome, spot, -0.02) then
+			pond(ctx, spot, 4.5, 3, Enum.Material.Water)
 		end
 	end
+	local rehat = facing(onGround(ctx, at(ctx, canalD, 7)))
+	place(ctx, "Rehat", rehat)
+	occupy(ctx, rehat.Position, 13, true)
+	part(ctx, {
+		Name = "CanalBridge",
+		Size = Vector3.new(6, 0.6, 12),
+		CFrame = facing(onGround(ctx, at(ctx, canalD, 0))) * CFrame.new(0, 0.5, 0),
+		Color = rgb(150, 100, 60),
+		Material = Enum.Material.WoodPlanks,
+	})
 	-- muddy rice paddies
-	for _, spot in { { inner + 80, -12 }, { inner + 170, 11 }, { inner + 240, -7 } } do
+	for _, spot in { { inner + 80, -12 }, { inner + 182, 11 }, { inner + 240, -7 } } do
 		local center = at(ctx, spot[1], spot[2])
 		pond(ctx, center, 14, 2, Enum.Material.Mud)
 		zone(ctx, { kind = "mud", center = center, radius = 14 })
+		occupy(ctx, center, 14)
 	end
-	-- a little village
-	for side = 14, 19, 5 do
-		hut(ctx, at(ctx, inner + 205, side), rgb(200, 150, 100), rgb(230, 200, 120))
+	-- the village: mud houses, charpais, a tandoor, matkas and the water tank
+	for _, h in { { 196, 13, 8 }, { 214, 17, -12 }, { 182, 18, 20 } } do
+		local spot = at(ctx, inner + h[1], h[2])
+		place(ctx, "MudHut", facing(onGround(ctx, spot)) * CFrame.Angles(0, math.rad(h[3]), 0))
+		occupy(ctx, spot, 7, true)
 	end
-	hut(ctx, at(ctx, inner + 125, 17), rgb(210, 210, 215), rgb(60, 120, 200)) -- the tube well hut
-	local pool = at(ctx, inner + 135, 14)
-	pond(ctx, pool, 5, 3, Enum.Material.Water)
-	for k = 1, 6 do
-		local d, side = randomSpot(ctx, inner + 40, inner + 260, 18)
-		local base = onGround(ctx, at(ctx, d, side))
-		part(ctx, {
-			Name = "Haystack",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.new(7, 7, 7),
-			CFrame = CFrame.new(base + Vector3.new(0, 2, 0)),
-			Color = rgb(235, 200, 100):Lerp(rgb(150, 110, 50), (k % 3) * 0.15),
-			Material = Enum.Material.Grass,
-		})
+	for _, c in { { 204, 8, 30 }, { 189, 12, 100 } } do
+		local spot = at(ctx, inner + c[1], c[2])
+		prop(ctx, "Charpai", spot, c[3])
+		occupy(ctx, spot, 3)
 	end
+	prop(ctx, "Tandoor", at(ctx, inner + 205, 19), 0)
+	occupy(ctx, at(ctx, inner + 205, 19), 2)
+	prop(ctx, "Matka", at(ctx, inner + 222, 12))
+	occupy(ctx, at(ctx, inner + 222, 12), 2.5)
+	local pump = at(ctx, inner + 122, 15)
+	prop(ctx, "TubeWell", pump)
+	pond(ctx, pump + Vector3.new(0, 0, 5), 3, 2, Enum.Material.Water)
+	occupy(ctx, pump, 6)
+	local tank = facing(onGround(ctx, at(ctx, inner + 175, -15)))
+	place(ctx, "WaterTank", tank)
+	occupy(ctx, tank.Position, 6, true)
+	chest(
+		ctx,
+		Props.anchor("WaterTank", "Top", tank),
+		"climb",
+		Props.anchor("WaterTank", "Base", tank),
+		Props.anchor("WaterTank", "TopStand", tank)
+	)
+	local tractor = at(ctx, inner + 110, -15)
+	prop(ctx, "TractorTrolley", tractor)
+	occupy(ctx, tractor, 9)
+	prop(ctx, "KiteLine", at(ctx, inner + 58, 9))
+	occupy(ctx, at(ctx, inner + 58, 9), 6)
+	-- fields of wheat and sarson between everything
+	local crops = { "WheatField", "SarsonField" }
+	local k = 0
+	for _, d in { 36, 64, 92, 208, 236, 262 } do
+		for _, side in { -17, -9, 9, 17 } do
+			local spot = at(ctx, inner + d, side)
+			if
+				Biomes.contains(ctx.biome, spot, 0.14)
+				and isFree(ctx, spot, 10.5)
+				and math.abs(d + inner - canalD) > 16
+			then
+				k += 1
+				prop(ctx, crops[k % 2 + 1], spot)
+				occupy(ctx, spot, 10)
+			end
+		end
+	end
+	scatter(ctx, "Haystack", 5, { spacing = 4, clearPath = 6 })
+	scatter(ctx, "KikarTree", 6, { spacing = 5, scale = { 0.9, 1.3 }, clearPath = 6 })
+	scatter(ctx, "MangoTree", 3, { spacing = 5, scale = { 0.9, 1.2 }, clearPath = 6 })
 	for _ = 1, 4 do
 		local d, side = randomSpot(ctx, inner + 60, inner + 240, 18)
 		animal(ctx, at(ctx, d, side), rgb(45, 40, 40), 2.6, "Buffalo")
 	end
 	chest(ctx, onGround(ctx, at(ctx, inner + 232, 13)), "dig")
-	-- the village water tank on stilts, with treasure on its lid
-	local tank = at(ctx, inner + 185, -15)
-	for _, offset in { Vector3.new(-3, 0, -3), Vector3.new(3, 0, -3), Vector3.new(-3, 0, 3), Vector3.new(3, 0, 3) } do
-		part(ctx, {
-			Name = "TankLeg",
-			Size = Vector3.new(0.8, 16, 0.8),
-			CFrame = CFrame.new(tank + offset + Vector3.new(0, 8, 0)),
-			Color = rgb(150, 150, 155),
-			Material = Enum.Material.Metal,
-		})
-	end
-	part(ctx, {
-		Name = "WaterTank",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(6, 9, 9),
-		CFrame = CFrame.new(tank + Vector3.new(0, 19, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = rgb(70, 80, 90),
-		Material = Enum.Material.SmoothPlastic,
-	})
-	chest(ctx, tank + Vector3.new(0, 22, 0), "climb", tank + Vector3.new(0, 0, 7))
 	eggSpots(ctx, inner + 20, inner + 265, 18, {})
 end
 
 function BUILDERS.Jungle(ctx)
 	local inner = ctx.inner
 	ground(ctx, Enum.Material.LeafyGrass)
-	-- the river crossing the jungle
-	local riverR = inner + 160
-	zone(ctx, { kind = "water", inner = riverR - 10, outer = riverR + 10 })
+	-- the river crossing the jungle, and the rope bridge over it
+	local riverD = inner + 160
+	zone(ctx, { kind = "water", inner = riverD - 10, outer = riverD + 10 })
 	for side = -24, 24, 2 do
-		local spot = at(ctx, riverR, side)
-		pondBlock(
-			ctx,
-			CFrame.lookAt(spot, Vector3.new(0, spot.Y, 0)),
-			Vector3.new(riverR * math.rad(2) + 4, 6, 20),
-			6,
-			Enum.Material.Water
-		)
+		local spot = at(ctx, riverD, side)
+		if Biomes.contains(ctx.biome, spot, -0.04) then
+			pondBlock(
+				ctx,
+				CFrame.lookAt(spot, Vector3.new(0, spot.Y, 0)),
+				Vector3.new(riverD * math.rad(2) + 4, 6, 20),
+				6,
+				Enum.Material.Water
+			)
+		end
 	end
-	-- the bridge
-	local bridge = at(ctx, riverR, 0)
-	part(ctx, {
-		Name = "Bridge",
-		Size = Vector3.new(8, 0.8, 30),
-		CFrame = facing(bridge) * CFrame.new(0, 0.6, 0),
-		Color = rgb(150, 100, 60),
-		Material = Enum.Material.WoodPlanks,
-	})
-	for _, x in { -4, 4 } do
-		part(ctx, {
-			Name = "Rail",
-			Size = Vector3.new(0.4, 2.5, 30),
-			CFrame = facing(bridge) * CFrame.new(x, 2, 0),
-			Color = rgb(120, 80, 50),
-		})
-	end
-	-- the waterfall cliff
+	local bridge = facing(onGround(ctx, at(ctx, riverD, 0)))
+	place(ctx, "RopeBridge", bridge)
+	occupy(ctx, bridge.Position, 19, true)
+	-- the waterfall cliff, with treasure on top
 	local cliff = at(ctx, inner + 255, -9)
 	hill(ctx, cliff + Vector3.new(0, 4, 0), 24, Enum.Material.Rock)
-	local fall = facing(cliff) * CFrame.new(0, 14, -21)
 	part(ctx, {
 		Name = "Waterfall",
 		Size = Vector3.new(8, 26, 1),
-		CFrame = fall,
+		CFrame = facing(cliff) * CFrame.new(0, 14, -21),
 		Color = rgb(150, 210, 255),
 		Material = Enum.Material.Neon,
 		Transparency = 0.4,
@@ -533,14 +493,19 @@ function BUILDERS.Jungle(ctx)
 		CastShadow = false,
 	})
 	pond(ctx, cliff + facing(cliff).LookVector * 26, 9, 4, Enum.Material.Water)
+	occupy(ctx, cliff, 26)
 	chest(ctx, onGround(ctx, cliff), "climb", cliff + facing(cliff).LookVector * 28)
-	for _ = 1, 55 do
-		local d, side = randomSpot(ctx, inner + 15, inner + 270, 20)
-		local spot = at(ctx, d, side)
-		if not inZone(ctx, spot, { water = true }) and math.abs(side) > 2 then
-			tree(ctx, spot, rgb(40, 140, 55), 10 + ctx.rng:NextNumber(0, 8))
-		end
-	end
+	-- the treehouse
+	local tree = facing(onGround(ctx, at(ctx, inner + 92, -12)))
+	place(ctx, "Treehouse", tree)
+	occupy(ctx, tree.Position, 10, true)
+	-- the jungle itself
+	local water = { water = true }
+	scatter(ctx, "BanyanTree", 4, { spacing = 11, avoid = water, clearPath = 9 })
+	scatter(ctx, "JungleTree", 26, { spacing = 4.5, scale = { 0.85, 1.25 }, avoid = water, clearPath = 6 })
+	scatter(ctx, "Bamboo", 8, { spacing = 4, avoid = water, clearPath = 6 })
+	scatter(ctx, { "JungleBush", "Fern" }, 30, { spacing = 2.5, avoid = water, clearPath = 4 })
+	scatter(ctx, "MossyRock", 8, { spacing = 3, avoid = water })
 	for _ = 1, 3 do
 		local d, side = randomSpot(ctx, inner + 40, inner + 140, 15)
 		local base = onGround(ctx, at(ctx, d, side))
@@ -560,7 +525,7 @@ function BUILDERS.Jungle(ctx)
 		})
 	end
 	chest(ctx, onGround(ctx, at(ctx, inner + 60, 15)), "dig")
-	eggSpots(ctx, inner + 15, inner + 265, 19, { water = true })
+	eggSpots(ctx, inner + 15, inner + 265, 19, water)
 end
 
 function BUILDERS.Samandar(ctx)
@@ -570,29 +535,48 @@ function BUILDERS.Samandar(ctx)
 	zone(ctx, { kind = "water", inner = seaFrom, outer = inner + Biomes.DEPTH + 20 })
 	zone(ctx, { kind = "shore", inner = seaFrom - 30, outer = seaFrom })
 	if ctx.building then
-		local angle = ctx.biome.angle
-		local outer = inner + Biomes.DEPTH
-		for x = -outer - CELL, outer + CELL, CELL do
-			for z = -outer - CELL, outer + CELL, CELL do
-				local r = math.sqrt(x * x + z * z)
-				local diff = math.abs((math.atan2(z, x) - angle + math.pi) % (2 * math.pi) - math.pi)
-				if r >= seaFrom and r <= outer + CELL and diff <= math.rad(23) then
-					pondBlock(ctx, CFrame.new(x, 0, z), Vector3.new(CELL, 0, CELL), 10, Enum.Material.Water)
-				end
-			end
+		for _, spot in cells(ctx, seaFrom) do
+			pondBlock(ctx, CFrame.new(spot.X, 0, spot.Z), Vector3.new(CELL, 0, CELL), 10, Enum.Material.Water)
 		end
 	end
-	for _ = 1, 14 do
-		local d, side = randomSpot(ctx, inner + 20, seaFrom - 35, 19)
-		palm(ctx, at(ctx, d, side))
+	-- the island and its lighthouse, with treasure on the gallery
+	local island = at(ctx, seaFrom + 35, 12)
+	hill(ctx, island - Vector3.new(0, 4, 0), 14, Enum.Material.Rock)
+	local lighthouse = facing(onGround(ctx, island))
+	place(ctx, "Lighthouse", lighthouse)
+	chest(
+		ctx,
+		Props.anchor("Lighthouse", "Gallery", lighthouse),
+		"climb",
+		at(ctx, seaFrom - 5, 12),
+		Props.anchor("Lighthouse", "GalleryStand", lighthouse)
+	)
+	-- beach huts facing the sea, boats, nets and a gola cart
+	local huts = { "BeachHutTeal", "BeachHutPink", "BeachHutYellow" }
+	for i, side in { -12, 0, 12 } do
+		local spot = at(ctx, inner + 150, side + 3)
+		place(ctx, huts[i], facing(onGround(ctx, spot)) * CFrame.Angles(0, math.pi, 0))
+		occupy(ctx, spot, 6, true)
 	end
-	for side = -12, 12, 12 do
-		hut(ctx, at(ctx, inner + 150, side + 3), rgb(240, 220, 180), rgb(60, 170, 200))
+	for _, b in { { seaFrom - 12, -6, 40 }, { seaFrom - 15, 9, -30 } } do
+		local spot = at(ctx, b[1], b[2])
+		prop(ctx, "FishingBoat", spot, b[3])
+		occupy(ctx, spot, 8)
 	end
-	boat(ctx, at(ctx, seaFrom - 12, -6), rgb(220, 60, 60), false)
-	boat(ctx, at(ctx, seaFrom - 15, 9), rgb(60, 120, 220), false)
-	boat(ctx, at(ctx, seaFrom + 25, -14), rgb(250, 200, 40), true)
-	boat(ctx, at(ctx, seaFrom + 40, 4), rgb(60, 180, 100), true)
+	afloat(ctx, "FishingBoat", at(ctx, seaFrom + 25, -14), 70, 1.2)
+	afloat(ctx, "FishingBoat", at(ctx, seaFrom + 42, 4), -20, 1.2)
+	afloat(ctx, "RowBoat", at(ctx, seaFrom + 14, 2), 15, 0.7)
+	for _, n in { { seaFrom - 26, -14 }, { seaFrom - 28, 15 } } do
+		local spot = at(ctx, n[1], n[2])
+		prop(ctx, "NetRack", spot)
+		occupy(ctx, spot, 4)
+	end
+	prop(ctx, "GolaCart", at(ctx, inner + 118, 7))
+	occupy(ctx, at(ctx, inner + 118, 7), 4)
+	scatter(ctx, "CoconutPalm", 14, { dMin = inner + 20, dMax = seaFrom - 34, spacing = 4, scale = { 0.9, 1.2 } })
+	scatter(ctx, "BeachUmbrella", 5, { dMin = inner + 80, dMax = seaFrom - 30, spacing = 5 })
+	scatter(ctx, "BeachRocks", 6, { dMin = inner + 40, dMax = seaFrom - 4, spacing = 3 })
+	scatter(ctx, "DuneGrass", 16, { dMax = seaFrom - 40, spacing = 2 })
 	for _ = 1, 6 do
 		local d, side = randomSpot(ctx, inner + 60, seaFrom - 5, 18)
 		local base = onGround(ctx, at(ctx, d, side))
@@ -603,28 +587,6 @@ function BUILDERS.Samandar(ctx)
 			Color = rgb(230, 70, 50),
 		})
 	end
-	for _ = 1, 5 do
-		local d, side = randomSpot(ctx, inner + 80, seaFrom - 40, 16)
-		local base = onGround(ctx, at(ctx, d, side))
-		part(ctx, {
-			Name = "UmbrellaPole",
-			Size = Vector3.new(0.3, 6, 0.3),
-			CFrame = CFrame.new(base + Vector3.new(0, 3, 0)),
-			Color = rgb(255, 255, 255),
-		})
-		part(ctx, {
-			Name = "Umbrella",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.6, 8, 8),
-			CFrame = CFrame.new(base + Vector3.new(0, 6, 0)) * UP,
-			Color = rgb(255, 90, 120),
-			Material = Enum.Material.Fabric,
-		})
-	end
-	-- a rocky island with treasure, and buried treasure on the beach
-	local island = at(ctx, seaFrom + 35, 12)
-	hill(ctx, island - Vector3.new(0, 4, 0), 14, Enum.Material.Rock)
-	chest(ctx, onGround(ctx, island), "climb", at(ctx, seaFrom - 5, 12))
 	chest(ctx, onGround(ctx, at(ctx, inner + 120, -14)), "dig")
 	eggSpots(ctx, inner + 15, seaFrom - 5, 19, { water = true })
 end
@@ -635,112 +597,93 @@ function BUILDERS.Jheel(ctx)
 	local lake = at(ctx, inner + 150, 0)
 	pond(ctx, lake, 55, 8, Enum.Material.Water)
 	zone(ctx, { kind = "water", center = lake, radius = 55 })
-	-- the dock
-	local dock = at(ctx, inner + 92, 0)
-	part(ctx, {
-		Name = "Dock",
-		Size = Vector3.new(6, 0.6, 22),
-		CFrame = facing(dock) * CFrame.new(0, 0.4, -6),
-		Color = rgb(150, 100, 60),
-		Material = Enum.Material.WoodPlanks,
-	})
+	occupy(ctx, lake, 56)
 	-- mountains behind the meadows
 	for _, side in { -15, 0, 15 } do
 		local peak = at(ctx, inner + Biomes.DEPTH + 10, side)
 		hill(ctx, peak - Vector3.new(0, 20, 0), 45, Enum.Material.Rock)
 		fillBall(ctx, peak + Vector3.new(0, 14, 0), 18, Enum.Material.Snow)
 	end
-	local colors = { rgb(255, 90, 140), rgb(255, 220, 60), rgb(160, 110, 255), rgb(255, 255, 255), rgb(255, 140, 40) }
-	for k = 1, 120 do
-		local d, side = randomSpot(ctx, inner + 10, inner + 250, 20)
-		local spot = at(ctx, d, side)
-		if not inZone(ctx, spot, { water = true }) then
-			part(ctx, {
-				Name = "Flower",
-				Shape = Enum.PartType.Ball,
-				Size = Vector3.one * 0.9,
-				CFrame = CFrame.new(onGround(ctx, spot) + Vector3.new(0, 0.8, 0)),
-				Color = colors[k % #colors + 1],
-				CanCollide = false,
-				CastShadow = false,
-			})
+	-- the rest house, its jetty and the rowing boats
+	local house = onGround(ctx, at(ctx, inner + 64, -13))
+	local houseCF = CFrame.lookAt(house, Vector3.new(lake.X, house.Y, lake.Z))
+	place(ctx, "RestHouse", houseCF)
+	occupy(ctx, house, 13, true)
+	local toHouse = ((house - lake) * Vector3.new(1, 0, 1)).Unit
+	local shore = Vector3.new(lake.X, GROUND_Y, lake.Z) + toHouse * 53
+	local jetty = CFrame.lookAt(shore, Vector3.new(lake.X, GROUND_Y, lake.Z))
+	place(ctx, "Jetty", jetty)
+	occupy(ctx, shore, 5)
+	for i, offset in { Vector3.new(-7, 0, -30), Vector3.new(7, 0, -34), Vector3.new(-6, 0, -44) } do
+		afloat(ctx, "RowBoat", (jetty * CFrame.new(offset)).Position, 40 * i, 0.7)
+	end
+	for i = 1, 6 do
+		local a = i * math.pi / 3 + 0.4
+		local r = 18 + (i % 3) * 9
+		afloat(ctx, "LilyPads", lake + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r), i * 50, -0.05)
+	end
+	-- reeds on the shore and willows just behind them
+	for i = 1, 18 do
+		local a = i * 2 * math.pi / 18 + ctx.rng:NextNumber(-0.1, 0.1)
+		local spot = lake + Vector3.new(math.cos(a), 0, math.sin(a)) * ctx.rng:NextNumber(54, 58)
+		if Biomes.contains(ctx.biome, spot, 0.04) and isFree(ctx, spot, 0) then
+			prop(ctx, "Reeds", spot, i * 37)
 		end
 	end
-	for _ = 1, 25 do
-		local d, side = randomSpot(ctx, inner + 20, inner + 260, 20)
-		local spot = at(ctx, d, side)
-		if not inZone(ctx, spot, { water = true }) and math.abs(side) > 6 then
-			pine(ctx, spot, false)
+	for i = 1, 7 do
+		local a = i * 2 * math.pi / 7 + 0.2
+		local spot = lake + Vector3.new(math.cos(a), 0, math.sin(a)) * 66
+		if Biomes.contains(ctx.biome, spot, 0.06) and isFree(ctx, spot, 5) then
+			prop(ctx, "Willow", spot, i * 51)
+			occupy(ctx, spot, 5)
 		end
 	end
+	for _, a in { 2.2, 3.4 } do
+		local spot = lake + Vector3.new(math.cos(a), 0, math.sin(a)) * 61
+		local cf = CFrame.lookAt(onGround(ctx, spot), Vector3.new(lake.X, GROUND_Y, lake.Z))
+		place(ctx, "Bench", cf * CFrame.Angles(0, math.pi, 0))
+		occupy(ctx, spot, 3)
+	end
+	local water = { water = true }
 	climbChest(ctx, at(ctx, inner + 70, 16), 26, Enum.Material.Rock)
+	occupy(ctx, at(ctx, inner + 70, 16), 8)
+	scatter(ctx, "Poplar", 12, { spacing = 4, avoid = water, scale = { 0.9, 1.3 }, clearPath = 5 })
+	scatter(ctx, "FlowerPatch", 30, { spacing = 2.5, avoid = water })
+	scatter(ctx, "Boulder", 4, { spacing = 4, avoid = water })
 	chest(ctx, onGround(ctx, at(ctx, inner + 215, -10)), "dig")
-	eggSpots(ctx, inner + 15, inner + 255, 19, { water = true })
+	eggSpots(ctx, inner + 15, inner + 255, 19, water)
 end
 
 function BUILDERS.Registan(ctx)
 	local inner = ctx.inner
 	ground(ctx, Enum.Material.Sand)
 	zone(ctx, { kind = "sandstorm", inner = inner, outer = inner + Biomes.DEPTH })
+	local fortCenter = at(ctx, inner + 200, 8)
+	-- dunes, but none on top of the fort
 	for _ = 1, 16 do
 		local d, side = randomSpot(ctx, inner + 30, inner + 270, 19)
 		local radius = ctx.rng:NextNumber(22, 40)
 		local spot = at(ctx, d, side)
-		hill(ctx, spot - Vector3.new(0, radius * 0.65, 0), radius, Enum.Material.Sand)
+		if ((spot - fortCenter) * Vector3.new(1, 0, 1)).Magnitude > radius + 46 then
+			hill(ctx, spot - Vector3.new(0, radius * 0.65, 0), radius, Enum.Material.Sand)
+		end
 	end
-	-- the old fort
-	local fortCenter = at(ctx, inner + 200, 8)
-	local fort = facing(fortCenter)
-	local stone = rgb(215, 160, 100)
-	for _, wall in
-		{
-			{ Vector3.new(44, 12, 3), CFrame.new(0, 6, 22) },
-			{ Vector3.new(3, 12, 44), CFrame.new(-22, 6, 0) },
-			{ Vector3.new(3, 12, 44), CFrame.new(22, 6, 0) },
-			{ Vector3.new(16, 12, 3), CFrame.new(-14, 6, -22) },
-			{ Vector3.new(16, 12, 3), CFrame.new(14, 6, -22) },
-		}
-	do
-		part(ctx, {
-			Name = "FortWall",
-			Size = wall[1],
-			CFrame = fort * wall[2],
-			Color = stone,
-			Material = Enum.Material.Sandstone,
-		})
-	end
-	for _, corner in { { -22, -22 }, { 22, -22 }, { -22, 22 }, { 22, 22 } } do
-		part(ctx, {
-			Name = "FortTower",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(20, 9, 9),
-			CFrame = fort * CFrame.new(corner[1], 10, corner[2]) * UP,
-			Color = stone:Lerp(rgb(255, 255, 255), 0.1),
-			Material = Enum.Material.Sandstone,
-		})
-	end
-	local towerTop = (fort * CFrame.new(22, 20.5, 22)).Position
-	chest(ctx, towerTop, "climb", (fort * CFrame.new(22, 0, 16)).Position)
-	for _ = 1, 18 do
-		local d, side = randomSpot(ctx, inner + 20, inner + 270, 19)
-		local base = onGround(ctx, at(ctx, d, side))
-		part(ctx, {
-			Name = "Cactus",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(6, 1.6, 1.6),
-			CFrame = CFrame.new(base + Vector3.new(0, 3, 0)) * UP,
-			Color = rgb(70, 150, 70),
-			Material = Enum.Material.Grass,
-		})
-		part(ctx, {
-			Name = "CactusArm",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(2.5, 1.1, 1.1),
-			CFrame = CFrame.new(base + Vector3.new(1, 3.5, 0)) * UP,
-			Color = rgb(70, 150, 70),
-			Material = Enum.Material.Grass,
-		})
-	end
+	-- the old fort, with treasure on top of a tower
+	local fort = facing(onGround(ctx, fortCenter))
+	place(ctx, "DesertFort", fort)
+	occupy(ctx, fortCenter, 44, true)
+	chest(
+		ctx,
+		Props.anchor("DesertFort", "TowerTop", fort),
+		"climb",
+		Props.anchor("DesertFort", "TowerBase", fort),
+		Props.anchor("DesertFort", "TowerStand", fort)
+	)
+	scatter(ctx, "DesertTent", 2, { spacing = 8, maxHeight = 3 })
+	scatter(ctx, "RockMesa", 4, { spacing = 9, maxHeight = 4 })
+	scatter(ctx, "KikarDry", 10, { spacing = 6, scale = { 0.8, 1.2 } })
+	scatter(ctx, "DesertShrub", 14, { spacing = 3 })
+	scatter(ctx, "DuneGrass", 14, { spacing = 2 })
 	for _ = 1, 4 do
 		local d, side = randomSpot(ctx, inner + 40, inner + 260, 18)
 		animal(ctx, at(ctx, d, side), rgb(200, 150, 90), 3.2, "Camel")
@@ -753,76 +696,39 @@ function BUILDERS.Delta(ctx)
 	local inner = ctx.inner
 	ground(ctx, Enum.Material.Mud)
 	zone(ctx, { kind = "mud", inner = inner, outer = inner + Biomes.DEPTH })
+	-- the stilt village over its own pool, with treasure on a hut roof
+	local villageSpot = at(ctx, inner + 150, 9)
+	pond(ctx, villageSpot, 20, 5, Enum.Material.Water)
+	zone(ctx, { kind = "water", center = villageSpot, radius = 20 })
+	local village = facing(onGround(ctx, villageSpot))
+	place(ctx, "StiltVillage", village)
+	occupy(ctx, villageSpot, 25, true)
+	chest(
+		ctx,
+		Props.anchor("StiltVillage", "HutRoof", village),
+		"climb",
+		Props.anchor("StiltVillage", "HutBase", village),
+		Props.anchor("StiltVillage", "HutRoofStand", village)
+	)
+	afloat(ctx, "RowBoat", Props.anchor("StiltVillage", "PierEnd", village) + village.RightVector * 4, 80, 0.7)
+	-- muddy pools
 	for _ = 1, 6 do
 		local d, side = randomSpot(ctx, inner + 40, inner + 260, 17)
 		local radius = ctx.rng:NextNumber(12, 22)
 		local spot = at(ctx, d, side)
-		pond(ctx, spot, radius, 4, Enum.Material.Water)
-		zone(ctx, { kind = "water", center = spot, radius = radius })
-	end
-	for _ = 1, 40 do
-		local d, side = randomSpot(ctx, inner + 15, inner + 270, 20)
-		local base = onGround(ctx, at(ctx, d, side))
-		for k = 0, 3 do
-			local a = k * math.pi / 2
-			part(ctx, {
-				Name = "Root",
-				Size = Vector3.new(0.5, 4, 0.5),
-				CFrame = CFrame.new(base + Vector3.new(math.cos(a) * 1.4, 1.5, math.sin(a) * 1.4))
-					* CFrame.Angles(math.sin(a) * 0.5, 0, -math.cos(a) * 0.5),
-				Color = rgb(110, 80, 55),
-				Material = Enum.Material.Wood,
-			})
-		end
-		part(ctx, {
-			Name = "Trunk",
-			Size = Vector3.new(1.2, 6, 1.2),
-			CFrame = CFrame.new(base + Vector3.new(0, 6, 0)),
-			Color = rgb(110, 80, 55),
-			Material = Enum.Material.Wood,
-		})
-		part(ctx, {
-			Name = "Leaves",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * 7,
-			CFrame = CFrame.new(base + Vector3.new(0, 10, 0)),
-			Color = rgb(40, 110, 50),
-			Material = Enum.Material.Grass,
-			CanCollide = false,
-		})
-	end
-	for k = 1, 4 do
-		local base = onGround(ctx, at(ctx, inner + 60 + k * 45, if k % 2 == 0 then 12 else -12))
-		for _, x in { -3, 3 } do
-			for _, z in { -3, 3 } do
-				part(ctx, {
-					Name = "Stilt",
-					Size = Vector3.new(0.6, 7, 0.6),
-					CFrame = CFrame.new(base + Vector3.new(x, 3.5, z)),
-					Color = rgb(120, 85, 55),
-					Material = Enum.Material.Wood,
-				})
-			end
-		end
-		part(ctx, {
-			Name = "StiltHut",
-			Size = Vector3.new(9, 5, 9),
-			CFrame = CFrame.new(base + Vector3.new(0, 9.5, 0)),
-			Color = rgb(190, 150, 100),
-			Material = Enum.Material.WoodPlanks,
-		})
-		part(ctx, {
-			Name = "Roof",
-			Size = Vector3.new(11, 1, 11),
-			CFrame = CFrame.new(base + Vector3.new(0, 12.5, 0)),
-			Color = rgb(150, 120, 70),
-			Material = Enum.Material.Fabric,
-		})
-		if k == 3 then
-			chest(ctx, base + Vector3.new(0, 13.5, 0), "climb", base + Vector3.new(0, 0, 6))
+		if ((spot - villageSpot) * Vector3.new(1, 0, 1)).Magnitude > radius + 28 then
+			pond(ctx, spot, radius, 4, Enum.Material.Water)
+			zone(ctx, { kind = "water", center = spot, radius = radius })
 		end
 	end
-	boat(ctx, at(ctx, inner + 100, 4), rgb(200, 90, 50), false)
+	for _, n in { { 118, 4 }, { 124, 16 } } do
+		local spot = at(ctx, inner + n[1], n[2])
+		prop(ctx, "NetRack", spot)
+		occupy(ctx, spot, 4)
+	end
+	scatter(ctx, "FishingBoat", 1, { dMin = inner + 60, dMax = inner + 120, spacing = 8 })
+	scatter(ctx, "Mangrove", 30, { spacing = 4, scale = { 0.85, 1.3 }, clearPath = 5 })
+	scatter(ctx, "Reeds", 18, { spacing = 2.5 })
 	chest(ctx, onGround(ctx, at(ctx, inner + 90, -16)), "dig")
 	eggSpots(ctx, inner + 15, inner + 268, 19, { water = true })
 end
@@ -847,6 +753,16 @@ function BUILDERS.Pahar(ctx)
 		hill(ctx, spot - Vector3.new(0, m[3] * 0.45, 0), m[3], Enum.Material.Rock)
 		fillBall(ctx, spot + Vector3.new(0, m[3] * 0.3, 0), m[3] * 0.4, Enum.Material.Snow)
 	end
+	-- two rocky ridges and the suspension bridge across the gorge between them
+	local mid = at(ctx, inner + 128, -13)
+	local bridge = CFrame.new(mid.X, GROUND_Y + 16, mid.Z) * facing(mid).Rotation
+	for _, z in { -30, 30 } do
+		local top = (bridge * CFrame.new(0, 0, z * 1.1)).Position
+		hill(ctx, top - Vector3.new(0, 22, 0), 22, Enum.Material.Rock)
+		fillBall(ctx, top - Vector3.new(0, 4, 0), 9, Enum.Material.Snow)
+	end
+	place(ctx, "SuspensionBridge", bridge)
+	occupy(ctx, mid, 34)
 	-- the frozen lake and glaciers: slippery!
 	local lake = at(ctx, inner + 140, -4)
 	pond(ctx, lake, 30, 3, Enum.Material.Ice)
@@ -856,27 +772,30 @@ function BUILDERS.Pahar(ctx)
 		pond(ctx, spot, 15, 3, Enum.Material.Glacier)
 		zone(ctx, { kind = "ice", center = spot, radius = 15 })
 	end
-	for _ = 1, 40 do
-		local d, side = randomSpot(ctx, inner + 10, inner + 260, 20)
-		local spot = at(ctx, d, side)
-		if not inZone(ctx, spot, { ice = true }) and surface(ctx, spot) < GROUND_Y + 20 then
-			pine(ctx, spot, true)
-		end
-	end
+	-- the stone hut
+	local hutSpot = at(ctx, inner + 172, 13)
+	place(ctx, "MountainHut", facing(onGround(ctx, hutSpot)))
+	occupy(ctx, hutSpot, 8, true)
+	local ice = { ice = true }
+	climbChest(ctx, at(ctx, inner + 220, 11), 30, Enum.Material.Rock)
+	occupy(ctx, at(ctx, inner + 220, 11), 8)
+	scatter(ctx, "DeodarSnowy", 34, { spacing = 5, scale = { 0.8, 1.3 }, avoid = ice, maxHeight = 20, clearPath = 5 })
+	scatter(ctx, "SnowRock", 10, { spacing = 4, avoid = ice })
+	scatter(ctx, "Juniper", 10, { spacing = 3, avoid = ice })
 	for _ = 1, 3 do
 		local d, side = randomSpot(ctx, inner + 40, inner + 200, 10)
 		animal(ctx, at(ctx, d, side), rgb(70, 55, 45), 3, "Yak")
 	end
-	climbChest(ctx, at(ctx, inner + 220, 11), 30, Enum.Material.Rock)
 	chest(ctx, onGround(ctx, at(ctx, inner + 80, 9)), "dig")
 	eggSpots(ctx, inner + 15, inner + 250, 15, {})
 end
 
--- The tunnels of the salt caves, as (distance, degrees) points.
+-- The tunnels of the salt caves, as (distance, side) points.
 local TUNNELS = {
 	{ { 20, 0 }, { 70, 0 }, { 110, -7 }, { 160, -11 }, { 200, -4 }, { 245, 6 }, { 262, 14 } },
 	{ { 110, -7 }, { 150, 8 }, { 190, 14 }, { 230, 15 } },
 }
+local TUNNEL_FLOOR = GROUND_Y - 2 -- the bottom of the carved tunnels
 
 function BUILDERS.NamakKaan(ctx)
 	local inner = ctx.inner
@@ -893,20 +812,34 @@ function BUILDERS.NamakKaan(ctx)
 			if k % 2 == 0 then Enum.Material.Salt else Enum.Material.Rock
 		)
 	end
-	-- carve the tunnels and the crystal chamber
+	-- carve the tunnels; timber frames hold them up, salt crystals glow on the walls
 	local chamber = at(ctx, inner + 200, -4)
-	for _, tunnel in TUNNELS do
+	for t, tunnel in TUNNELS do
+		local sinceSupport = 0
 		for i = 1, #tunnel - 1 do
 			local a = at(ctx, inner + tunnel[i][1], tunnel[i][2])
 			local b = at(ctx, inner + tunnel[i + 1][1], tunnel[i + 1][2])
+			local dir = (b - a).Unit
 			local steps = math.ceil((b - a).Magnitude / 4)
 			for s = 0, steps do
 				local p = a:Lerp(b, s / steps)
 				fillBall(ctx, p + Vector3.new(0, 7, 0), 9, Enum.Material.Air)
-				if s % 3 == 0 then
+				sinceSupport += 1
+				if sinceSupport >= 6 and (p - chamber).Magnitude > 20 then
+					sinceSupport = 0
+					place(
+						ctx,
+						"CaveSupport",
+						CFrame.lookAt(
+							Vector3.new(p.X, TUNNEL_FLOOR + 1, p.Z),
+							Vector3.new(p.X, TUNNEL_FLOOR + 1, p.Z) + dir
+						)
+					)
+				end
+				if s % 9 == 4 then
 					local side = if s % 2 == 0 then 1 else -1
-					local wall = p + (b - a).Unit:Cross(Vector3.yAxis) * 6.5 * side
-					crystal(ctx, wall + Vector3.new(0, -1, 0), ctx.rng:NextNumber(2.5, 5), s % 9 == 0)
+					local wall = p + dir:Cross(Vector3.yAxis) * 6.2 * side
+					place(ctx, "SaltCrystals", CFrame.new(wall.X, TUNNEL_FLOOR + 1.2, wall.Z) * CFrame.Angles(0, s, 0))
 				end
 				if s % 2 == 0 then
 					table.insert(
@@ -915,12 +848,47 @@ function BUILDERS.NamakKaan(ctx)
 					)
 				end
 			end
+			-- mine-cart track along the main tunnel
+			if t == 1 then
+				local length = (b - a).Magnitude
+				for k = 0, math.floor(length / 16) - 1 do
+					local c = a + dir * (8 + k * 16)
+					local floor = Vector3.new(c.X, TUNNEL_FLOOR + 0.6, c.Z)
+					place(ctx, "MineTrack", CFrame.lookAt(floor, floor + dir))
+					if (i + k) % 5 == 2 then
+						place(
+							ctx,
+							"MineCart",
+							CFrame.lookAt(floor + Vector3.new(0, 0.5, 0), floor + Vector3.new(0, 0.5, 0) + dir)
+						)
+					end
+				end
+			end
 		end
 	end
-	fillBall(ctx, chamber + Vector3.new(0, 9, 0), 18, Enum.Material.Air)
-	for k = 1, 8 do
-		local a = k * math.pi / 4
-		crystal(ctx, chamber + Vector3.new(math.cos(a) * 14, -2, math.sin(a) * 14), 6 + (k % 3) * 2, k % 2 == 0)
+	-- the crystal chamber
+	local chamberCenter = chamber + Vector3.new(0, 9, 0)
+	fillBall(ctx, chamberCenter, 18, Enum.Material.Air)
+	local function chamberFloor(offset: Vector3): Vector3
+		local r = math.min(offset.Magnitude, 17)
+		return Vector3.new(chamber.X + offset.X, chamberCenter.Y - math.sqrt(18 * 18 - r * r), chamber.Z + offset.Z)
+	end
+	for k = 1, 3 do
+		local a = k * 2 * math.pi / 3 + 0.5
+		place(
+			ctx,
+			"CrystalCluster",
+			CFrame.new(chamberFloor(Vector3.new(math.cos(a) * 9, 0, math.sin(a) * 9))) * CFrame.Angles(0, a, 0)
+		)
+	end
+	for k = 1, 6 do
+		local a = k * math.pi / 3
+		local name = if k % 2 == 0 then "SaltCrystals" else "Stalagmites"
+		place(
+			ctx,
+			name,
+			CFrame.new(chamberFloor(Vector3.new(math.cos(a) * 13.5, 0, math.sin(a) * 13.5))) * CFrame.Angles(0, a, 0)
+		)
 	end
 	-- a ledge in the chamber (Rope Ladder) and a dig spot (Shovel)
 	local ledge = chamber + Vector3.new(0, 11, 0) + (at(ctx, inner + 220, -4) - chamber).Unit * 12
@@ -931,13 +899,15 @@ function BUILDERS.NamakKaan(ctx)
 		Color = rgb(255, 170, 200),
 		Material = Enum.Material.Salt,
 	})
-	chest(ctx, ledge + Vector3.new(0, 0.5, 0), "climb", chamber - Vector3.new(0, 1, 0))
+	chest(ctx, ledge + Vector3.new(0, 0.5, 0), "climb", chamber - Vector3.new(0, 1, 0), ledge + Vector3.new(-2, 0.5, 0))
 	chest(ctx, chamber + Vector3.new(-6, -1, 6), "dig")
-	-- crystals outside too
-	for _ = 1, 14 do
-		local d, side = randomSpot(ctx, inner + 5, inner + 30, 20)
-		crystal(ctx, at(ctx, d, side), ctx.rng:NextNumber(3, 7), false)
-	end
+	-- the mine entrance, with salt crystals and rocks outside
+	local entrance = facing(onGround(ctx, at(ctx, inner + 12, 0)))
+	place(ctx, "MineEntrance", entrance)
+	sign(ctx, "MineEntrance", entrance, "Sign", 9.6, 2.2, "NAMAK KAAN")
+	occupy(ctx, entrance.Position, 11)
+	scatter(ctx, "SaltCrystals", 8, { dMin = inner + 2, dMax = inner + 32, spacing = 3, clearPath = 9 })
+	scatter(ctx, "Boulder", 4, { dMin = inner + 2, dMax = inner + 40, spacing = 4, clearPath = 9 })
 	-- keep only 40 cave egg spots
 	while #ctx.plan.eggSpots > EGG_SPOTS do
 		table.remove(ctx.plan.eggSpots, ctx.rng:NextInteger(1, #ctx.plan.eggSpots))
@@ -963,6 +933,11 @@ function BiomeBuilder.run(parent: Instance?): { [string]: Plan }
 		plans[biome.id] = ctx.plan
 	end
 	return plans
+end
+
+-- A pond flush with the ground anywhere in the world (the countryside uses it).
+function BiomeBuilder.pondAt(center: Vector3, radius: number, depth: number, material: Enum.Material)
+	pond({ building = true, terrain = workspace.Terrain }, center, radius, depth, material)
 end
 
 -- Is the position inside a hazard zone of this kind?

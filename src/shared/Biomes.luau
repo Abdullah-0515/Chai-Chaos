@@ -262,10 +262,65 @@ function Biomes.direction(biome: Biome): Vector3
 	return Vector3.new(math.cos(biome.angle :: number), 0, math.sin(biome.angle :: number))
 end
 
--- A point in a biome: `distance` from the Chowk, `side` degrees off its road.
+-- A point `distance` from the Chowk along a biome's road, turned `side` degrees off it.
 function Biomes.point(biome: Biome, distance: number, side: number?): Vector3
 	local a = (biome.angle :: number) + math.rad(side or 0)
 	return Vector3.new(math.cos(a) * distance, Biomes.GROUND_Y, math.sin(a) * distance)
+end
+
+---------------------------------------------------------------------------
+-- Zones. Each biome is its own rounded area at the end of its road, with
+-- countryside between it and its neighbours. The shape is an oval (long
+-- along the road, narrower across) with a wobbly edge, so it looks natural.
+---------------------------------------------------------------------------
+Biomes.ZONE_WIDTH = 0.28 -- half the zone's width, as a share of its distance from the Chowk
+
+-- How far the middle of a biome is from the Chowk.
+function Biomes.centerDistance(biome: Biome): number
+	return Biomes.innerRadius(biome) + Biomes.DEPTH / 2
+end
+
+function Biomes.center(biome: Biome): Vector3
+	return Biomes.direction(biome) * Biomes.centerDistance(biome) + Vector3.new(0, Biomes.GROUND_Y, 0)
+end
+
+-- Half the zone's size along its road and across it.
+function Biomes.halfSize(biome: Biome): (number, number)
+	return Biomes.DEPTH / 2, Biomes.centerDistance(biome) * Biomes.ZONE_WIDTH
+end
+
+-- The direction across a biome: to the right when walking out along its road.
+local function across(biome: Biome): Vector3
+	local dir = Biomes.direction(biome)
+	return Vector3.new(-dir.Z, 0, dir.X)
+end
+
+-- A world position from zone coordinates: `along` the road from the zone's
+-- middle (positive = further from the Chowk) and `side` across it.
+function Biomes.fromLocal(biome: Biome, along: number, side: number): Vector3
+	return Biomes.center(biome) + Biomes.direction(biome) * along + across(biome) * side
+end
+
+function Biomes.toLocal(biome: Biome, position: Vector3): (number, number)
+	local offset = position - Biomes.center(biome)
+	local dir, side = Biomes.direction(biome), across(biome)
+	return offset.X * dir.X + offset.Z * dir.Z, offset.X * side.X + offset.Z * side.Z
+end
+
+-- How far out a position is: 0 in the middle, 1 on the zone's edge.
+function Biomes.zoneDistance(biome: Biome, position: Vector3): number
+	local along, side = Biomes.toLocal(biome, position)
+	local a, b = Biomes.halfSize(biome)
+	local u, v = along / a, side / b
+	local theta = math.atan2(v, u)
+	local index = biome.index :: number
+	local edge = 1 + 0.07 * math.sin(3 * theta + index) + 0.04 * math.sin(5 * theta + 2 * index)
+	return math.sqrt(u * u + v * v) / edge
+end
+
+-- Is the position inside this biome's zone? `margin` shrinks the zone (0.1 = 10%).
+function Biomes.contains(biome: Biome, position: Vector3, margin: number?): boolean
+	return Biomes.zoneDistance(biome, position) <= 1 - (margin or 0)
 end
 
 -- The biome a position is in, or nil in the bazaar and the countryside.
@@ -274,11 +329,10 @@ function Biomes.at(position: Vector3): Biome?
 	if r < Biomes.HUB_RADIUS then
 		return nil
 	end
-	local angle = math.deg(math.atan2(position.Z, position.X)) % 360
-	local biome = Biomes.list[math.floor(angle / 45) + 1]
-	local inner = Biomes.innerRadius(biome)
-	if biome and r >= inner and r <= inner + Biomes.DEPTH then
-		return biome
+	for _, biome in Biomes.list do
+		if Biomes.contains(biome, position) then
+			return biome
+		end
 	end
 	return nil
 end

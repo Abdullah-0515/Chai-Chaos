@@ -10,3 +10,7 @@ roblox.yml
 # Test harness build output and downloads
 tests/.cache/
 tests/runner/target/
+
+# Blender build leftovers
+blender/__pycache__/
+*.blend1

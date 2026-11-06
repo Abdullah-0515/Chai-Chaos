@@ -371,6 +371,166 @@ for name, info in Sounds.list do
 	check(type(info.id) == "string" and info.volume > 0, "sound " .. name)
 end
 
+do
+	---------------------------------------------------------------------------
+	section("Biome zones, landmarks and the countryside")
+	---------------------------------------------------------------------------
+	local Props = serverModule("Props")
+	local PropData = serverModule("PropData")
+	local MapBuilder = serverModule("MapBuilder")
+	-- the biomes are separate zones with countryside between them
+	for i, biome in Biomes.list do
+		local nextBiome = Biomes.list[i % #Biomes.list + 1]
+		local gapAngle = math.rad(45 * i)
+		local gapDistance = (Biomes.centerDistance(biome) + Biomes.centerDistance(nextBiome)) / 2
+		local gap = Vector3.new(math.cos(gapAngle) * gapDistance, Biomes.GROUND_Y, math.sin(gapAngle) * gapDistance)
+		check(Biomes.at(gap) == nil, "countryside between " .. biome.id .. " and " .. nextBiome.id)
+		check(Biomes.at(Biomes.center(biome)) == biome, biome.id .. " has its own zone")
+		check(
+			not Biomes.contains(biome, Vector3.zero) and Biomes.zoneDistance(biome, Biomes.center(biome)) < 0.01,
+			biome.id .. " zone maths"
+		)
+	end
+	-- each biome's landmark, modelled in Blender
+	local landmarks = {
+		Khet = { "Rehat", "WaterTank", "MudHut" },
+		Jungle = { "Treehouse", "RopeBridge", "BanyanTree" },
+		Samandar = { "Lighthouse", "BeachHutTeal", "FishingBoat", "CoconutPalm" },
+		Jheel = { "RestHouse", "Jetty", "RowBoat", "Willow" },
+		Registan = { "DesertFort", "DesertTent", "KikarDry" },
+		Delta = { "StiltVillage", "Mangrove", "NetRack" },
+		Pahar = { "SuspensionBridge", "MountainHut", "DeodarSnowy" },
+		NamakKaan = { "MineEntrance", "MineTrack", "CaveSupport", "CrystalCluster" },
+	}
+	for biomeId, names in landmarks do
+		local folder = map.Biomes:FindFirstChild(biomeId)
+		for _, name in names do
+			check(folder and folder:FindFirstChild(name) ~= nil, biomeId .. " has a " .. name)
+		end
+	end
+	check(map.Biomes.NamakKaan:FindFirstChild("SignText", true).Gui.Text.Text == "NAMAK KAAN", "mine entrance sign")
+	-- climbing chests land you next to the treasure
+	for _, chest in Treasure.all() do
+		if chest.kind == "climb" and chest.stand then
+			check((chest.stand - chest.top).Magnitude < 6, chest.model.Name .. " stand spot is next to the chest")
+		end
+	end
+	-- the countryside
+	local country = map.Countryside
+	local counts = {}
+	for _, item in country:GetChildren() do
+		counts[item.Name] = (counts[item.Name] or 0) + 1
+	end
+	check((counts.ChaiDhaba or 0) >= 5, "roadside dhabas: " .. tostring(counts.ChaiDhaba))
+	check((counts.Milestone or 0) >= 12, "milestones: " .. tostring(counts.Milestone))
+	check((counts.BusStop or 0) == 4, "bus stops: " .. tostring(counts.BusStop))
+	check((counts.TruckArt or 0) + (counts.Rickshaw or 0) >= 5, "parked trucks and rickshaws")
+	check(((counts.WheatField or 0) + (counts.SarsonField or 0) + (counts.SugarcaneField or 0)) >= 20, "farm fields")
+	check((counts.TractorTrolley or 0) >= 3 and (counts.TubeWell or 0) >= 6, "tractors and tube wells on the farms")
+	check((counts.KikarTree or 0) >= 30 and (counts.MangoTree or 0) >= 15, "trees")
+	check((counts.Reeds or 0) >= 20, "ponds with reeds")
+	check((counts.CricketStumps or 0) >= 1 and (counts.KiteLine or 0) >= 1, "street cricket and kites")
+	local onRoads = 0
+	for _, item in country:GetChildren() do
+		if item:IsA("Model") and item.Name ~= "Lamppost" and item.Name ~= "Reeds" and item.Name ~= "Milestone" then
+			if not MapBuilder.isCountryside(item.WorldPivot.Position, 0) then
+				onRoads += 1
+			end
+		end
+	end
+	check(onRoads == 0, "nothing in the countryside sits on a road, in a biome or in the bazaar: " .. onRoads)
+	local milestone = country:FindFirstChild("SignText")
+	check(milestone and milestone.Gui.Text.Text:match("^%u+\n%d+$") ~= nil, "milestones count down to a biome")
+	check(map.Roads:FindFirstChild("Signboard") ~= nil, "road signs by the Chowk")
+	check(
+		map:FindFirstChild("ChaiDhaba") ~= nil and map:FindFirstChild("FruitStall") ~= nil,
+		"a dhaba and a fruit cart in the Chowk"
+	)
+	-- a budget so the world stays light enough for phones
+	local parts = 0
+	for _, d in workspace:GetDescendants() do
+		if d:IsA("BasePart") then
+			parts += 1
+		end
+	end
+	check(parts < 16000, "parts in the whole world: " .. parts)
+
+	-- every Blender prop builds from parts
+	local scratch = M.Instance.new("Folder")
+	scratch.Parent = workspace
+	local propCount = 0
+	for name, spec in PropData.props do
+		propCount += 1
+		local model = Props.place(name, CFrame.new(0, 100, 0), scratch)
+		check(#model:GetChildren() == #spec.parts, name .. " builds all its parts")
+		local size = Props.size(name)
+		check(size.X > 0 and size.Y > 0 and size.Z > 0, name .. " has a size")
+	end
+	check(propCount >= 60, "props modelled in Blender: " .. propCount)
+	local lighthouseCF = CFrame.new(10, 1, 10) * CFrame.Angles(0, math.rad(90), 0)
+	local gallery = Props.anchor("Lighthouse", "Gallery", lighthouseCF)
+	check(gallery.Y > 28 and gallery.Y < 32, "anchors follow the prop: " .. tostring(gallery))
+	local scaled = Props.place("KikarTree", CFrame.new(0, 100, 0), scratch, 2)
+	check(
+		math.abs(
+			scaled:FindFirstChildWhichIsA("Part").Size.Magnitude
+				- Props.place("KikarTree", CFrame.new(0, 100, 0), scratch)
+						:FindFirstChildWhichIsA("Part").Size.Magnitude
+					* 2
+		) < 1e-3,
+		"props scale"
+	)
+	-- imported meshes: one per prop in ServerStorage.ChaiChaosProps
+	local meshes = M.Instance.new("Folder")
+	meshes.Name = "ChaiChaosProps"
+	local imported = M.Instance.new("Model")
+	imported.Name = "ChaiChaosProps_Import"
+	imported.Parent = meshes
+	local expected = PropData.props.StiltVillage.mesh.size
+	local stilt = M.newInstance("MeshPart", true)
+	stilt.Name = "StiltVillage"
+	stilt.Size = Vector3.new(expected[1] * 0.28, expected[3] * 0.28, expected[2] * 0.28) -- imported lying down (Z up)
+	stilt.Parent = imported
+	local charpai = M.newInstance("MeshPart", true)
+	charpai.Name = "Charpai"
+	local cs = PropData.props.Charpai.mesh.size
+	charpai.Size = Vector3.new(cs[1], cs[2], cs[3])
+	charpai.Parent = imported
+	meshes.Parent = M.services.ServerStorage
+	Props.reload()
+	local villageCF = CFrame.new(50, 1, 50)
+	local village = Props.place("StiltVillage", villageCF, scratch)
+	local mesh = village:FindFirstChild("StiltVillage")
+	check(mesh ~= nil and mesh:IsA("MeshPart") and mesh.Anchored and not mesh.CanCollide, "the imported mesh is used")
+	check(math.abs(mesh.CFrame.LookVector.Y) > 0.99 or math.abs(mesh.CFrame.LookVector.Y) < 0.01, "mesh turned upright")
+	check(
+		math.abs(mesh.Size.Z - expected[2]) < 1e-3,
+		"a mesh lying down is stood up and sized: " .. tostring(mesh.Size)
+	)
+	local colliders, visibleParts, keepParts = 0, 0, 0
+	for _, child in village:GetChildren() do
+		if child.Name == "Collider" then
+			colliders += 1
+			visibleParts += if child.Transparency < 1 then 1 else 0
+		elseif child:IsA("Part") then
+			keepParts += 1
+		end
+	end
+	check(colliders > 30 and visibleParts == 0, "the parts become invisible walls: " .. colliders)
+	local plain = Props.place("Charpai", CFrame.new(60, 1, 60), scratch)
+	check(
+		plain:FindFirstChild("Charpai"):IsA("MeshPart") and #plain:GetChildren() == 1 + 9,
+		"charpai mesh plus its colliders"
+	)
+	check(
+		Props.place("Lighthouse", CFrame.new(70, 1, 70), scratch):FindFirstChild("Collider") == nil,
+		"props without an imported mesh are still parts"
+	)
+	meshes:Destroy()
+	Props.reload()
+	scratch:Destroy()
+end
+
 local TODAY = math.floor(M.os.time() / 86400)
 local function setQuests(profile, list)
 	profile.data.quests = { day = TODAY, list = list, bonusClaimed = false }

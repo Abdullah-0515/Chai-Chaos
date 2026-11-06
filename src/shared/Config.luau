@@ -93,6 +93,10 @@ Config.RIDE_SPEED = {
 }
 Config.RIDE_MUTATION_BONUS = { Golden = 0.05, Diamond = 0.1, Rainbow = 0.2 }
 
+-- Blender props (see the README). If the imported meshes all face backwards,
+-- set this to 180.
+Config.PROP_MESH_TURN = 0
+
 -- Players
 Config.WALK_SPEED = 20 -- a bit faster than Roblox's 16, the world is big
 Config.PROMPT_DISTANCE = 12 -- how close you must be to press E

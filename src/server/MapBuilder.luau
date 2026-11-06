@@ -18,6 +18,7 @@ local Themes = require(Shared.Themes)
 local Biomes = require(Shared.Biomes)
 
 local BiomeBuilder = require(script.Parent.BiomeBuilder)
+local Props = require(script.Parent.Props)
 
 local MapBuilder = {}
 
@@ -134,165 +135,6 @@ local function surfaceText(target: BasePart, face: Enum.NormalId, text: string, 
 	return label
 end
 MapBuilder.surfaceText = surfaceText
-
-local function buildStall(parent: Instance, cf: CFrame, title: string, roofColor: Color3)
-	local stall = Instance.new("Model")
-	stall.Name = title .. "Stall"
-	part({
-		Name = "Counter",
-		Size = Vector3.new(10, 3.5, 4),
-		CFrame = cf * CFrame.new(0, 1.75, 0),
-		Color = rgb(150, 95, 55),
-		Material = Enum.Material.WoodPlanks,
-		Parent = stall,
-	})
-	for _, x in { -4.6, 4.6 } do
-		part({
-			Name = "Pole",
-			Size = Vector3.new(0.5, 8, 0.5),
-			CFrame = cf * CFrame.new(x, 4, 1.6),
-			Color = rgb(110, 70, 45),
-			Parent = stall,
-		})
-	end
-	for i = 0, 3 do -- striped awning
-		part({
-			Name = "Awning",
-			Size = Vector3.new(11.5 / 4, 0.5, 6),
-			CFrame = cf * CFrame.new(-4.3 + i * 2.875, 8.2, 0.6) * CFrame.Angles(math.rad(-10), 0, 0),
-			Color = if i % 2 == 0 then roofColor else rgb(255, 255, 255),
-			Material = Enum.Material.Fabric,
-			Parent = stall,
-		})
-	end
-	part({
-		Name = "Kettle",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1.6, 1.5, 1.5),
-		CFrame = cylinderUp(cf * CFrame.new(-2.5, 4.3, 0)),
-		Color = rgb(190, 190, 200),
-		Material = Enum.Material.Metal,
-		Parent = stall,
-	})
-	local sign = part({
-		Name = "Sign",
-		Size = Vector3.new(7, 1.6, 0.3),
-		CFrame = cf * CFrame.new(0, 9.6, -2.2),
-		Color = rgb(30, 150, 110),
-		Parent = stall,
-	})
-	surfaceText(sign, Enum.NormalId.Front, title, rgb(255, 235, 120))
-	stall.Parent = parent
-end
-
-local function buildFruitCart(parent: Instance, cf: CFrame)
-	local cart = Instance.new("Model")
-	cart.Name = "FruitCart"
-	part({
-		Name = "Base",
-		Size = Vector3.new(7, 1.2, 4),
-		CFrame = cf * CFrame.new(0, 2.4, 0),
-		Color = rgb(60, 160, 220),
-		Material = Enum.Material.WoodPlanks,
-		Parent = cart,
-	})
-	for _, x in { -2.5, 2.5 } do
-		for _, z in { -2.2, 2.2 } do
-			part({
-				Name = "Wheel",
-				Shape = Enum.PartType.Cylinder,
-				Size = Vector3.new(0.5, 2.4, 2.4),
-				CFrame = cf * CFrame.new(x, 1.2, z) * CFrame.Angles(0, math.rad(90), 0),
-				Color = rgb(60, 45, 35),
-				Parent = cart,
-			})
-		end
-	end
-	local fruitColors = { rgb(255, 140, 0), rgb(235, 35, 45), rgb(250, 225, 50), rgb(120, 210, 60) }
-	for i = 1, 8 do
-		part({
-			Name = "Fruit",
-			Shape = Enum.PartType.Ball,
-			Size = Vector3.one * 1.1,
-			CFrame = cf * CFrame.new(-2.7 + ((i - 1) % 4) * 1.8, 3.5, if i <= 4 then -0.8 else 0.8),
-			Color = fruitColors[(i - 1) % #fruitColors + 1],
-			Parent = cart,
-		})
-	end
-	cart.Parent = parent
-end
-
-local function buildPalm(parent: Instance, position: Vector3, height: number)
-	local tree = Instance.new("Model")
-	tree.Name = "Palm"
-	local segments = 6
-	for i = 1, segments do
-		local y = (i - 0.5) * height / segments
-		part({
-			Name = "Trunk",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(height / segments + 0.1, 1.6 - i * 0.08, 1.6 - i * 0.08),
-			CFrame = cylinderUp(CFrame.new(position + Vector3.new(math.sin(i * 0.4) * 0.5, y, 0))),
-			Color = if i % 2 == 0 then rgb(140, 100, 60) else rgb(160, 115, 70),
-			Material = Enum.Material.Wood,
-			Parent = tree,
-		})
-	end
-	local top = position + Vector3.new(math.sin(segments * 0.4) * 0.5, height, 0)
-	for i = 0, 5 do
-		local angle = math.rad(i * 60)
-		part({
-			Name = "Leaf",
-			Size = Vector3.new(1.4, 0.3, 7),
-			CFrame = CFrame.new(top)
-				* CFrame.Angles(0, angle, 0)
-				* CFrame.new(0, 0, -3)
-				* CFrame.Angles(math.rad(-25), 0, 0),
-			Color = rgb(60, 185, 80),
-			Material = Enum.Material.SmoothPlastic,
-			CanCollide = false,
-			Parent = tree,
-		})
-	end
-	tree.Parent = parent
-end
-
-local function buildRickshaw(parent: Instance, cf: CFrame)
-	local r = Instance.new("Model")
-	r.Name = "Rickshaw"
-	part({
-		Name = "Body",
-		Size = Vector3.new(4, 3, 6),
-		CFrame = cf * CFrame.new(0, 2.5, 0),
-		Color = rgb(40, 165, 80),
-		Parent = r,
-	})
-	part({
-		Name = "Canopy",
-		Size = Vector3.new(4.4, 0.4, 5),
-		CFrame = cf * CFrame.new(0, 5.6, 0.4),
-		Color = rgb(20, 20, 25),
-		Parent = r,
-	})
-	part({
-		Name = "Stripe",
-		Size = Vector3.new(4.1, 0.6, 6.1),
-		CFrame = cf * CFrame.new(0, 3.2, 0),
-		Color = rgb(255, 210, 40),
-		Parent = r,
-	})
-	for _, wheel in { Vector3.new(0, 1, -2.6), Vector3.new(-2.1, 1, 2), Vector3.new(2.1, 1, 2) } do
-		part({
-			Name = "Wheel",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.5, 2, 2),
-			CFrame = cf * CFrame.new(wheel),
-			Color = rgb(30, 30, 30),
-			Parent = r,
-		})
-	end
-	r.Parent = parent
-end
 
 local BRIGHT = {
 	rgb(255, 70, 90),
@@ -901,11 +743,14 @@ local function buildHub(map: Model): { [string]: BasePart }
 	list.Parent = boardGui
 	boardGui.Parent = board
 
-	-- a chai stall just for fun
-	buildStall(map, spot(7), "CHAI", rgb(235, 60, 70))
-	buildFruitCart(map, CFrame.lookAt(center + Vector3.new(-18, 0, -40), center))
-	buildRickshaw(map, CFrame.new(center + Vector3.new(30, 0, 40)) * CFrame.Angles(0, math.rad(30), 0))
-	buildRickshaw(map, CFrame.new(center + Vector3.new(-36, 0, 30)) * CFrame.Angles(0, math.rad(-50), 0))
+	-- a chai dhaba, a fruit cart and parked rickshaws (props modelled in Blender)
+	local dhaba = spot(7)
+	Props.place("ChaiDhaba", dhaba, map)
+	Props.text(map, dhaba, Props.anchor("ChaiDhaba", "Sign", dhaba), 5.6, 1.2, "CHAI")
+	Props.place("Charpai", dhaba * CFrame.new(9, 0, -2) * CFrame.Angles(0, math.rad(80), 0), map)
+	Props.place("FruitStall", CFrame.lookAt(center + Vector3.new(-18, 0, -40), center), map)
+	Props.place("Rickshaw", CFrame.new(center + Vector3.new(30, 0, 40)) * CFrame.Angles(0, math.rad(30), 0), map)
+	Props.place("Rickshaw", CFrame.new(center + Vector3.new(-36, 0, 30)) * CFrame.Angles(0, math.rad(-50), 0), map)
 
 	-- string lights around the plaza
 	local i = 0
@@ -993,53 +838,18 @@ local function buildRoads(map: Model)
 		surfaceText(sign, Enum.NormalId.Front, label, rgb(255, 240, 170))
 		surfaceText(sign, Enum.NormalId.Back, "TO THE CHOWK", rgb(255, 240, 170))
 		buildBunting(roads, (gate * CFrame.new(-8, 13.5, 0)).Position, (gate * CFrame.new(8, 13.5, 0)).Position)
-		-- a signpost by the Chowk saying how far
-		local postPos = dir * (Biomes.PLAZA_RADIUS + 14) + Vector3.new(0, GROUND_Y, 0) + dir:Cross(Vector3.yAxis) * 9
-		part({
-			Name = "Signpost",
-			Size = Vector3.new(0.5, 6, 0.5),
-			Position = postPos + Vector3.new(0, 3, 0),
-			Color = rgb(120, 80, 50),
-			Parent = roads,
-		})
-		local arrow = part({
-			Name = "SignArrow",
-			Size = Vector3.new(7, 1.6, 0.3),
-			CFrame = CFrame.lookAt(
-				postPos + Vector3.new(0, 5.5, 0),
-				postPos + Vector3.new(0, 5.5, 0) + dir:Cross(Vector3.yAxis)
-			),
-			Color = biome.color,
-			Parent = roads,
-		})
-		surfaceText(arrow, Enum.NormalId.Front, ("%s · Tier %d"):format(biome.name, biome.tier), rgb(30, 25, 20))
-		surfaceText(arrow, Enum.NormalId.Back, ("%s · Tier %d"):format(biome.name, biome.tier), rgb(30, 25, 20))
-	end
-
-	-- countryside palms between the bazaar and the biomes
-	local trees = Instance.new("Folder")
-	trees.Name = "Countryside"
-	trees.Parent = map
-	local rng = Random.new(77)
-	local placed = 0
-	for _ = 1, 400 do
-		if placed >= 70 then
-			break
-		end
-		local r = rng:NextNumber(Biomes.HUB_RADIUS - 10, 520)
-		local a = rng:NextNumber(0, math.pi * 2)
-		local position = Vector3.new(math.cos(a) * r, GROUND_Y, math.sin(a) * r)
-		local nearRoad = false
-		for _, biome in Biomes.list do
-			local diff = math.abs((a - (biome.angle :: number) + math.pi) % (2 * math.pi) - math.pi)
-			if diff * r < 14 then
-				nearRoad = true
-			end
-		end
-		if not nearRoad and not Biomes.at(position) and r > 185 then
-			buildPalm(trees, position, 16 + rng:NextNumber(0, 6))
-			placed += 1
-		end
+		-- a road sign by the Chowk for players heading out
+		local signPos = dir * (Biomes.PLAZA_RADIUS + 14) + Vector3.new(0, GROUND_Y, 0) + dir:Cross(Vector3.yAxis) * 10
+		local signCF = CFrame.lookAt(signPos, Vector3.new(0, GROUND_Y, 0))
+		Props.place("Signboard", signCF, roads)
+		Props.text(
+			roads,
+			signCF,
+			Props.anchor("Signboard", "Face", signCF),
+			5.2,
+			2.2,
+			("%s\nTier %d"):format(biome.name:upper(), biome.tier)
+		)
 	end
 
 	-- the edge of the world
@@ -1060,6 +870,225 @@ local function buildRoads(map: Model)
 	end
 end
 
+---------------------------------------------------------------------------
+-- The countryside between the bazaar and the biomes: roadside dhabas and
+-- stalls, parked trucks and rickshaws, bus stops, milestones, little farms,
+-- ponds and trees. Everything comes from Props (modelled in Blender).
+---------------------------------------------------------------------------
+local Countryside = {}
+
+local function roadInfo(biome)
+	local dir = Biomes.direction(biome)
+	return dir, Vector3.new(-dir.Z, 0, dir.X), Biomes.innerRadius(biome)
+end
+
+-- Is this spot open countryside, `radius` studs clear of roads, biomes and the bazaar?
+function Countryside.isOpen(position: Vector3, radius: number): boolean
+	local r = math.sqrt(position.X * position.X + position.Z * position.Z)
+	if r < Biomes.HUB_RADIUS + 6 + radius or r > Biomes.WORLD_RADIUS - 40 - radius then
+		return false
+	end
+	for _, biome in Biomes.list do
+		if Biomes.zoneDistance(biome, position) < 1 + (radius + 8) / 100 then
+			return false
+		end
+		local dir, across, inner = roadInfo(biome)
+		local along = position.X * dir.X + position.Z * dir.Z
+		local side = math.abs(position.X * across.X + position.Z * across.Z)
+		if along > Biomes.PLAZA_RADIUS - 10 and along < inner + 12 and side < 9 + radius then
+			return false
+		end
+	end
+	return true
+end
+
+local function buildCountryside(map: Model)
+	local folder = Instance.new("Folder")
+	folder.Name = "Countryside"
+	folder.Parent = map
+	local rng = Random.new(77)
+	local taken: { { position: Vector3, radius: number } } = {}
+	local function free(position: Vector3, radius: number): boolean
+		for _, t in taken do
+			if ((position - t.position) * Vector3.new(1, 0, 1)).Magnitude < radius + t.radius then
+				return false
+			end
+		end
+		return true
+	end
+	local function put(name: string, cf: CFrame, radius: number, scale: number?)
+		Props.place(name, cf, folder, scale)
+		table.insert(taken, { position = cf.Position, radius = radius })
+	end
+	local function ground(x: number, z: number): Vector3
+		return Vector3.new(x, GROUND_Y, z)
+	end
+
+	-- along every road
+	local stalls = { "FruitStall", "PakoraStall", "GolaCart" }
+	local vehicles = { "TruckArt", "Rickshaw" }
+	for i, biome in Biomes.list do
+		local dir, across, inner = roadInfo(biome)
+		local side = if i % 2 == 0 then 1 else -1
+		local function roadside(along: number, offset: number): Vector3
+			local p = dir * along + across * offset
+			return ground(p.X, p.Z)
+		end
+		local function facingRoad(position: Vector3, offset: number): CFrame
+			return CFrame.lookAt(position, position - across * math.sign(offset))
+		end
+		-- lamp posts between the havelis
+		for _, offset in { -9.5, 9.5 } do
+			local p = roadside(118, offset)
+			Props.place("Lamppost", facingRoad(p, offset), folder)
+		end
+		-- milestones counting down to the biome
+		local along = 214
+		local n = 0
+		while along < inner - 12 do
+			n += 1
+			local offset = if n % 2 == 0 then 10.5 else -10.5
+			local cf = facingRoad(roadside(along, offset), offset)
+			put("Milestone", cf, 1.5)
+			Props.text(
+				folder,
+				cf,
+				Props.anchor("Milestone", "Face", cf),
+				1.5,
+				1.3,
+				("%s\n%d"):format(biome.name:upper(), math.ceil((inner - along) / 10))
+			)
+			along += 60
+		end
+		local length = inner - Biomes.HUB_RADIUS
+		-- a bus stop just outside the bazaar on every other road
+		if i % 2 == 1 then
+			put("BusStop", facingRoad(roadside(212, -side * 11.5), -side * 11.5), 5)
+		end
+		-- a chai dhaba with charpais and a parked truck or rickshaw
+		if length >= 70 then
+			local at = Biomes.HUB_RADIUS + length * 0.45
+			local offset = side * 19
+			local cf = facingRoad(roadside(at, offset), offset)
+			put("ChaiDhaba", cf, 9)
+			Props.text(folder, cf, Props.anchor("ChaiDhaba", "Sign", cf), 5.6, 1.2, "CHAI")
+			for k, dz in { -10.5, 10.5 } do
+				put("Charpai", CFrame.new(roadside(at + dz, side * 17)) * CFrame.Angles(0, math.rad(20 + k * 70), 0), 3)
+			end
+			local spot = roadside(at + 20, side * 14)
+			put(vehicles[i % 2 + 1], CFrame.lookAt(spot, spot - dir), 8)
+		end
+		-- a snack stall near the biome gate
+		if length >= 45 then
+			local offset = -side * 13
+			put(stalls[i % 3 + 1], facingRoad(roadside(inner - 26, offset), offset), 4)
+		end
+	end
+
+	-- little farms in the open land between the biomes
+	local crops = { "WheatField", "SarsonField", "SugarcaneField", "WheatField" }
+	local farms = 0
+	for k = 0, 7 do
+		local a = math.rad(45 * k)
+		for _, r in { 300, 470, 640 } do
+			local c = ground(math.cos(a) * r, math.sin(a) * r)
+			if Countryside.isOpen(c, 26) and free(c, 26) then
+				farms += 1
+				local frame = CFrame.lookAt(c, ground(0, 0))
+				for _, offset in
+					{
+						Vector3.new(-11, 0, -11),
+						Vector3.new(11, 0, -11),
+						Vector3.new(-11, 0, 11),
+						Vector3.new(11, 0, 11),
+					}
+				do
+					local spot = frame * CFrame.new(offset)
+					if Countryside.isOpen(spot.Position, 10) then
+						put(crops[rng:NextInteger(1, #crops)], spot, 10)
+					end
+				end
+				local edge = frame * CFrame.new(0, 0, -25)
+				put("TubeWell", edge * CFrame.new(-6, 0, 0), 3)
+				put("Charpai", edge * CFrame.new(3, 0, 0) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 180)), 0), 3)
+				put("Haystack", frame * CFrame.new(26, 0, 6), 3)
+				put("Haystack", frame * CFrame.new(28, 0, -4), 3)
+				if farms % 2 == 1 then
+					put("TractorTrolley", frame * CFrame.new(-28, 0, 0), 9)
+				end
+				if farms % 3 == 1 then
+					put("MudHut", frame * CFrame.new(-26, 0, 20) * CFrame.Angles(0, math.rad(15), 0), 7)
+				end
+			end
+		end
+	end
+
+	-- ponds with reeds
+	local ponds = 0
+	for _ = 1, 400 do
+		if ponds >= 6 then
+			break
+		end
+		local r = rng:NextNumber(260, 700)
+		local a = rng:NextNumber(0, math.pi * 2)
+		local c = ground(math.cos(a) * r, math.sin(a) * r)
+		local radius = rng:NextNumber(8, 13)
+		if Countryside.isOpen(c, radius + 4) and free(c, radius + 4) then
+			ponds += 1
+			BiomeBuilder.pondAt(c, radius, 3, Enum.Material.Water)
+			table.insert(taken, { position = c, radius = radius + 2 })
+			for j = 1, 5 do
+				local b = j * 2 * math.pi / 5 + rng:NextNumber(-0.3, 0.3)
+				local spot = c + Vector3.new(math.cos(b), 0, math.sin(b)) * (radius + 0.5)
+				Props.place("Reeds", CFrame.new(spot) * CFrame.Angles(0, b, 0), folder)
+			end
+		end
+	end
+
+	-- street cricket and kites near the bazaar
+	local fun = { "CricketStumps", "KiteLine", "CricketStumps", "KiteLine" }
+	local placed = 0
+	for _ = 1, 300 do
+		if placed >= #fun then
+			break
+		end
+		local r = rng:NextNumber(215, 290)
+		local a = rng:NextNumber(0, math.pi * 2)
+		local c = ground(math.cos(a) * r, math.sin(a) * r)
+		if Countryside.isOpen(c, 11) and free(c, 11) then
+			placed += 1
+			put(fun[placed], CFrame.lookAt(c, ground(0, 0)) * CFrame.Angles(0, math.rad(90), 0), 11)
+		end
+	end
+
+	-- trees, bushes and rocks everywhere else
+	local scatter = {
+		{ "KikarTree", 46, 5, { 0.9, 1.35 } },
+		{ "MangoTree", 26, 5, { 0.9, 1.25 } },
+		{ "JungleBush", 24, 2.5, { 0.8, 1.2 } },
+		{ "Boulder", 12, 3, { 0.7, 1.3 } },
+	}
+	for _, entry in scatter do
+		local name, count, radius, scales = entry[1], entry[2], entry[3], entry[4]
+		local done = 0
+		for _ = 1, count * 12 do
+			if done >= count then
+				break
+			end
+			local r = rng:NextNumber(Biomes.HUB_RADIUS + 10, Biomes.WORLD_RADIUS - 50)
+			local a = rng:NextNumber(0, math.pi * 2)
+			local c = ground(math.cos(a) * r, math.sin(a) * r)
+			local scale = rng:NextNumber(scales[1], scales[2])
+			if Countryside.isOpen(c, radius * scale) and free(c, radius * scale) then
+				done += 1
+				put(name, CFrame.new(c) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), radius * scale, scale)
+			end
+		end
+	end
+end
+
+MapBuilder.isCountryside = Countryside.isOpen
+
 local function build(): (Model, { [string]: any })
 	local map = Instance.new("Model")
 	map.Name = MAP_NAME
@@ -1076,6 +1105,7 @@ local function build(): (Model, { [string]: any })
 		)
 	end
 	buildRoads(map)
+	buildCountryside(map)
 	local biomes = Instance.new("Folder")
 	biomes.Name = "Biomes"
 	biomes.Parent = map

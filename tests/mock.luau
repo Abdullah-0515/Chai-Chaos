@@ -331,7 +331,25 @@ local function rz(a)
 end
 local CFrame = {}
 function CFrame.new(x, y, z, ...)
-	assert(select("#", ...) == 0, "mock CFrame.new only supports positions")
+	local extra = select("#", ...)
+	if extra == 4 then
+		-- position and rotation quaternion (qX, qY, qZ, qW)
+		local qx, qy, qz, qw = ...
+		local n = math.sqrt(qx * qx + qy * qy + qz * qz + qw * qw)
+		qx, qy, qz, qw = qx / n, qy / n, qz / n, qw / n
+		return cfr(v3(x, y, z), {
+			1 - 2 * (qy * qy + qz * qz),
+			2 * (qx * qy - qz * qw),
+			2 * (qx * qz + qy * qw),
+			2 * (qx * qy + qz * qw),
+			1 - 2 * (qx * qx + qz * qz),
+			2 * (qy * qz - qx * qw),
+			2 * (qx * qz - qy * qw),
+			2 * (qy * qz + qx * qw),
+			1 - 2 * (qx * qx + qy * qy),
+		})
+	end
+	assert(extra == 0, "mock CFrame.new supports a position, or a position and a quaternion")
 	if x == nil then
 		return cfr(v3(), IDENTITY)
 	elseif isV3(x) then
