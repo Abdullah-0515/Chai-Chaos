@@ -96,6 +96,9 @@ Ui.label({
 	Parent = content,
 })
 for _, rarity in Brainrots.RARITY_ORDER do
+	if not Config.ROLL_ODDS[rarity] then
+		continue -- Secret brainrots never come from rolls
+	end
 	local row = Ui.create("Frame", {
 		Name = rarity,
 		Size = UDim2.new(1, 0, 0, 26),

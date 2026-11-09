@@ -19,7 +19,7 @@ README = os.path.join(ROOT, "README.md")
 START = "<!-- characters:start -->"
 END = "<!-- characters:end -->"
 
-RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Special"]
+RARITY_ORDER = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Special"]
 MAX_FOOTPRINT, MAX_HEIGHT = 7.4, 7.6  # the same limits as Models.luau
 
 STYLE = (
@@ -367,6 +367,44 @@ CHARACTERS = {
         "paws. A gold collar with a glowing crescent-moon charm. White sparkles around it, as if at a night "
         "bazaar.",
     ),
+    # ------------------------------------------------------------------ Secret
+    "KahwaYeti": (
+        "A big, fluffy, friendly yeti from the snowy north who always has a hot brass samovar of green kahwa "
+        "to share. Frosty blue eyebrows, cardamom pods for buttons and a huge warm smile. Ek cup kahwa, garam garam!",
+        [("Yeti fur", "white"), ("Frosty face", "skyblue"), ("Samovar brass", "copper"), ("Cardamom", "pistachio"),
+         ("Steam", "steam")],
+        "A big, round, fluffy white yeti with tufts of fur all over, a pale blue face, frosty icy-blue eyebrows and "
+        "a big happy open mouth. Green cardamom pods as buttons down its tummy. It holds a shiny brass samovar "
+        "(a tall tea urn with a little tap) of green kahwa in its arms, with white steam curling up. Big blue feet.",
+    ),
+    "GolaGandaGolem": (
+        "A giant golem built from crushed-ice gola gandas, with rainbow syrup dripping all over and wooden gola "
+        "sticks for fingers. Big and strong, but it just wants everyone to cool down. Thanda thanda, rang birangi!",
+        [("Crushed ice", "ice"), ("Red syrup", "red"), ("Orange syrup", "orange"), ("Green syrup", "green"),
+         ("Pink syrup", "pink"), ("Gola sticks", "lightwood")],
+        "A giant, chunky golem made of icy-blue crushed-ice balls (gola ganda): a big round body, a round head and "
+        "lumpy ice arms and legs. Splashes of bright red, orange, green, pink and blue syrup on the ice, with "
+        "drips running down. Its fingers are wooden ice-lolly sticks. Big friendly eyes, a gentle smile.",
+    ),
+    "BarfiBarfaniBagh": (
+        "A snow leopard made of white and pistachio barfi squares, with shiny silver warq for spots, a long "
+        "fluffy tail and a woolly Chitrali cap (pakol). Barf (snow) and barfi in one. Barf bhi, barfi bhi!",
+        [("White barfi", "white"), ("Pistachio barfi", "pistachio"), ("Silver warq", "warq"),
+         ("Pakol cap", "naan"), ("Cap rim", "naanchar"), ("Blush", "blush")],
+        "A cute snow leopard cub built from soft square sweets (barfi) in white and pistachio green, with little "
+        "shiny silver squares as its spots. A boxy head with big eyes and rosy cheeks, a long thick fluffy tail "
+        "curling up, and a round woolly beige cap with a rolled brown rim (a Chitrali pakol). Standing on four "
+        "short legs, shown from three-quarters.",
+    ),
+    "JalebiMarkhor": (
+        "A proud markhor, Pakistan's national animal, whose huge spiral horns are golden jalebis. It wears a "
+        "warm maroon shawl with a gold border and a collar of little bells. Seengh meethe, dil bhi meetha!",
+        [("Markhor coat", "llama"), ("Jalebi horns", "jalebi"), ("Syrup shine", "honey"), ("Shawl", "maroon"),
+         ("Shawl border", "gold"), ("Beard", "naanchar")],
+        "A friendly markhor (a wild mountain goat) with a beige coat, a cream muzzle and a dark pointed beard. "
+        "Its two huge horns twist up in spirals and are made of glossy orange jalebi sweets. A maroon shawl with "
+        "a gold border over its back, a red collar with small gold bells, big kind eyes. Standing on four legs.",
+    ),
     # ----------------------------------------------------------------- Special
     "MithaiMamu": (
         "A round orange motichoor laddoo uncle with a big smile, a moustache and a little maroon vest, shining "
@@ -515,7 +553,8 @@ def sheet(i, data, hexes, pools, rewards, size, multiplier):
         f"forward, standing with its base on the ground, about {height} studs tall."
     )
     if data["quest"]:
-        where = f"Collection Book reward for finishing every {rewards.get(i, '?')} brainrot (never hatches, cannot be stolen)"
+        where = (f"Collection Book reward for finishing every {rewards.get(i, '?')} brainrot "
+                 "(never hatches, cannot be stolen)")
     else:
         where = "Hatches in " + ", ".join(pools.get(i, ["(no biome yet)"]))
     floats = ", floats" if data["float"] else ""

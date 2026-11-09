@@ -953,9 +953,14 @@ InstanceMT.__newindex = function(self, key, value)
 	if key == "PrimaryPart" and value ~= nil then
 		assert(Methods.IsDescendantOf(value, self), "PrimaryPart must be a descendant of the model")
 	end
+	local old = d.props[key]
 	d.props[key] = value
 	if key == "Value" and isA(d.ClassName, "ValueBase") and d.signals.Changed then
 		d.signals.Changed:Fire(value)
+	end
+	local changed = d.signals["Changed_" .. key]
+	if changed and old ~= value then
+		changed:Fire()
 	end
 end
 
@@ -1440,6 +1445,50 @@ end
 function Methods.Emit(_, count)
 	assert(type(count) == "number", "Emit needs a number")
 end
+
+function Methods.GetPropertyChangedSignal(self, name)
+	assert(hasMember(data[self].ClassName, "props", name), name .. " is not a property of " .. data[self].ClassName)
+	return signalOf(self, "Changed_" .. name)
+end
+
+-- Seats: sitting sets the seat's Occupant and the humanoid's SeatPart
+function Methods.Sit(self, humanoid)
+	assert(isInstance(humanoid) and data[humanoid].ClassName == "Humanoid", "Seat:Sit needs a Humanoid")
+	local d = data[self]
+	d.props.Occupant = humanoid
+	data[humanoid].props.SeatPart = self
+	data[humanoid].props.Sit = true
+	if d.signals.Changed_Occupant then
+		d.signals.Changed_Occupant:Fire()
+	end
+end
+
+-- Humanoid:Move remembers the last direction (the driving controls use it)
+function Methods.Move(self, direction, relative)
+	assert(isV3(direction), "Humanoid:Move needs a Vector3")
+	assert(relative == nil or type(relative) == "boolean", "Humanoid:Move relative must be a boolean")
+	data[self].lastMove = direction
+end
+function M.lastMove(humanoid)
+	return data[humanoid].lastMove
+end
+
+-- RenderStep bindings run every frame with RenderStepped
+local renderBindings = {}
+function Methods.BindToRenderStep(_, name, priority, fn)
+	assert(type(name) == "string" and type(priority) == "number" and type(fn) == "function", "BindToRenderStep args")
+	if renderBindings[name] then
+		renderBindings[name]:Disconnect()
+	end
+	renderBindings[name] = signalOf(services.RunService, "RenderStepped"):Connect(fn)
+end
+function Methods.UnbindFromRenderStep(_, name)
+	if renderBindings[name] then
+		renderBindings[name]:Disconnect()
+		renderBindings[name] = nil
+	end
+end
+M.renderBindings = renderBindings
 
 function Methods.AddItem(_, inst, lifetime)
 	task.delay(lifetime or 10, function()

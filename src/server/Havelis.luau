@@ -26,6 +26,7 @@ local Defenses = require(script.Parent.Defenses)
 local Havelis = {}
 
 local havelis = {}
+local gameMap = nil
 local nextUid = 0
 local gallaCooldown: { [Player]: number } = {}
 
@@ -81,16 +82,20 @@ function Havelis.walkSpeed(profile): number
 		* Gear.best(profile.data.gear, "speed")
 end
 
--- Sets the player's speed: on foot or riding, slower while carrying a stolen
--- brainrot, and slower in hazards like mud and sandstorms.
+-- Sets the player's speed: on foot (slower while carrying a stolen brainrot
+-- and in hazards like mud and sandstorms) or driving (see Vehicles.luau).
 function Havelis.applyWalkSpeed(profile)
 	local character = profile.player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
-		humanoid.WalkSpeed = Havelis.walkSpeed(profile)
-			* (profile.rideSpeed or 1)
-			* (profile.carrySpeed or 1)
-			* (profile.hazardSpeed or 1)
+		local drive = profile.driving
+		if drive then
+			humanoid.WalkSpeed = if drive.empty
+				then Config.FUEL_EMPTY_SPEED
+				else drive.topSpeed * (profile.surfaceSpeed or 1)
+		else
+			humanoid.WalkSpeed = Havelis.walkSpeed(profile) * (profile.carrySpeed or 1) * (profile.hazardSpeed or 1)
+		end
 	end
 end
 
@@ -620,6 +625,7 @@ local function collectGalla(h, hit: BasePart)
 end
 
 function Havelis.init(map)
+	gameMap = map
 	havelis = map.havelis
 	for i, h in havelis do
 		-- Havelis are looked up by the index stored on their plots, so keep them in order.
@@ -638,6 +644,11 @@ end
 
 function Havelis.byIndex(index: number)
 	return havelis[index]
+end
+
+-- The whole map (gates, doors, pumps...), for other modules and the tests.
+function Havelis.map()
+	return gameMap
 end
 
 function Havelis.all()

@@ -1,13 +1,16 @@
--- Eggs: they appear in the biomes, players carry them home, and they hatch
+-- Eggs: they appear in the zones, players carry them home, and they hatch
 -- into brainrots in the haveli's incubators.
 --
--- * Each biome keeps a few eggs lying around; golden eggs are rare and luckier.
--- * Picking an egg up starts a countdown. Further biomes have shorter ones.
+-- * Each zone keeps a few eggs lying around; golden eggs are rare and luckier.
+--   You can only pick up eggs in zones you have unlocked.
+-- * Picking an egg up starts a countdown. Further zones have shorter ones.
 --   Hazards knock time off. If it runs out, the egg cracks and is gone.
--- * Inside your own haveli the countdown stops and the egg goes into a free
---   incubator. What hatches is rolled then, from the biome's pool and odds.
--- * A bonk with a chappal makes you drop your egg, and anyone can grab it.
--- * Every few minutes an egg rush fills one biome with extra eggs.
+-- * On foot you carry one egg in your hands. In a vehicle, eggs go in the boot
+--   (as many as its Egg Space).
+-- * At your own haveli the countdown stops and the egg goes into a free
+--   incubator. What hatches is rolled then, from the zone's pool and odds.
+-- * A bonk with a chappal makes you drop an egg, and anyone can grab it.
+-- * Every few minutes an egg rush fills one zone with extra eggs.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -26,7 +29,7 @@ local Picker = require(script.Parent.Picker)
 
 local EggSystem = {}
 
-local RARE_OR_BETTER = { Rare = true, Epic = true, Legendary = true, Mythic = true }
+local RARE_OR_BETTER = { Rare = true, Epic = true, Legendary = true, Mythic = true, Secret = true }
 local GOLD = Color3.fromRGB(255, 205, 50)
 local CARRY_OFFSET = CFrame.new(0, 0.4, 1.6)
 
@@ -214,12 +217,28 @@ end
 ---------------------------------------------------------------------------
 -- Carrying
 ---------------------------------------------------------------------------
-local function clearAttributes(player: Player)
-	player:SetAttribute("EggBiome", "")
-	player:SetAttribute("EggGolden", false)
-	player:SetAttribute("EggTimeLeft", 0)
-	player:SetAttribute("EggTimeTotal", 0)
+-- The HUD shows the egg that will crack first (in your hands or in the boot).
+local function lead(profile)
+	local best = profile.egg
+	for _, egg in profile.boot do
+		if not best or egg.timeLeft < best.timeLeft then
+			best = egg
+		end
+	end
+	return best
 end
+
+local function syncAttributes(profile)
+	local player = profile.player
+	local egg = lead(profile)
+	player:SetAttribute("EggBiome", if egg then egg.biome.id else "")
+	player:SetAttribute("EggGolden", if egg then egg.golden else false)
+	player:SetAttribute("EggTimeLeft", if egg then math.max(0, math.floor(egg.timeLeft * 10) / 10) else 0)
+	player:SetAttribute("EggTimeTotal", if egg then egg.total else 0)
+	player:SetAttribute("EggCount", #profile.boot + (if profile.egg then 1 else 0))
+	player:SetAttribute("BootEggs", #profile.boot)
+end
+EggSystem.syncAttributes = syncAttributes
 
 local function endCarry(profile)
 	local carry = profile.egg
@@ -234,8 +253,45 @@ local function endCarry(profile)
 	if weld then
 		weld:Destroy()
 	end
-	clearAttributes(profile.player)
+	syncAttributes(profile)
 	return carry
+end
+
+-- Welds an egg into the vehicle's boot, in slot `slot`.
+local function intoBoot(profile, record, slot: number)
+	local drive = profile.driving
+	local model = record.model
+	local weld = model.PrimaryPart and model.PrimaryPart:FindFirstChild("CarryWeld")
+	if weld then
+		weld:Destroy()
+	end
+	setAnchored(model, false)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Massless = true
+		end
+	end
+	model:PivotTo(drive.bootSpot(slot) * CFrame.new(0, 0, 0))
+	local newWeld = Instance.new("WeldConstraint")
+	newWeld.Name = "CarryWeld"
+	newWeld.Part0 = drive.root
+	newWeld.Part1 = model.PrimaryPart
+	newWeld.Parent = model.PrimaryPart
+	record.warned = false
+end
+
+local function takeFromBoot(profile, index: number)
+	local record = table.remove(profile.boot, index)
+	local weld = record.model.PrimaryPart and record.model.PrimaryPart:FindFirstChild("CarryWeld")
+	if weld then
+		weld:Destroy()
+	end
+	-- the rest shuffle up
+	for slot, egg in profile.boot do
+		intoBoot(profile, egg, slot)
+	end
+	syncAttributes(profile)
+	return record
 end
 
 -- How long a fresh egg from this biome lasts for this player.
@@ -248,7 +304,7 @@ end
 
 function EggSystem.isCarrying(player: Player): boolean
 	local profile = State.profiles[player]
-	return profile ~= nil and profile.egg ~= nil
+	return profile ~= nil and (profile.egg ~= nil or #profile.boot > 0)
 end
 
 function EggSystem.pickUp(player: Player, model: Model?)
@@ -257,8 +313,18 @@ function EggSystem.pickUp(player: Player, model: Model?)
 	if not profile or not egg or not profile.haveli then
 		return
 	end
-	if profile.egg then
-		State.notify(player, "bad", "You can only carry one egg at a time!")
+	if not State.isZoneOpen(profile, egg.biome) then
+		State.notify(player, "bad", ("Unlock %s at its gate to collect its eggs!"):format(egg.biome.name))
+		State.sound(player, "Error")
+		return
+	end
+	local drive = profile.driving
+	if drive and #profile.boot >= drive.space then
+		State.notify(player, "bad", ("Your boot is full (%d eggs)! Take them home first."):format(drive.space))
+		return
+	end
+	if not drive and profile.egg then
+		State.notify(player, "bad", "You can only carry one egg at a time! A vehicle's boot holds more.")
 		return
 	end
 	if profile.carryingBrainrot then
@@ -287,6 +353,30 @@ function EggSystem.pickUp(player: Player, model: Model?)
 	if prompt then
 		prompt.Enabled = false
 	end
+	if drive then
+		local record = {
+			model = m,
+			biome = egg.biome,
+			golden = egg.golden,
+			timeLeft = timeLeft,
+			total = total,
+			warned = false,
+		}
+		table.insert(profile.boot, record)
+		intoBoot(profile, record, #profile.boot)
+		syncAttributes(profile)
+		State.sound(player, "EggPickup")
+		State.notify(
+			player,
+			"info",
+			("Egg in the boot (%d/%d)! Drive it home before it cracks (%d seconds)."):format(
+				#profile.boot,
+				drive.space,
+				math.floor(timeLeft)
+			)
+		)
+		return
+	end
 	setAnchored(m, false)
 	m:PivotTo(root.CFrame * CARRY_OFFSET)
 	local weld = Instance.new("WeldConstraint")
@@ -311,10 +401,7 @@ function EggSystem.pickUp(player: Player, model: Model?)
 			end),
 		},
 	}
-	player:SetAttribute("EggBiome", egg.biome.id)
-	player:SetAttribute("EggGolden", egg.golden)
-	player:SetAttribute("EggTimeTotal", total)
-	player:SetAttribute("EggTimeLeft", timeLeft)
+	syncAttributes(profile)
 	State.sound(player, "EggPickup")
 	State.notify(
 		player,
@@ -326,16 +413,17 @@ function EggSystem.pickUp(player: Player, model: Model?)
 	)
 end
 
--- Drops the egg where the player stands; anyone can pick it up.
-function EggSystem.drop(player: Player, reason: string?)
-	local profile = State.profiles[player]
-	local carry = profile and endCarry(profile)
-	if not carry then
-		return
-	end
+-- Puts an egg on the ground where the player is; anyone can pick it up.
+local function putDown(player: Player, carry, offset: Vector3?)
 	local model = carry.model
 	local root = State.rootPart(player)
-	local spot = if root then root.Position - Vector3.new(0, 1.2, 0) else model:GetPivot().Position
+	local spot = (if root then root.Position - Vector3.new(0, 1.2, 0) else model:GetPivot().Position)
+		+ (offset or Vector3.zero)
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Massless = false
+		end
+	end
 	setAnchored(model, true)
 	model:PivotTo(CFrame.new(spot))
 	local prompt = promptOf(model)
@@ -344,26 +432,59 @@ function EggSystem.drop(player: Player, reason: string?)
 	end
 	eggs[model] =
 		{ biome = carry.biome, golden = carry.golden, natural = false, timeLeft = carry.timeLeft, droppedAt = now() }
-	if reason == "bonk" then
-		State.notify(player, "bad", "Bonk! You dropped your egg. Grab it back quick!")
+end
+
+-- Drops the egg in your hands (or, in a vehicle, one from the boot).
+function EggSystem.drop(player: Player, reason: string?)
+	local profile = State.profiles[player]
+	if not profile then
+		return
 	end
+	local carry = endCarry(profile)
+	if not carry and #profile.boot > 0 then
+		carry = takeFromBoot(profile, #profile.boot)
+	end
+	if not carry then
+		return
+	end
+	putDown(player, carry)
+	if reason == "bonk" then
+		State.notify(player, "bad", "Bonk! You dropped an egg. Grab it back quick!")
+	end
+end
+
+-- Getting in a vehicle: the egg in your hands goes in the boot.
+function EggSystem.toBoot(profile)
+	local drive = profile.driving
+	if not drive or not profile.egg or #profile.boot >= drive.space then
+		return
+	end
+	local carry = endCarry(profile)
+	table.insert(profile.boot, carry)
+	intoBoot(profile, carry, #profile.boot)
+	syncAttributes(profile)
 end
 
 -- A hazard hit: the carried egg loses some time.
 function EggSystem.hit(player: Player, seconds: number, message: string): boolean
 	local profile = State.profiles[player]
-	local carry = profile and profile.egg
-	if not carry then
+	if not profile or (not profile.egg and #profile.boot == 0) then
 		return false
 	end
-	carry.timeLeft -= seconds
-	player:SetAttribute("EggTimeLeft", math.max(0, carry.timeLeft))
+	if profile.egg then
+		profile.egg.timeLeft -= seconds
+	end
+	for _, egg in profile.boot do
+		egg.timeLeft -= seconds
+	end
+	syncAttributes(profile)
 	State.notify(player, "bad", ("%s Your egg lost %d seconds."):format(message, seconds))
 	return true
 end
 
-local function crack(profile)
-	local carry = endCarry(profile)
+-- The egg in your hands cracks, or (with `bootIndex`) one in the boot.
+local function crack(profile, bootIndex: number?)
+	local carry = if bootIndex then takeFromBoot(profile, bootIndex) else endCarry(profile)
 	if not carry then
 		return
 	end
@@ -373,7 +494,7 @@ local function crack(profile)
 	State.notify(
 		profile.player,
 		"bad",
-		"Oh no, your egg cracked! Faster rides and egg gear (Tokri, Thermos) help with far biomes."
+		"Oh no, your egg cracked! Faster vehicles and egg gear (Tokri, Thermos) help with far zones."
 	)
 end
 
@@ -421,10 +542,15 @@ function EggSystem.roll(biome, golden: boolean)
 	return def, mutation
 end
 
-local function deposit(profile, slot: number)
-	local carry = endCarry(profile)
+local function deposit(profile, slot: number, bootIndex: number?)
+	local carry = if bootIndex then takeFromBoot(profile, bootIndex) else endCarry(profile)
 	if not carry then
 		return
+	end
+	for _, p in carry.model:GetDescendants() do
+		if p:IsA("BasePart") then
+			p.Massless = false
+		end
 	end
 	local biome = carry.biome
 	local def, mutation = EggSystem.roll(biome, carry.golden)
@@ -474,7 +600,7 @@ local function hatch(profile, slot: number)
 	if record.mutation then
 		State.track(profile, "mutation")
 	end
-	if def.rarity == "Mythic" or record.mutation == "Rainbow" then
+	if def.rarity == "Mythic" or def.rarity == "Secret" or record.mutation == "Rainbow" then
 		State.notifyAll("rare", ("%s hatched a %s!"):format(profile.player.DisplayName, name))
 	end
 end
@@ -562,6 +688,9 @@ function EggSystem.reset(profile)
 	if carry then
 		carry.model:Destroy()
 	end
+	while #profile.boot > 0 do
+		takeFromBoot(profile, #profile.boot).model:Destroy()
+	end
 	for _, record in profile.incubating do
 		if record.model then
 			record.model:Destroy()
@@ -570,6 +699,83 @@ function EggSystem.reset(profile)
 	profile.incubating = {}
 	profile.data.incubators = {}
 	updateNests(profile)
+end
+
+---------------------------------------------------------------------------
+-- The boot
+---------------------------------------------------------------------------
+-- Driving home: eggs in the boot go into free incubators.
+function EggSystem.deliverBoot(profile)
+	while #profile.boot > 0 do
+		local slot = freeIncubator(profile)
+		if not slot then
+			local first = profile.boot[1]
+			if not first.warned then
+				first.warned = true
+				State.notify(profile.player, "bad", "Your incubators are full! The eggs wait in your boot.")
+			end
+			return
+		end
+		deposit(profile, slot, 1)
+	end
+end
+
+-- Getting out: at home the eggs go in the incubators; anywhere else you take
+-- one in your hands and the rest go on the ground (anyone can grab them).
+function EggSystem.unloadBoot(profile, atHome: boolean)
+	if #profile.boot == 0 then
+		return
+	end
+	if atHome then
+		EggSystem.deliverBoot(profile)
+	end
+	local player = profile.player
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local alive = humanoid ~= nil and humanoid.Health > 0
+	local dropped = 0
+	while #profile.boot > 0 do
+		local record = takeFromBoot(profile, 1)
+		local root = State.rootPart(player)
+		if alive and not profile.egg and root and humanoid then
+			setAnchored(record.model, false)
+			record.model:PivotTo(root.CFrame * CARRY_OFFSET)
+			local weld = Instance.new("WeldConstraint")
+			weld.Name = "CarryWeld"
+			weld.Part0 = root
+			weld.Part1 = record.model.PrimaryPart
+			weld.Parent = record.model.PrimaryPart
+			record.connections = {
+				humanoid.Died:Connect(function()
+					EggSystem.drop(player)
+				end),
+				player.CharacterRemoving:Connect(function()
+					EggSystem.drop(player)
+				end),
+			}
+			profile.egg = record
+		else
+			dropped += 1
+			putDown(player, record, Vector3.new(math.cos(dropped * 2) * 4, 0, math.sin(dropped * 2) * 4))
+		end
+	end
+	syncAttributes(profile)
+	if dropped > 0 and alive then
+		State.notify(
+			player,
+			"bad",
+			("You got out, so %d egg(s) fell out of the boot. Grab them quick!"):format(dropped)
+		)
+	end
+end
+
+local function nearHome(profile, position: Vector3): boolean
+	local h = profile.haveli
+	return h ~= nil
+		and (
+			Havelis.isInside(h, position)
+			or ((position - h.doorOutside.Position) * Vector3.new(1, 0, 1)).Magnitude < Config.PARK_DISTANCE
+		)
 end
 
 ---------------------------------------------------------------------------
@@ -594,9 +800,25 @@ function EggSystem.tick(dt: number)
 				carry.timeLeft -= dt * (profile.eggDrain or 1)
 				if carry.timeLeft <= 0 then
 					crack(profile)
-				else
-					player:SetAttribute("EggTimeLeft", math.floor(carry.timeLeft * 10) / 10)
 				end
+			end
+		end
+		-- eggs in the boot count down too, except when you are home
+		local root = State.rootPart(player)
+		if #profile.boot > 0 and not (root and nearHome(profile, root.Position)) then
+			for i = #profile.boot, 1, -1 do
+				local egg = profile.boot[i]
+				egg.timeLeft -= dt * (profile.eggDrain or 1)
+				if egg.timeLeft <= 0 then
+					crack(profile, i)
+				end
+			end
+		end
+		if profile.egg or #profile.boot > 0 then
+			local egg = lead(profile)
+			local shown = if egg then math.max(0, math.floor(egg.timeLeft * 10) / 10) else 0
+			if player:GetAttribute("EggTimeLeft") ~= shown then
+				syncAttributes(profile)
 			end
 		end
 	end

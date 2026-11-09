@@ -35,6 +35,9 @@ import props_plants  # noqa: E402,F401
 import brainrots_a  # noqa: E402,F401
 import brainrots_b  # noqa: E402,F401
 import brainrots_c  # noqa: E402,F401
+import brainrots_d  # noqa: E402,F401
+import props_zones  # noqa: E402,F401
+import vehicles  # noqa: E402,F401
 
 ASSETS = os.path.join(ROOT, "assets", "props")
 DOCS = os.path.join(ROOT, "docs", "props")
@@ -48,6 +51,8 @@ CATEGORY_TITLES = {
     "plant": "Plants and nature",
     "desi": "Desi props",
     "brainrot": "Brainrots",
+    "zone": "Zone landmarks",
+    "vehicle": "Vehicles",
 }
 
 
@@ -81,7 +86,7 @@ def write_propdata(entries):
         "--          rotation quaternion x, y, z, w, palette colour, material, flags }",
         "-- flags: 1 no collide, 2 always a part (never merged into the mesh),",
         "--        4 see-through, 8 gives off light, 16 no shadow, 32 parts version only,",
-        "--        64 an eye (keeps its colour on mutated brainrots)",
+        "--        64 an eye (keeps its colour on mutated brainrots), 128 a vehicle's painted panel",
         "",
         "-- stylua: ignore start",
         "local PropData = {}",

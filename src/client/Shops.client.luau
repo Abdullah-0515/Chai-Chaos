@@ -7,7 +7,8 @@
 --   NAYA SAFAR    : rebirth
 --   KISMAT KETTLE : the Kismat Roll window
 --   QUESTS board  : the Quests window
--- The Brainrots button opens the Brainrots window anywhere, to pick a ride.
+-- The Brainrots button opens the Brainrots window anywhere.
+-- (The Gaari Showroom, Ustad's Workshop and your Garage are in Garage.client.luau.)
 -- The server checks that you are at the right stall before anything happens.
 
 local Players = game:GetService("Players")
@@ -168,11 +169,6 @@ trackerButton.Activated:Connect(function()
 	Remotes.UpgradeTracker:FireServer()
 end)
 
-local byTier = table.clone(Biomes.list)
-table.sort(byTier, function(a, b)
-	return a.tier < b.tier
-end)
-
 local function levelText(level: number): string
 	local t = Config.TRACKER_LEVELS[level]
 	local extras = {}
@@ -182,8 +178,7 @@ local function levelText(level: number): string
 	if t.treasure then
 		table.insert(extras, "treasure")
 	end
-	return ("Finds %s eggs, %d studs away%s"):format(
-		byTier[level].name,
+	return ("Finds eggs %d studs away%s"):format(
 		t.range,
 		if #extras > 0 then " · shows " .. table.concat(extras, " and ") else ""
 	)
@@ -201,11 +196,16 @@ end
 
 local function refreshTracker()
 	local level = attribute("TrackerLevel", 1)
-	local names = {}
-	for i = 1, level do
-		table.insert(names, byTier[i].name)
+	local open = Biomes.decode(attribute("OpenZones", ""))
+	local count = 0
+	for _ in open do
+		count += 1
 	end
-	trackerNow.Text = ("Your radar: Level %d. It tracks %s."):format(level, table.concat(names, ", "))
+	trackerNow.Text = ("Your radar: Level %d. It tracks eggs in your %d open zone%s."):format(
+		level,
+		count,
+		if count == 1 then "" else "s"
+	)
 	local nextLevel = Config.TRACKER_LEVELS[level + 1]
 	if nextLevel then
 		trackerNext.Text = ("Next: %s"):format(levelText(level + 1))
@@ -227,23 +227,11 @@ local function refreshTracker()
 end
 
 ---------------------------------------------------------------------------
--- Brainrots (ride and sell)
+-- Brainrots (see them all, and sell at the BECHO stall)
 ---------------------------------------------------------------------------
 local brainrotButton = Ui.sideButton(buttons, "Brainrots", "Brainrots", rgb(220, 90, 140), 6)
 local brainrotPanel, brainrotContent = Ui.panel(gui, "BrainrotPanel", "Meri Brainrots", Vector2.new(500, 600))
-local rideInfo = info(brainrotContent, "Ride", 1, 44, rgb(130, 50, 110))
-local stopRide = Ui.textButton({
-	Name = "StopRide",
-	Size = UDim2.new(1, -8, 0, 40),
-	BackgroundColor3 = RED,
-	Text = "Stop riding (send it home)",
-	LayoutOrder = 2,
-	Parent = brainrotContent,
-})
 local sellInfo = info(brainrotContent, "SellInfo", 3, 40, nil)
-stopRide.Activated:Connect(function()
-	Remotes.SetRide:FireServer(nil)
-end)
 
 local brainrotRows: { Frame } = {}
 local NEAR_SELL = Config.SELL_DISTANCE - 2
@@ -270,18 +258,7 @@ local function parseOwned()
 	return list
 end
 
-local function speedText(def, mutation: string?): string
-	local speed = (Config.RIDE_SPEED[def.rarity] or 1)
-		+ (if mutation then Config.RIDE_MUTATION_BONUS[mutation] or 0 else 0)
-	return ("+%d%% speed"):format(math.floor((speed - 1) * 100 + 0.5))
-end
-
 local function refreshBrainrots()
-	local ride = attribute("Ride", "")
-	stopRide.Visible = ride ~= ""
-	rideInfo.Text = if ride ~= ""
-		then ("Riding %s! Your ride does not earn rupees."):format(ride)
-		else "Pick a brainrot to ride: rarer ones are faster. The rest stay home and earn."
 	local nearSell = isNear("Sell", NEAR_SELL)
 	sellInfo.Text = if nearSell
 		then "You are at the BECHO stall: sell for half the value."
@@ -293,23 +270,15 @@ local function refreshBrainrots()
 	table.clear(brainrotRows)
 	for i, item in parseOwned() do
 		local def, mutation = item.def, item.mutation
-		local frame, title, text, rideButton = row(brainrotContent, "Brainrot" .. i, 10 + i, 62)
+		local frame, title, text, stealButton = row(brainrotContent, "Brainrot" .. i, 10 + i, 62)
+		stealButton:Destroy()
 		title.Text = Mutations.displayName(def, mutation)
 		title.TextColor3 = if mutation then Mutations.byId[mutation].color else Brainrots.RARITY_COLORS[def.rarity]
-		text.Text = ("%s · +%s/s · %s"):format(
+		text.Text = ("%s · +%s/s · worth %s"):format(
 			def.rarity,
 			Format.short(Mutations.income(def, mutation)),
-			speedText(def, mutation)
+			Format.short(Mutations.value(def, mutation))
 		)
-		rideButton.Size = UDim2.fromOffset(64, 40)
-		rideButton.Position = UDim2.new(1, -76, 0.5, 0)
-		rideButton.Text = "Ride"
-		rideButton.BackgroundColor3 = if item.carried then GREY else rgb(150, 70, 200)
-		rideButton.Activated:Connect(function()
-			if not item.carried then
-				Remotes.SetRide:FireServer(item.uid)
-			end
-		end)
 		if nearSell and not def.questOnly then
 			local sell = Ui.textButton({
 				Name = "Sell",
@@ -330,7 +299,7 @@ local function refreshBrainrots()
 	end
 	if #brainrotRows == 0 then
 		local empty = info(brainrotContent, "Empty", 10, 40, nil)
-		empty.Text = "No brainrots yet! Bring eggs home from the biomes to hatch some."
+		empty.Text = "No brainrots yet! Bring eggs home from the zones to hatch some."
 		table.insert(brainrotRows, empty :: any)
 	end
 end
@@ -349,9 +318,9 @@ local rebirthPanel, rebirthContent = Ui.panel(gui, "RebirthPanel", "Naya Safar",
 local rebirthCost = info(rebirthContent, "Cost", 1, 50, nil)
 local rebirthBonus = info(rebirthContent, "Bonus", 2, 40, rgb(40, 110, 60))
 info(rebirthContent, "Resets", 3, 56, rgb(150, 60, 40)).Text =
-	"Starts over: rupees, haveli level, radar level, brainrots, eggs and your ride."
+	"Starts over: rupees, haveli level, radar level, brainrots and eggs."
 info(rebirthContent, "Keeps", 4, 56, rgb(40, 90, 150)).Text =
-	"You keep: gear, haveli themes, the Collection Book, Kismat Rolls and Chor Passes."
+	"You keep: gear, vehicles, unlocked zones, haveli themes, the Collection Book, Kismat Rolls and Chor Passes."
 local rebirthTheme = info(rebirthContent, "Theme", 5, 40, rgb(130, 50, 160))
 local rebirthButton = Ui.textButton({
 	Name = "Rebirth",
@@ -380,8 +349,21 @@ local function refreshRebirth()
 			unlock = theme
 		end
 	end
-	rebirthTheme.Text = if unlock
-		then ("Unlocks the %s haveli theme: %s"):format(unlock.name, unlock.perkText)
+	local zone = nil
+	for _, biome in Biomes.list do
+		if biome.rebirths == rebirths + 1 then
+			zone = biome
+		end
+	end
+	local texts = {}
+	if zone then
+		table.insert(texts, ("Opens the gate to %s!"):format(zone.name))
+	end
+	if unlock then
+		table.insert(texts, ("Unlocks the %s haveli theme: %s"):format(unlock.name, unlock.perkText))
+	end
+	rebirthTheme.Text = if #texts > 0
+		then table.concat(texts, " ")
 		else "Every Naya Safar makes you earn more, forever."
 	if os.clock() >= confirmUntil then
 		rebirthButton.Text = if rupeesValue.Value >= cost then "Start Naya Safar!" else "Not enough rupees yet"
@@ -459,11 +441,7 @@ player:GetAttributeChangedSignal("Owned"):Connect(function()
 		refreshBrainrots()
 	end
 end)
-player:GetAttributeChangedSignal("Ride"):Connect(function()
-	if brainrotPanel.Visible then
-		refreshBrainrots()
-	end
-end)
+player:GetAttributeChangedSignal("OpenZones"):Connect(refreshTracker)
 rupeesValue.Changed:Connect(function()
 	refreshGear()
 	refreshTracker()

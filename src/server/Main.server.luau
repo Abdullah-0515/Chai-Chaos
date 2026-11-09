@@ -33,7 +33,8 @@ local EggSystem = require(script.Parent.EggSystem)
 local Hazards = require(script.Parent.Hazards)
 local Treasure = require(script.Parent.Treasure)
 local Upgrades = require(script.Parent.Upgrades)
-local Riding = require(script.Parent.Riding)
+local Garage = require(script.Parent.Garage)
+local Zones = require(script.Parent.Zones)
 
 World.init()
 local map = MapBuilder.ensure()
@@ -44,8 +45,9 @@ EggSystem.init(map)
 Hazards.init(map)
 Treasure.init(map)
 Upgrades.init(map)
-Riding.init()
+Garage.init(map)
 Shop.init()
+Shop.paintHook = Garage.onPaintBought
 Kismat.init()
 QuestBook.init()
 EventRunner.init()
@@ -187,11 +189,10 @@ local function onCharacterAdded(profile, character: Model)
 	task.wait()
 	if State.profiles[profile.player] == profile then
 		profile.carrySpeed = nil
-		profile.baseHipHeight = nil
+		Garage.reset(profile)
 		Havelis.teleportHome(profile)
 		Havelis.applyWalkSpeed(profile)
 		Defenses.applyCharacter(profile)
-		Riding.mount(profile)
 	end
 end
 
@@ -218,11 +219,12 @@ local function onPlayerAdded(player: Player)
 	player:SetAttribute("LockReadyAt", 0)
 
 	State.syncGear(profile)
+	State.syncZones(profile)
+	Garage.sync(profile)
 	if Havelis.claim(profile) then
 		player:SetAttribute("HaveliIndex", profile.haveli.index)
 		player:SetAttribute("HomePosition", profile.haveli.doorOutside.Position)
 		EggSystem.restore(profile)
-		Riding.restore(profile)
 	else
 		State.notify(
 			player,
@@ -248,7 +250,7 @@ local function onPlayerAdded(player: Player)
 	State.notify(
 		player,
 		"info",
-		"Welcome to Chai Chaos! Follow your radar out of the Chowk, find eggs in the biomes and carry them home to hatch."
+		"Welcome to Chai Chaos! Follow your radar out through the town gate to Mango Bagh, find eggs and carry them home to hatch. Buy a vehicle at the Gaari Showroom to go further!"
 	)
 	if next(data.discovered) == nil then
 		State.notify(player, "info", "Open the Haveli menu to pick your haveli's theme!")
@@ -280,10 +282,10 @@ local function onPlayerRemoving(player: Player)
 		return
 	end
 	Stealing.releasePlayer(profile)
+	Garage.park(profile)
 	Havelis.syncData(profile)
 	EggSystem.syncData(profile)
 	EggSystem.release(profile)
-	Riding.dismount(profile)
 	Havelis.release(profile)
 	State.profiles[player] = nil
 	saveProfile(profile)
@@ -351,6 +353,14 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 		if model then
 			Stealing.start(player, model)
 		end
+	elseif name == "GatePrompt" then
+		Zones.unlock(player, prompt.Parent)
+	elseif name == "PumpPrompt" then
+		Garage.refuel(player, prompt.Parent)
+	elseif name == "RideAlong" then
+		Garage.rideAlong(player, prompt.Parent)
+	elseif name == "RickshawHome" then
+		Zones.rideHome(player, prompt.Parent)
 	end
 end)
 
@@ -363,7 +373,8 @@ Remotes.SetTheme.OnServerEvent:Connect(Havelis.setTheme)
 
 ---------------------------------------------------------------------------
 -- Naya Safar (rebirth) at the Chowk: costs more every time, unlocks a new
--- theme. You keep your gear, Kismat Rolls, Chor Passes and Collection Book.
+-- theme. You keep your gear, vehicles, unlocked zones, Kismat Rolls, Chor
+-- Passes and Collection Book. Each rebirth opens more ring 3 zones.
 ---------------------------------------------------------------------------
 Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 	local profile = State.profiles[player]
@@ -381,8 +392,8 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 		return
 	end
 	Stealing.releasePlayer(profile)
+	Garage.park(profile)
 	EggSystem.reset(profile)
-	Riding.reset(profile)
 	Havelis.clearBrainrots(profile)
 	data.rebirths += 1
 	data.rupees = Config.START_RUPEES
@@ -392,6 +403,7 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 	data.owned = {}
 	State.syncStats(profile)
 	State.syncGear(profile)
+	Zones.refresh(profile)
 	State.sound(player, "Rebirth")
 	State.syncQuests(profile)
 	Havelis.restyle(profile)
@@ -408,11 +420,16 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 			State.notify(player, "rare", ("New haveli theme unlocked: %s! %s"):format(theme.name, theme.perkText))
 		end
 	end
+	for _, biome in require(Shared.Biomes).list do
+		if biome.rebirths == data.rebirths then
+			State.notify(player, "rare", ("%s's gate is open for you now! %s"):format(biome.name, biome.blurb))
+		end
+	end
 	task.spawn(saveProfile, profile)
 end)
 
 print(
-	("[ChaiChaos] Ready with %d brainrots, %d havelis and %d biomes."):format(
+	("[ChaiChaos] Ready with %d brainrots, %d havelis and %d zones."):format(
 		#Brainrots.list,
 		#map.havelis,
 		#require(Shared.Biomes).list

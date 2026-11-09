@@ -15,6 +15,7 @@ local Mutations = require(Shared.Mutations)
 local Themes = require(Shared.Themes)
 local Gear = require(Shared.Gear)
 local Biomes = require(Shared.Biomes)
+local Vehicles = require(Shared.Vehicles)
 
 local PlayerData = {}
 
@@ -36,7 +37,7 @@ end
 
 function PlayerData.default()
 	return {
-		version = 3,
+		version = 4,
 		rupees = Config.START_RUPEES,
 		galla = 0,
 		rebirths = 0,
@@ -54,10 +55,26 @@ function PlayerData.default()
 		collection = {}, -- [rarity] = { rewarded = true, specialRebirth = n }
 		trackerLevel = 1, -- egg tracker level (see Config.TRACKER_LEVELS)
 		gear = {}, -- [gear id] = true
-		ride = nil, -- brainrot key of the brainrot you ride, it is not in `owned`
 		incubators = {}, -- { slot, biome, golden, id, mutation, hatchAt } eggs waiting to hatch
+		zones = {}, -- [zone id] = true for zones bought at their gate (ring 3 opens with rebirths)
+		vehicles = {}, -- [vehicle id] = { fuel, speed, tank, eggs, grip } (upgrade levels)
+		vehicle = nil, -- the vehicle you drove last
+		paints = {}, -- [paint id] = true for Robux paint jobs
+		paint = "Factory", -- the paint job on your vehicles
 	}
 end
+
+-- Version 3 had 8 biomes; eggs waiting in an incubator keep hatching as one of the new zones.
+local OLD_BIOMES = {
+	Khet = "MangoBagh",
+	Jungle = "CamelMela",
+	Samandar = "SahilBeach",
+	Jheel = "SarsonFields",
+	Registan = "TharDesert",
+	Delta = "QissaKhawani",
+	Pahar = "BarfaniPahar",
+	NamakKaan = "NamakCaves",
+}
 
 -- Brainrots that were renamed, so old saves keep them under their new id.
 local RENAMED = {
@@ -140,25 +157,58 @@ local function reconcile(saved: any)
 		end
 	end
 	local plots = Config.HAVELI_LEVELS[data.level].plots
-	if type(saved.ride) == "string" then
-		local id, mutation = parseKey(saved.ride)
-		local def = Brainrots.byId[id]
-		if def and not def.questOnly then
-			data.ride = Mutations.key(id, mutation)
-			data.discovered[id] = true
+	if type(saved.zones) == "table" then
+		for id, value in saved.zones do
+			local biome = Biomes.byId[id]
+			if value == true and biome and biome.price > 0 then
+				data.zones[id] = true
+			end
 		end
+	end
+	if type(saved.vehicles) == "table" then
+		for id, entry in saved.vehicles do
+			local def = Vehicles.byId[id]
+			if def and type(entry) == "table" then
+				local levels = { fuel = 0 }
+				for _, upgrade in Vehicles.UPGRADES do
+					levels[upgrade.id] =
+						math.clamp(whole(entry[upgrade.id], 0) or 0, 0, Vehicles.maxLevel(def, upgrade.id))
+				end
+				local tank = Vehicles.tank(def, Vehicles.levels(levels))
+				levels.fuel = if type(entry.fuel) == "number" and entry.fuel == entry.fuel
+					then math.clamp(entry.fuel, 0, tank)
+					else tank
+				data.vehicles[id] = levels
+			end
+		end
+	end
+	if type(saved.vehicle) == "string" and data.vehicles[saved.vehicle] then
+		data.vehicle = saved.vehicle
+	end
+	if type(saved.paints) == "table" then
+		for id, value in saved.paints do
+			if value == true and Vehicles.paintById[id] and id ~= "Factory" then
+				data.paints[id] = true
+			end
+		end
+	end
+	if type(saved.paint) == "string" and (saved.paint == "Factory" or data.paints[saved.paint]) then
+		data.paint = saved.paint
 	end
 	if type(saved.incubators) == "table" then
 		local used = {}
 		for _, egg in saved.incubators do
 			local eggId = type(egg) == "table" and type(egg.id) == "string" and (RENAMED[egg.id] or egg.id)
+			local eggBiome = type(egg) == "table"
+				and type(egg.biome) == "string"
+				and (OLD_BIOMES[egg.biome] or egg.biome)
 			local slot = type(egg) == "table" and whole(egg.slot, 1)
 			if
 				slot
 				and not used[slot]
 				and slot <= Config.HAVELI_LEVELS[data.level].incubators
-				and type(egg.biome) == "string"
-				and Biomes.byId[egg.biome]
+				and eggBiome
+				and Biomes.byId[eggBiome]
 				and eggId
 				and Brainrots.byId[eggId]
 				and type(egg.hatchAt) == "number"
@@ -166,7 +216,7 @@ local function reconcile(saved: any)
 				used[slot] = true
 				table.insert(data.incubators, {
 					slot = slot,
-					biome = egg.biome,
+					biome = eggBiome,
 					golden = egg.golden == true,
 					id = eggId,
 					mutation = if type(egg.mutation) == "string" and Mutations.byId[egg.mutation]
@@ -185,6 +235,20 @@ local function reconcile(saved: any)
 					table.insert(data.owned, Mutations.key(id, mutation))
 					data.discovered[id] = true
 				end
+			end
+		end
+	end
+	-- Version 3 let you ride a brainrot. Riding is gone, so it walks back to a
+	-- plot; if every plot is full you get its full value in rupees instead.
+	if type(saved.ride) == "string" then
+		local id, mutation = parseKey(saved.ride)
+		local def = Brainrots.byId[id]
+		if def and not def.questOnly then
+			data.discovered[id] = true
+			if #data.owned < plots then
+				table.insert(data.owned, Mutations.key(id, mutation))
+			else
+				data.rupees += Mutations.value(def, mutation)
 			end
 		end
 	end

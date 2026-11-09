@@ -1,8 +1,8 @@
--- How the biomes look and feel on this player's screen:
--- * Registan: a dusty sandstorm every so often (Sand Goggles let you see)
--- * Namak Kaan: dark, pink salt caves (a Lantern lights the way)
--- * Pahar: snow drifting down
--- * Samandar: a splash when a big wave rolls in
+-- How the zones look and feel on this player's screen:
+-- * Thar Desert and Mohenjo-daro: a dusty sandstorm every so often (Sand Goggles let you see)
+-- * Namak Caves: dark, pink salt caves (a Lantern lights the way)
+-- * Barfani Pahar: snow drifting down
+-- * Sahil Beach: a splash when a big wave rolls in
 -- The server decides what actually happens; this is only the look.
 
 local Lighting = game:GetService("Lighting")
@@ -91,32 +91,37 @@ local function update()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local biome = if root and root:IsA("BasePart") then Biomes.at(root.Position) else nil
-	local id = if biome then biome.id else ""
+	local hazards = if biome then biome.hazards else {}
+	local function has(hazard: string): boolean
+		return table.find(hazards, hazard) ~= nil
+	end
 	local owned = Gear.decode(player:GetAttribute("Gear") or "")
-	local storm = id == "Registan" and workspace:GetAttribute("Sandstorm") == true
+	local storm = has("sandstorm") and workspace:GetAttribute("Sandstorm") == true
+	local dark = has("dark")
+	local snowy = has("snowballs")
 
-	snow.Enabled = id == "Pahar"
+	snow.Enabled = snowy
 	sand.Enabled = storm
 	sand.Rate = if owned.SandGoggles then 150 else 500
-	salt.Enabled = id == "NamakKaan"
+	salt.Enabled = dark
 	cloud.Parent = if snow.Enabled or sand.Enabled or salt.Enabled then workspace.CurrentCamera else nil
 
 	if storm then
 		setLook(if owned.SandGoggles then "goggles" else "sandstorm")
-	elseif id == "NamakKaan" then
+	elseif dark then
 		setLook(if owned.Lantern then "lantern" else "cave")
-	elseif id == "Pahar" then
+	elseif snowy then
 		setLook("snow")
 	else
 		setLook("none")
 	end
-	glow.Parent = if id == "NamakKaan" and owned.Lantern and root then root else nil
+	glow.Parent = if dark and owned.Lantern and root then root else nil
 
 	-- a big wave: splash if we are on the beach
 	local waveAt = workspace:GetAttribute("WaveAt") or 0
 	if waveAt ~= lastWave then
 		lastWave = waveAt
-		if id == "Samandar" and root and root:IsA("BasePart") then
+		if has("waves") and root and root:IsA("BasePart") then
 			local splash = Instance.new("Part")
 			splash.Name = "Splash"
 			splash.Anchored = true

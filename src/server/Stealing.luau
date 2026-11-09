@@ -183,6 +183,9 @@ function Stealing.start(thief: Player, model: Model)
 	if thiefProfile.egg then
 		return deny(thief, "Take your egg home first!")
 	end
+	if thiefProfile.driving then
+		return deny(thief, "Get out of your vehicle to steal!")
+	end
 
 	local now = workspace:GetServerTimeNow()
 	if entry.def.questOnly then
@@ -308,7 +311,7 @@ function Stealing.bonk(player: Player)
 		local otherRoot = State.rootPart(other)
 		if
 			other ~= player
-			and otherProfile.egg
+			and (otherProfile.egg or #otherProfile.boot > 0)
 			and otherRoot
 			and (otherRoot.Position - root.Position).Magnitude <= range
 		then

@@ -136,11 +136,9 @@ for _, rarity in Brainrots.RARITY_ORDER do
 		Name = "Prize",
 		Size = UDim2.new(1, -112, 0, 20),
 		Position = UDim2.fromOffset(8, 30),
-		Text = ("%s + %d rolls + %s"):format(
-			Format.rupees(reward.rupees),
-			reward.rolls,
-			special and special.name or "?"
-		),
+		Text = if special
+			then ("%s + %d rolls + %s"):format(Format.rupees(reward.rupees), reward.rolls, special.name)
+			else ("%s + %d rolls"):format(Format.rupees(reward.rupees), reward.rolls),
 		TextColor3 = rgb(255, 230, 150),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = row,

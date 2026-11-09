@@ -1,12 +1,12 @@
 -- The radar in the bottom right corner.
 --
--- * Egg dots for every biome your tracker covers (level 1 tracks Khet, each
---   level adds the next biome), as far as its range reaches. The nearest egg
---   out of range shows as a pip on the edge, so you always know where to go.
+-- * Egg dots for every zone you have unlocked, as far as your tracker's range
+--   reaches. The nearest egg out of range shows as a pip on the edge, so you
+--   always know where to go.
 -- * Golden eggs from tracker level 3, treasure chests from level 5.
 -- * A house for your haveli and a dot for the Chowk.
 -- * The countdown of the egg you are carrying, hazard warnings and egg rushes.
--- * A big title when you walk into a biome.
+-- * A big title when you walk into a zone or a bazaar sector.
 --
 -- The radar turns with the camera: straight up is the way you are looking.
 
@@ -27,12 +27,6 @@ local SIZE = 190
 local RADIUS = SIZE / 2 - 8
 local GOLD = rgb(255, 205, 50)
 local HOME = rgb(255, 120, 60)
-
--- biomes in the order the tracker learns them
-local byTier = table.clone(Biomes.list)
-table.sort(byTier, function(a, b)
-	return a.tier < b.tier
-end)
 
 ---------------------------------------------------------------------------
 -- Layout
@@ -242,8 +236,15 @@ local function trackerLevel(): number
 	return math.clamp(player:GetAttribute("TrackerLevel") or 1, 1, #Config.TRACKER_LEVELS)
 end
 
-local function isTracked(biome, level: number): boolean
-	return biome ~= nil and biome.tier <= level
+local openZones: { [string]: boolean } = {}
+local function refreshOpen()
+	openZones = Biomes.decode(player:GetAttribute("OpenZones") or "")
+end
+player:GetAttributeChangedSignal("OpenZones"):Connect(refreshOpen)
+refreshOpen()
+
+local function isTracked(biome, _level: number): boolean
+	return biome ~= nil and openZones[biome.id] == true
 end
 
 local function eggShown(model: Instance, level: number, info): (boolean, any, boolean)
@@ -352,12 +353,11 @@ local function refreshLabels()
 	local level = trackerLevel()
 	local info = Config.TRACKER_LEVELS[level]
 	levelLabel.Text = ("Radar Lv %d"):format(level)
-	local names = {}
-	for i = 1, math.min(level, #byTier) do
-		table.insert(names, byTier[i].name)
+	local count = 0
+	for _ in openZones do
+		count += 1
 	end
-	tracksLabel.Text = "Tracks: "
-		.. table.concat(names, ", ")
+	tracksLabel.Text = ("Tracks: %d open zone%s"):format(count, if count == 1 then "" else "s")
 		.. (if info.golden then " + golden eggs" else "")
 		.. (if info.treasure then " + treasure" else "")
 
@@ -365,17 +365,18 @@ local function refreshLabels()
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local position = if root and root:IsA("BasePart") then root.Position else nil
 	local biome = if position then Biomes.at(position) else nil
+	local sector = if position then Biomes.townSectorAt(position) else nil
 	local area
 	if biome then
 		local tracked = isTracked(biome, level)
-		area = biome.name .. (if tracked then "" else " (radar can't track)")
+		area = biome.name .. (if tracked then "" else " (locked)")
 		areaLabel.TextColor3 = biome.color
-	elseif position and math.sqrt(position.X ^ 2 + position.Z ^ 2) < Biomes.HUB_RADIUS then
-		area = "Chowk Bazaar"
+	elseif sector then
+		area = sector.name
 		areaLabel.TextColor3 = Ui.GOLD
 	else
-		area = "Countryside"
-		areaLabel.TextColor3 = rgb(170, 230, 140)
+		area = "Chowk"
+		areaLabel.TextColor3 = Ui.GOLD
 	end
 	areaLabel.Text = area
 	local areaId = if biome then biome.id else area
@@ -383,6 +384,8 @@ local function refreshLabels()
 		shownArea = areaId
 		if biome then
 			showAreaTitle(("%s · %s"):format(biome.name:upper(), biome.title), biome.blurb, biome.color)
+		elseif sector then
+			showAreaTitle(sector.name:upper(), "Lahore bazaar", Ui.GOLD)
 		end
 	end
 
@@ -399,10 +402,12 @@ local function refreshLabels()
 			elseif share > 0.25 then rgb(240, 190, 40)
 			else rgb(220, 60, 50)
 		local golden = player:GetAttribute("EggGolden") == true
-		eggText.Text = ("%s: %ds  ·  %s"):format(
+		local carried = player:GetAttribute("EggCount") or 1
+		eggText.Text = ("%s%s: %ds  ·  %s"):format(
 			if golden then "Golden egg" else eggBiome.name .. " egg",
+			if carried > 1 then (" (+%d more)"):format(carried - 1) else "",
 			math.ceil(left),
-			if share > 0.25 then "Run it home!" else "HURRY!"
+			if share > 0.25 then "Take it home!" else "HURRY!"
 		)
 	else
 		eggBar.Visible = false

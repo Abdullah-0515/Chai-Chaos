@@ -1,32 +1,34 @@
 # Chai Chaos
 
-A Roblox egg-hunting, collect-and-earn game set in a loud Pakistani bazaar. Eight havelis stand in a ring around the **Chowk**. Open your radar, follow a road through the countryside into one of **8 biomes**, grab an egg and get it home before it cracks. Eggs hatch into silly desi brainrots that fill your galla with rupees every second. Then other players try to steal them.
+A Roblox egg-hunting, collect-and-earn game set in a loud Pakistani bazaar. Eight havelis stand in a ring around the **Chowk**, inside the busy **Lahore bazaar**. Outside the town wall, the world is cut into **4 regions of Pakistan with 3 rings each: 12 zones**, from the free Mango Bagh to the snowy Barfani Pahar. Unlock their gates, **drive** out on a motorbike, rickshaw, taxi or painted truck, grab eggs and get them home before they crack. Eggs hatch into silly desi brainrots that fill your galla with rupees every second. Then other players try to steal them.
 
-Every biome has its own landmark, plants and desi props, all modelled in Blender (see [3D models](#3d-models-blender)).
+Every zone has its own landmarks, plants and desi props, and every brainrot and vehicle has its own model, all made in Blender (see [3D models](#3d-models-blender)).
 
-The original design is in [docs/game-design.md](docs/game-design.md). All 36 brainrots and their catchphrases come from it.
+The original design is in [docs/game-design.md](docs/game-design.md). All 36 original brainrots and their catchphrases come from it.
 
 ![The world from above](docs/world-map.png)
 
 ## How a round of play goes
 
-1. **Spawn in your haveli.** Everyone starts with **Rs 1,000** and one incubator.
-2. **Check the radar** (bottom right). It shows eggs near you, an **H** for home and a **C** for the Chowk. If no egg is in range, a pip on the edge points to the nearest one.
-3. **Run out through a gate** into a biome. Further biomes have rarer brainrots, but their eggs crack sooner.
-4. **Pick up an egg** (hold E). A timer starts. Hazards knock time off, and other players can bonk you with a chappal to make you drop it.
-5. **Get it home.** Walk into your haveli and the egg goes into a free incubator. A little later it hatches, and the brainrot walks to a plot and starts earning.
-6. **Spend your rupees at the Chowk:** better gear, a better radar, haveli upgrades, Kismat Rolls, and finally a **Naya Safar** (rebirth).
+1. **Spawn in your haveli.** Everyone starts with **Rs 1,000**, one incubator and the free **Mango Bagh** zone.
+2. **Check the radar** (bottom right). It shows eggs in your open zones, an **H** for home and a **C** for the Chowk. If no egg is in range, a pip on the edge points to the nearest one.
+3. **Head out through a town gate.** Walk at first; soon you can buy a **Motorbike** at the Gaari Showroom in the bazaar. Farther zones cost more to unlock and have rarer brainrots, but their eggs crack sooner.
+4. **Pick up an egg** (hold E). A timer starts. On foot you carry one egg; a vehicle's boot carries more. Hazards knock time off, and other players can bonk you with a chappal to make you drop one.
+5. **Get it home.** Walk into your haveli, or drive up to your door, and the egg goes into a free incubator. A little later it hatches, and the brainrot walks to a plot and starts earning.
+6. **Spend your rupees:** unlock new zones at their gates, buy and upgrade vehicles, fill up with petrol, get gear and a better radar, upgrade your haveli, roll the Kismat Kettle, and finally start a **Naya Safar** (rebirth), which opens the ring 3 zones one by one.
 
 ## Four ways to get a brainrot
 
-1. **Eggs (the main way):** find them in the biomes and carry them home. What hatches depends on the biome.
-2. **Kismat Roll (RNG):** roll at the Kismat Kettle with Rs 5,000 or a Kismat Roll. Rolls come free with daily chai and quests, and players can buy packs with Robux.
+1. **Eggs (the main way):** find them in the zones you have unlocked and carry them home. What hatches depends on the zone.
+2. **Kismat Roll (RNG):** roll at the Kismat Kettle with Rs 5,000 or a Kismat Roll. Rolls come free with daily chai and quests, and players can buy packs with Robux. (Secret brainrots never come from rolls.)
 3. **Stealing:** grab someone else's brainrot and run it through your own door. Every steal uses a **Chor Pass** (bought with Robux; you get it back if the steal fails).
 4. **Collection Book rewards:** finish a rarity to earn one of 6 special quest brainrots.
 
 ## The world
 
-**The Chowk** is a round plaza with a fountain in the middle and everything you need around it:
+The world is one big circle, about 1,500 studs across.
+
+**The Chowk** is a round plaza in the middle with a fountain and everything you need around it:
 
 | Stall | What it does |
 | --- | --- |
@@ -37,54 +39,71 @@ The original design is in [docs/game-design.md](docs/game-design.md). All 36 bra
 | **NAYA SAFAR** | The rebirth gate. |
 | **QUESTS** board | Daily quests and Collection Book rewards. |
 
-There is also a chai dhaba with a charpai, parked rickshaws, a fruit cart, a leaderboard and string lights. Eight roads lead out between the havelis, each with a road sign by the Chowk and a bunting-covered gate at the biome.
+There is also a chai dhaba with a charpai, parked rickshaws, a fruit cart, a leaderboard and string lights. The **8 havelis** stand in a ring around the Chowk, facing the fountain. Four roads lead out between them to the four town gates.
 
-**The countryside.** The biomes are separate zones with open countryside between them. Along the roads: milestones counting down to each biome, chai dhabas with charpais and a parked truck-art truck or rickshaw, bus stops, and fruit, pakora and gola ganda stalls near the gates. In the open land: little farms (wheat, sarson and sugarcane fields, a tube well, haystacks, tractors and mud houses), ponds with reeds, kikar and mango trees, rocks, street cricket and kites.
+**The Lahore bazaar** is the town ring between the havelis and the town wall: two rows of stalls with bright awnings along a round bazaar street under string lights, and six sectors: **Brainrot Mandi**, **Kite Point** (a kite tower), **Cricket Gali** (a street-cricket pitch), **Mela Ground** (a Ferris wheel and a stage), **Chai Dhaba Bazaar** (with **Ustad's Workshop**, where vehicles are upgraded) and the **Rickshaw Stand** (with the **Gaari Showroom**, where vehicles are sold).
 
-**The 8 biomes**, from closest to furthest:
+**The 12 zones.** Outside the town wall are 4 regions, each cut into 3 rings. Farther out always costs more: every ring 2 zone costs more than every ring 1 zone, and ring 3 zones open with rebirths. Unlocks are kept forever, even after a Naya Safar.
 
-| Tier | Biome | Landmark and details | Egg lasts | Hatches in | Best rarity | Hazards | Gear that helps |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | **Khet** (Punjab fields) | A **rehat** (Persian water wheel) on a canal; wheat and sarson fields, a village of mud houses with charpais, a tandoor, matkas, a tube well, the water tank, a tractor, haystacks, kites | 60 s | 15 s | Rare 5% | muddy rice paddies | Gum Boots |
-| 2 | **Jungle** (forest and river) | A **treehouse** in a giant tree with a rope ladder, a **rope bridge** over the river, the waterfall cliff; banyan trees, bamboo, ferns, mossy rocks | 55 s | 25 s | Epic 3% | the river | Life Jacket |
-| 3 | **Samandar** (Arabian Sea beach) | A striped **lighthouse** on the island; coconut palms, beach huts, colourful fishing boats, nets, umbrellas, a gola ganda cart | 51 s | 35 s | Legendary 2% | the sea, big waves | Life Jacket |
-| 4 | **Jheel** (lake and meadows) | A **rest house** with a veranda and a long **jetty** with rowing boats; willows, poplars, reeds, lily pads, wild flowers, snowy peaks | 46 s | 45 s | Legendary 4% | the lake | Life Jacket |
-| 5 | **Registan** (Cholistan desert) | An old **desert fort** with round towers, a gate, a well and stairs to the walls; dunes, tents, sandstone rocks, dry kikar trees, camels | 42 s | 55 s | Mythic 1% | sandstorms | Sand Goggles |
-| 6 | **Delta** (Indus mangroves) | A **stilt fishing village** with walkways and a pier over its pool; mangroves, reeds, nets, boats | 37 s | 65 s | Mythic 2% | mud everywhere, pools | Gum Boots, Life Jacket |
-| 7 | **Pahar** (Karakoram mountains) | A **suspension bridge** over the gorge between two ridges, a stone **mountain hut**; snowy deodars, junipers, a frozen lake | 33 s | 75 s | Mythic 4% | ice, flying snowballs | Snow Boots |
-| 8 | **Namak Kaan** (pink salt caves) | The **mine entrance**, a mine-cart track with carts along the tunnel, timber supports, a crystal cavern with giant glowing crystals | 28 s | 85 s | Mythic 9% | darkness, falling salt | Lantern |
+| Region | Ring 1 | Ring 2 | Ring 3 |
+| --- | --- | --- | --- |
+| **Punjab** | **Mango Bagh** · free · up to Rare | **Sarson Fields** · Rs 200,000 · up to Legendary | **Lahore Qila** · 1 rebirth · up to Mythic |
+| **Sindh** | **Railway Junction** · Rs 10,000 · up to Epic | **Sahil Beach** · Rs 400,000 · up to Mythic | **Karachi Port** · 2 rebirths · up to Mythic |
+| **Thar** | **Camel Mela** · Rs 30,000 · up to Epic | **Thar Desert** · Rs 750,000 · up to Mythic | **Mohenjo-daro** · 3 rebirths · up to Mythic |
+| **KPK** | **Qissa Khawani** · Rs 75,000 · up to Legendary | **Namak Caves** · Rs 1,500,000 · up to Mythic | **Barfani Pahar** · 4 rebirths · up to **Secret** |
 
-![Each biome from above](docs/biome-zones.png)
+| Zone | Landmarks and details | Egg lasts | Hatches in | Hazards | What helps |
+| --- | --- | --- | --- | --- | --- |
+| **Mango Bagh** | Mango trees, tube wells, charpais, buffaloes, the water tank | 60 s | 15 s | muddy puddles | Gum Boots, Tyres 1 |
+| **Railway Junction** | A red-brick station with a clock, a curved railway track, a crossing light and a **train** that runs it | 58 s | 20 s | the train | watch the light! |
+| **Camel Mela** | Striped fair tents with bunting, camels, snack stalls | 56 s | 28 s | none | |
+| **Qissa Khawani** | Tall houses with carved wooden balconies, the **Ghanta Ghar** clock tower, kahwa and dry-fruit stalls, a storyteller's stage | 54 s | 35 s | none | |
+| **Sarson Fields** | Rows of yellow mustard, a tractor, scarecrows, muddy paths | 50 s | 42 s | mud | Gum Boots, Tyres 1 |
+| **Sahil Beach** | Sand, beach huts and umbrellas, camels, palms, fishing boats, a lighthouse, the sea | 48 s | 50 s | the sea, big waves | Life Jacket |
+| **Thar Desert** | Dunes, an old desert fort, dry kikar trees | 46 s | 60 s | sandstorms, sand | Sand Goggles, Tyres 2 |
+| **Namak Caves** | Pink salt hills, the mine entrance, glowing crystals, mine carts | 44 s | 70 s | darkness, falling salt rocks | Lantern |
+| **Lahore Qila** | A curved red fort wall with the great gate, round towers, a moat and white pavilions | 42 s | 80 s | the moat | Life Jacket |
+| **Karachi Port** | Stacks of shipping containers, giant cranes, a cargo ship, the harbour | 40 s | 90 s | the water | Life Jacket |
+| **Mohenjo-daro** | Brick ruins in rows, the **Great Bath**, the citadel mound | 38 s | 100 s | sandstorms, sand | Sand Goggles, Tyres 2 |
+| **Barfani Pahar** | Ice caves, frozen lakes, snowmen, a mountain hut, snowy mountains | 36 s | 120 s | ice, snowballs | Snow Boots, Tyres 3 |
 
-Each biome has its own egg colours, its own pool of brainrots (every brainrot hatches somewhere, and the Collection Book tells you where), at least two treasure chests, and a big title when you walk in.
+**Gates and roads.** The gate into a ring 1 zone is in the town wall in the middle of its region. The gate into ring 2 is turned 30 degrees one way and the gate into ring 3 30 degrees the other way, so you zigzag through every zone. A road runs from the Chowk through every gate to a **rickshaw stand** at the far end of each ring 3 zone (a free ride back to the Chowk). The roads are always safe: no water, mud or ice on a road. Walk up to a gate and hold E to unlock it; you must unlock the zone in front of a gate first.
+
+**Shortcut doors.** Every fence between two regions has a blue door in each ring. It opens for you once you have unlocked the zones on both sides.
+
+**Petrol pumps** stand in the bazaar by every town gate and by every gate out of ring 1 and ring 2.
+
+Each zone has its own egg colours, its own pool of brainrots (every brainrot hatches somewhere, and the Collection Book tells you where), treasure chests and a big title when you drive in. The radar names the bazaar sector you are in too.
 
 ## Eggs
 
-- Each biome keeps 7 eggs lying around and refills them over time.
-- **The timer:** an egg cracks when its time runs out. Standing in water or a sandstorm makes it crack twice as fast; waves, snowballs and falling salt knock 8 seconds off. Inside your own haveli the timer stops.
-- **Incubators:** 1 at haveli level 1, 2 at level 3, 3 at level 5 and 4 at level 7. If they are all busy, keep holding your egg at home until one frees up. Eggs keep hatching while you are offline.
+- Each zone keeps 8 eggs lying around and refills them over time. You can only collect eggs in zones you have unlocked.
+- **The timer:** an egg cracks when its time runs out. Standing in water or a sandstorm makes it crack twice as fast; waves, snowballs, salt rocks and the train knock 8 seconds off. At your own haveli the timer stops.
+- **Incubators:** 1 at haveli level 1, 2 at level 3, 3 at level 5 and 4 at level 7. If they are all busy, keep your egg at home until one frees up. Eggs keep hatching while you are offline.
 - **Golden eggs** (3%) sparkle, last a bit longer, are twice as lucky and always hatch a Golden, Diamond or Rainbow brainrot. Normal eggs hatch mutated about 5% of the time.
-- **Egg rushes:** every 4 minutes one biome fills up with extra eggs for 60 seconds.
-- You can carry one egg at a time. A chappal bonk makes you drop it, and anyone can grab it (with the time it had left). You cannot steal while holding an egg, or pick one up while carrying a stolen brainrot.
+- **Egg rushes:** every 4 minutes one zone fills up with extra eggs for 60 seconds.
+- On foot you carry one egg. In a vehicle, eggs go in the **boot** (as many as its Egg Space) and count down there too. A chappal bonk makes you drop one, and anyone can grab it (with the time it had left). You cannot steal while holding an egg, or pick one up while carrying a stolen brainrot.
 
 ## The radar (Radar Wala)
 
-| Level | Cost | Tracks eggs in | Range | Extras |
-| --- | --- | --- | --- | --- |
-| 1 | free | Khet | 150 | |
-| 2 | Rs 2,500 | + Jungle | 180 | |
-| 3 | Rs 8,000 | + Samandar | 210 | golden eggs |
-| 4 | Rs 25,000 | + Jheel | 240 | golden eggs |
-| 5 | Rs 70,000 | + Registan | 270 | golden eggs, treasure |
-| 6 | Rs 160,000 | + Delta | 300 | golden eggs, treasure |
-| 7 | Rs 320,000 | + Pahar | 340 | golden eggs, treasure |
-| 8 | Rs 600,000 | + Namak Kaan | 400 | golden eggs, treasure |
+The radar shows eggs in every zone you have unlocked. Each level sees further:
 
-Every biome is open from the start; the radar just helps you find things. The radar also shows the timer of the egg you carry, hazard warnings and egg rushes.
+| Level | Cost | Range | Extras |
+| --- | --- | --- | --- |
+| 1 | free | 180 | |
+| 2 | Rs 2,500 | 220 | |
+| 3 | Rs 8,000 | 260 | golden eggs |
+| 4 | Rs 25,000 | 300 | golden eggs |
+| 5 | Rs 70,000 | 340 | golden eggs, treasure |
+| 6 | Rs 160,000 | 390 | golden eggs, treasure |
+| 7 | Rs 320,000 | 440 | golden eggs, treasure |
+| 8 | Rs 600,000 | 520 | golden eggs, treasure |
+
+It also shows the timer of the egg that will crack first (and how many more you carry), hazard warnings, egg rushes and which zone or bazaar sector you are in.
 
 ## Gear (Gear Shop)
 
-Gear is bought once and kept forever, even after a Naya Safar. It works by itself.
+Gear is bought once and kept forever, even after a Naya Safar. It works by itself when you are on foot.
 
 | Gear | Cost | What it does |
 | --- | --- | --- |
@@ -94,19 +113,47 @@ Gear is bought once and kept forever, even after a Naya Safar. It works by itsel
 | Life Jacket | Rs 8,000 | Swim fast, eggs safe from water and waves |
 | Belcha (shovel) | Rs 20,000 | Dig up buried treasure |
 | Sand Goggles | Rs 30,000 | See and run through sandstorms |
-| Rassi Seedhi (rope ladder) | Rs 40,000 | Climb to treasure on cliffs, towers and stilt huts |
+| Rassi Seedhi (rope ladder) | Rs 40,000 | Climb to treasure on towers, gates, cranes and ice caves |
 | Peshawari Chappal | Rs 60,000 | Run 25% faster |
 | Thermos Dabba | Rs 80,000 | Eggs last 60% longer |
 | Snow Boots | Rs 120,000 | No slipping on ice, snowballs miss you |
-| Lantern | Rs 200,000 | Light up the salt caves, dodge falling salt |
+| Lantern | Rs 200,000 | Light up the salt caves and see the falling salt rocks in time |
 
-## Riding
+## Vehicles
 
-Open the **Brainrots** window (the button on the left) and press **Ride** on any brainrot. It leaves its plot and carries you everywhere, faster the rarer it is (Common +15%, Uncommon +25%, Rare +40%, Epic +60%, Legendary +80%, Mythic +110%, and a bit more for mutations). Your ride doesn't earn rupees; the rest stay home and farm. Press **Stop riding** and it walks back to a plot. Your ride is saved and comes back when you respawn or rejoin.
+Buy vehicles at the **Gaari Showroom** (Rickshaw Stand, in the bazaar), then press **Gaari** (on the left) and **Drive**. Your vehicle appears under you and you sit in it. Push the stick (or WASD) the way you want to go and it turns towards it like a car. Press **Park** on the dashboard to get out, or just drive up to your haveli door: the eggs in your boot go straight into your incubators and the vehicle parks itself. Vehicles and their upgrades are yours forever, even after a Naya Safar.
+
+| Vehicle | Cost | Speed | Range (full tank) | Boot | Tyres | Friends |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Motorbike** | Rs 3,000 | 34 | 1,500 studs | 1 egg | 0 | 1 |
+| **Rickshaw** | Rs 25,000 | 38 | 2,000 studs | 2 eggs | 0 | 2 |
+| **Pili Taxi** | Rs 150,000 | 46 | 2,800 studs | 3 eggs | 1 | 3 |
+| **Phool Patti Truck** | Rs 1,200,000 | 42 | 4,500 studs | 6 eggs | 2 | 1 |
+
+Walking speed is 20 (more with Joggers or a Peshawari Chappal).
+
+**Upgrades at Ustad's Workshop** (Chai Dhaba Bazaar). Each level costs 1.8 times more than the last; prices grow with the vehicle.
+
+| Upgrade | Levels | What it does |
+| --- | --- | --- |
+| **Engine** | 5 | +10% top speed per level |
+| **Fuel Tank** | 5 | +25% range per level |
+| **Egg Space** | 3 | +1 egg in the boot per level |
+| **Tyres** | up to grip 3 | Grip 1 drives through mud, 2 through sand and sandstorms, 3 on ice without sliding |
+
+**Fuel.** Every stud you drive uses a stud of fuel. With an empty tank your vehicle crawls at walking speed. Petrol pumps fill you up for Rs 0.25 per stud (a full motorbike tank is Rs 375), and parked vehicles fill up slowly for free while you are at your haveli.
+
+**Grip.** Without good enough tyres, mud, sand and ice slow your vehicle down, and on ice it slides. Deep water always slows vehicles.
+
+**Friends.** Other players can hop on with the **Ride along** prompt on your vehicle's seats, and jump to hop off.
+
+**The boot.** Eggs you pick up while driving go in the boot. If you park away from home, you take one egg in your hands and the rest fall out (anyone can grab them). You can't steal from a vehicle, and you can't drive with a stolen brainrot.
+
+**Paint jobs (Robux, looks only):** **Phool Patti** (truck-art colours), **Sona** (gold), **Rangeela** (rainbow, always changing) and **Chamak** (glowing). Buy them at Ustad's Workshop and switch between them in the Gaari window. They never change speed or anything else.
 
 ## Treasure
 
-Every biome hides treasure chests. Buried ones (under a red X) need a **Belcha**; high ones need a **Rassi Seedhi** to climb up from the glowing spot: the Khet water tank's lid, the lighthouse gallery, a desert fort tower, a stilt-hut roof, rock pillars and a ledge in the salt cavern. A chest pays more in further biomes (Rs 1,500 times the tier squared) and sometimes a free Kismat Roll. Each player can open each chest once every 10 minutes.
+Every zone hides treasure chests. Buried ones (under a red X) need a **Belcha**; high ones need a **Rassi Seedhi** to climb up from the glowing spot: the water tank lids in Mango Bagh, Sarson Fields and Camel Mela, the Ghanta Ghar gallery, the lighthouse gallery, a desert fort tower, the Qila gate, a port crane's cab, the Mohenjo-daro citadel and an ice cave roof. A chest pays more in farther zones (Rs 1,200 times the tier squared) and sometimes a free Kismat Roll. You can only open chests in zones you have unlocked, and each chest once every 10 minutes.
 
 ## Havelis
 
@@ -125,9 +172,9 @@ Every biome hides treasure chests. Buried ones (under a red X) need a **Belcha**
 
 ## Progress
 
-- **Naya Safar (rebirth)** at the gate in the Chowk: starts over your rupees, haveli level, radar, brainrots, eggs and ride, for +50% income forever and a new theme. You keep your gear, themes, Collection Book, Kismat Rolls and Chor Passes. The first costs Rs 1,000,000 and each one after costs 2.5 times more.
-- **Daily quests:** 3 a day, like bringing eggs home from different biomes, hatching a Rare, a golden egg, opening treasure, upgrading your haveli or radar, collecting from your galla. They pay rupees and Kismat Rolls, plus 2 bonus rolls for finishing all three.
-- **Collection Book:** fills in as you find brainrots and their mutations, and says which biomes each one hatches in. Finishing a rarity pays rupees and Kismat Rolls, plus that rarity's special quest brainrot.
+- **Naya Safar (rebirth)** at the gate in the Chowk: starts over your rupees, haveli level, radar, brainrots and eggs, for +50% income forever and a new theme. Rebirths 1 to 4 also open the ring 3 zones: Lahore Qila, Karachi Port, Mohenjo-daro and Barfani Pahar. You keep your gear, vehicles, unlocked zones, themes, Collection Book, Kismat Rolls and Chor Passes. The first costs Rs 1,000,000 and each one after costs 2.5 times more.
+- **Daily quests:** 3 a day, like bringing eggs home from different zones, hatching a Rare, a golden egg, opening treasure, upgrading your haveli or radar, collecting from your galla. They pay rupees and Kismat Rolls, plus 2 bonus rolls for finishing all three.
+- **Collection Book:** fills in as you find brainrots and their mutations, and says which zones each one hatches in. Finishing a rarity pays rupees and Kismat Rolls, plus that rarity's special quest brainrot (Secret pays Rs 20,000,000 and 20 rolls).
 - **Events** every 15-20 minutes, 5 minutes each. The banner shows the boosts:
   - **Basant Kite Festival:** kites fill the sky all around you. Cash x2, Luck x2.
   - **Baarish:** rain, twice as many eggs, +20% cash.
@@ -137,22 +184,29 @@ Every biome hides treasure chests. Buried ones (under a red X) need a **Belcha**
   - **Sardi:** snow, eggs last 50% longer.
 - **Daily chai:** a free brainrot or rupees, plus a free Kismat Roll, once a day.
 - **Kismat Roll:** the odds for every rarity and mutation are shown before anyone rolls. An Epic or better is guaranteed at least every 30 rolls.
-- **Robux packs:** 1 or 10 Kismat Rolls, and 1 or 5 Chor Passes. Purchases are saved straight away and never granted twice.
-- **Saving** with DataStores: everything above, including eggs in incubators and your ride.
+- **Robux packs:** 1 or 10 Kismat Rolls, 1 or 5 Chor Passes, and vehicle paint jobs (looks only). Purchases are saved straight away and never granted twice.
+- **Saving** with DataStores: everything above, including eggs in incubators, unlocked zones and your vehicles with their upgrades and fuel. Old saves keep working: the brainrot you used to ride walks back to a plot (or pays its full value if every plot is full), and eggs from the old biomes still hatch.
 
 ## Sounds
 
-The game uses sounds that come with Roblox for buttons, coins, eggs (pick up, home, crack, hatch), treasure, bonks, the Chor alert, splashes, wind in the mountains and desert, upgrades, events and the Kismat Roll. They are all listed in [`src/shared/Sounds.luau`](src/shared/Sounds.luau).
+The game uses sounds that come with Roblox for buttons, coins, eggs (pick up, home, crack, hatch), treasure, bonks, the Chor alert, splashes, wind in the snowy mountains and in sandstorms, upgrades, events and the Kismat Roll. They are all listed in [`src/shared/Sounds.luau`](src/shared/Sounds.luau).
 
 There are three music slots, `MusicBazaar`, `MusicBiome` and `MusicEvent`, empty until you add your own: find a track in the Creator Store (Toolbox > Audio, try "dhol", "tabla" or "bazaar"), copy its id and paste it as `"rbxassetid://123456789"`. The right track plays for where you are. You can swap any other sound the same way, for example to add voice lines.
 
 ## 3D models (Blender)
 
-All the landmarks, plants and props, and all 42 brainrots (see [The 42 brainrots](#the-42-brainrots)), are modelled in **Blender** with Python scripts in [`blender/`](blender/), in a chunky, low-poly, flat-colour style that runs well on phones. There are 74 props:
+All the landmarks, plants, props and vehicles, and all 46 brainrots (see [The 46 brainrots](#the-46-brainrots)), are modelled in **Blender** with Python scripts in [`blender/`](blender/), in a chunky, low-poly, flat-colour style that runs well on phones. There are 115 props and vehicles:
+
+- **Zone landmarks and the bazaar:** the railway station and train, the Ghanta Ghar, Qissa Khawani's tall houses, kahwa and dry-fruit stalls, Lahore Qila's gate, walls, towers and pavilions, shipping containers, a port crane, a cargo ship, Mohenjo-daro's brick ruins, the Great Bath and the citadel mound, an ice cave, snowmen, camels, fair tents, a scarecrow, the petrol pump, the zone gate arch, the Gaari Showroom, Ustad's Workshop, bazaar stalls, a Ferris wheel, the kite tower and the mela stage.
+- **Vehicles:** motorbike, rickshaw, Pili Taxi and Phool Patti Truck (their painted panels change with paint jobs).
 
 - **Landmarks:** rehat, treehouse, rope bridge, lighthouse, rest house, jetty, desert fort, stilt village, suspension bridge, mountain hut, crystal cluster, mine entrance, mine track, mine cart, cave support.
 - **Plants and nature:** kikar (green and dry), mango, banyan, jungle tree, bamboo, bushes, ferns, coconut palm, willow, poplar, deodar (green and snowy), mangrove, juniper, desert shrub, dune grass, reeds, wild flowers, lily pads, boulders, mossy, snowy and beach rocks, sandstone rocks, salt crystals, stalagmites, wheat, sarson and sugarcane fields.
 - **Desi props:** charpai, milestone, matkas, tube well, chai dhaba, fruit stall, pakora stall, gola ganda cart, truck-art truck, auto rickshaw, tractor and trolley, bus stop, road sign, tandoor, haystack, mud house, water tank, beach huts, fishing boat, rowing boat, net rack, desert tent, beach umbrella, lamp post, kite line, bench, street cricket.
+
+| Zone landmarks | Vehicles |
+| --- | --- |
+| ![Zone landmarks](docs/props/zone.jpg) | ![Vehicles](docs/props/vehicle.jpg) |
 
 | Landmarks | Plants and nature | Desi props |
 | --- | --- | --- |
@@ -166,22 +220,22 @@ All the landmarks, plants and props, and all 42 brainrots (see [The 42 brainrots
 **Importing the meshes into Studio (optional, once):**
 
 1. Make sure you are logged in to Studio: the importer uploads the meshes to your account.
-2. **File > Import 3D**, pick `assets/props/ChaiChaosProps.fbx` and import it. It comes in as one model with 116 meshes, each named after its prop or brainrot (`Rehat`, `Lighthouse`, `KikarTree`, `SamosaSupremo`...).
+2. **File > Import 3D**, pick `assets/props/ChaiChaosProps.fbx` and import it. It comes in as one model with 161 meshes, each named after its prop, vehicle or brainrot (`GhantaGhar`, `QilaGate`, `KikarTree`, `SamosaSupremo`...).
 3. Rename that model to **`ChaiChaosProps`** and drag it into **ServerStorage**.
-4. Press Play. Every prop and brainrot that has a matching mesh uses it.
+4. Press Play. Every prop and brainrot that has a matching mesh uses it. (Vehicles always use parts, so paint jobs can recolour them.)
 
 The game resizes each mesh to the right size and stands it up if the importer laid it on its side. If every mesh faces backwards, set `Config.PROP_MESH_TURN = 180`.
 
-**Changing the models.** Open [`assets/props/ChaiChaosProps.blend`](assets/props/ChaiChaosProps.blend) in Blender to look at everything. To change a prop, edit its Python in `blender/props_landmarks.py`, `props_plants.py` or `props_desi.py`; the brainrots are in `brainrots_a.py` (Common and Uncommon), `brainrots_b.py` (Rare and Epic) and `brainrots_c.py` (Legendary, Mythic and Special). The helpers are in `blender/kit.py` and `blender/brainrot_kit.py` (eyes, smiles, moustaches, arms, legs, crowns, caps, wings). Then rebuild everything:
+**Changing the models.** Open [`assets/props/ChaiChaosProps.blend`](assets/props/ChaiChaosProps.blend) in Blender to look at everything. To change a prop, edit its Python in `blender/props_zones.py` (zone landmarks and the bazaar), `props_landmarks.py`, `props_plants.py` or `props_desi.py`; vehicles are in `vehicles.py`; the brainrots are in `brainrots_a.py` (Common and Uncommon), `brainrots_b.py` (Rare and Epic), `brainrots_c.py` (Legendary, Mythic and Special) and `brainrots_d.py` (Secret). The helpers are in `blender/kit.py` and `blender/brainrot_kit.py` (eyes, smiles, moustaches, arms, legs, crowns, caps, wings). Then rebuild everything:
 
 ```bash
 pip install bpy==5.2.3          # Blender as a Python module (needs Python 3.13)
 python blender/build.py         # writes PropData.luau, the FBX, the .blend, the previews and the character sheets
 ```
 
-Where each prop goes in the world is in [`BiomeBuilder.luau`](src/server/BiomeBuilder.luau) (the biomes) and [`MapBuilder.luau`](src/server/MapBuilder.luau) (the Chowk and the countryside).
+Where each prop goes in the world is in [`BiomeBuilder.luau`](src/server/BiomeBuilder.luau) (the zones) and [`MapBuilder.luau`](src/server/MapBuilder.luau) (the Chowk, the bazaar, walls, gates, roads and pumps).
 
-## The 42 brainrots
+## The 46 brainrots
 
 Every brainrot has a chunky, cute Blender model with big eyes, in the same flat-colour style as the props. The game builds it from parts by itself (or uses its mesh if you imported the FBX). It is shrunk if needed so it always fits on an 8 x 8 plot. If you make your own model for a brainrot, the game uses yours instead (see [Making it yours](#making-it-yours)).
 
@@ -191,6 +245,8 @@ Each character sheet below has:
 - **Colour palette:** the exact colours of the Blender model, as hex codes.
 - **A ready-to-paste prompt:** copy it into ChatGPT Astra (or any image or 3D generator) to get a detailed picture or model of the character in the same style. Paste the same prompt again and ask for "the same character from the side and the back" to get a turnaround.
 - **In the game:** its id, price, income, size and where it hatches.
+
+There are 36 brainrots from the design doc, 4 **Secret** brainrots that only hatch in Barfani Pahar (Kahwa Yeti, Gola Ganda Golem, Barfi Barfani Bagh and Jalebi Markhor) and 6 special quest brainrots from the Collection Book.
 
 Click a name to open its sheet. The pictures are the Blender models, one per rarity.
 
@@ -232,7 +288,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.0 studs tall.
 ```
 
-**In the game:** id `GolGappaGhostu` · Rs 50 · +Rs 1/s · 4.0 studs tall, 2.8 x 3.0 studs wide, floats · Hatches in Samandar (Arabian Sea Beach), Jheel (Lake and Meadows).
+**In the game:** id `GolGappaGhostu` · Rs 50 · +Rs 1/s · 4.0 studs tall, 2.8 x 3.0 studs wide, floats · Hatches in Mango Bagh (Punjab Mango Orchards), Qissa Khawani (Peshawar Storytellers' Bazaar), Sahil Beach (Arabian Sea Beach).
 
 </details>
 
@@ -268,7 +324,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 2.7 studs tall.
 ```
 
-**In the game:** id `ChanaChaatChacha` · Rs 80 · +Rs 2/s · 2.7 studs tall, 3.6 x 3.5 studs wide · Hatches in Khet (Punjab Fields).
+**In the game:** id `ChanaChaatChacha` · Rs 80 · +Rs 2/s · 2.7 studs tall, 3.6 x 3.5 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Qissa Khawani (Peshawar Storytellers' Bazaar).
 
 </details>
 
@@ -302,7 +358,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.4 studs tall.
 ```
 
-**In the game:** id `SamosaSupremo` · Rs 100 · +Rs 2/s · 3.4 studs tall, 3.8 x 3.8 studs wide · Hatches in Khet (Punjab Fields), Registan (Cholistan Desert).
+**In the game:** id `SamosaSupremo` · Rs 100 · +Rs 2/s · 3.4 studs tall, 3.8 x 3.8 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Camel Mela (Thar Camel Fair).
 
 </details>
 
@@ -336,7 +392,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.9 studs tall.
 ```
 
-**In the game:** id `NaanNinja` · Rs 120 · +Rs 2/s · 3.9 studs tall, 3.5 x 1.4 studs wide · Hatches in Khet (Punjab Fields).
+**In the game:** id `NaanNinja` · Rs 120 · +Rs 2/s · 3.9 studs tall, 3.5 x 1.4 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Camel Mela (Thar Camel Fair).
 
 </details>
 
@@ -371,7 +427,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.0 studs tall.
 ```
 
-**In the game:** id `KulfiKangaroo` · Rs 150 · +Rs 3/s · 5.0 studs tall, 2.0 x 2.3 studs wide · Hatches in Jungle (Forest and River), Jheel (Lake and Meadows).
+**In the game:** id `KulfiKangaroo` · Rs 150 · +Rs 3/s · 5.0 studs tall, 2.0 x 2.3 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
 
 </details>
 
@@ -407,7 +463,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.2 studs tall.
 ```
 
-**In the game:** id `PyaazPehelwan` · Rs 180 · +Rs 4/s · 4.2 studs tall, 4.8 x 2.9 studs wide · Hatches in Khet (Punjab Fields), Registan (Cholistan Desert).
+**In the game:** id `PyaazPehelwan` · Rs 180 · +Rs 4/s · 4.2 studs tall, 4.8 x 2.9 studs wide · Hatches in Camel Mela (Thar Camel Fair), Qissa Khawani (Peshawar Storytellers' Bazaar).
 
 </details>
 
@@ -441,7 +497,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
 ```
 
-**In the game:** id `ChaiyooKettlesaurus` · Rs 200 · +Rs 4/s · 4.3 studs tall, 2.5 x 5.8 studs wide · Hatches in Samandar (Arabian Sea Beach), Delta (Indus Mangroves).
+**In the game:** id `ChaiyooKettlesaurus` · Rs 200 · +Rs 4/s · 4.3 studs tall, 2.5 x 5.8 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Sahil Beach (Arabian Sea Beach).
 
 </details>
 
@@ -476,7 +532,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
 ```
 
-**In the game:** id `PakoraPanda` · Rs 240 · +Rs 5/s · 4.3 studs tall, 4.4 x 3.6 studs wide · Hatches in Jungle (Forest and River), Delta (Indus Mangroves).
+**In the game:** id `PakoraPanda` · Rs 240 · +Rs 5/s · 4.3 studs tall, 4.4 x 3.6 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
 
 </details>
 
@@ -515,7 +571,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `ParathaPilot` · Rs 600 · +Rs 10/s · 4.1 studs tall, 3.7 x 4.0 studs wide, floats · Hatches in Jungle (Forest and River), Jheel (Lake and Meadows).
+**In the game:** id `ParathaPilot` · Rs 600 · +Rs 10/s · 4.1 studs tall, 3.7 x 4.0 studs wide, floats · Hatches in Railway Junction (Sindh Railway Junction), Qissa Khawani (Peshawar Storytellers' Bazaar).
 
 </details>
 
@@ -550,7 +606,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.7 studs tall.
 ```
 
-**In the game:** id `LassiLlama` · Rs 800 · +Rs 13/s · 4.7 studs tall, 2.3 x 2.4 studs wide · Hatches in Khet (Punjab Fields), Jheel (Lake and Meadows).
+**In the game:** id `LassiLlama` · Rs 800 · +Rs 13/s · 4.7 studs tall, 2.3 x 2.4 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
 
 </details>
 
@@ -586,7 +642,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `GajarHalwaGorilla` · Rs 1,000 · +Rs 15/s · 4.1 studs tall, 4.0 x 2.9 studs wide · Hatches in Registan (Cholistan Desert), Pahar (Karakoram Mountains).
+**In the game:** id `GajarHalwaGorilla` · Rs 1,000 · +Rs 15/s · 4.1 studs tall, 4.0 x 2.9 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields), Namak Caves (Pink Salt Caves).
 
 </details>
 
@@ -621,7 +677,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `RickshawRaptor` · Rs 1,200 · +Rs 18/s · 4.1 studs tall, 2.4 x 6.4 studs wide · Hatches in Jungle (Forest and River), Registan (Cholistan Desert).
+**In the game:** id `RickshawRaptor` · Rs 1,200 · +Rs 18/s · 4.1 studs tall, 2.4 x 6.4 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Thar Desert (Thar Sand Dunes).
 
 </details>
 
@@ -657,7 +713,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.8 studs tall.
 ```
 
-**In the game:** id `BunKebabBhai` · Rs 1,600 · +Rs 24/s · 3.8 studs tall, 4.3 x 2.7 studs wide · Hatches in Khet (Punjab Fields), Delta (Indus Mangroves).
+**In the game:** id `BunKebabBhai` · Rs 1,600 · +Rs 24/s · 3.8 studs tall, 4.3 x 2.7 studs wide · Hatches in Camel Mela (Thar Camel Fair), Thar Desert (Thar Sand Dunes).
 
 </details>
 
@@ -692,7 +748,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `DoodhPattiDolphin` · Rs 1,800 · +Rs 26/s · 4.1 studs tall, 4.2 x 3.2 studs wide, floats · Hatches in Samandar (Arabian Sea Beach), Delta (Indus Mangroves).
+**In the game:** id `DoodhPattiDolphin` · Rs 1,800 · +Rs 26/s · 4.1 studs tall, 4.2 x 3.2 studs wide, floats · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Sahil Beach (Arabian Sea Beach).
 
 </details>
 
@@ -726,7 +782,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.3 studs tall.
 ```
 
-**In the game:** id `RoohAfzaRhino` · Rs 2,000 · +Rs 30/s · 3.3 studs tall, 3.2 x 5.5 studs wide · Hatches in Samandar (Arabian Sea Beach), Pahar (Karakoram Mountains).
+**In the game:** id `RoohAfzaRhino` · Rs 2,000 · +Rs 30/s · 3.3 studs tall, 3.2 x 5.5 studs wide · Hatches in Camel Mela (Thar Camel Fair), Sahil Beach (Arabian Sea Beach), Namak Caves (Pink Salt Caves).
 
 </details>
 
@@ -765,7 +821,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.8 studs tall.
 ```
 
-**In the game:** id `LoadSheddingLattoo` · Rs 3,000 · +Rs 40/s · 4.8 studs tall, 3.2 x 3.4 studs wide · Hatches in Jheel (Lake and Meadows), Pahar (Karakoram Mountains), Namak Kaan (Pink Salt Caves).
+**In the game:** id `LoadSheddingLattoo` · Rs 3,000 · +Rs 40/s · 4.8 studs tall, 3.2 x 3.4 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves).
 
 </details>
 
@@ -800,7 +856,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.2 studs tall.
 ```
 
-**In the game:** id `CricketBatBhaijaan` · Rs 4,000 · +Rs 55/s · 5.2 studs tall, 2.3 x 1.3 studs wide · Hatches in Khet (Punjab Fields), Pahar (Karakoram Mountains).
+**In the game:** id `CricketBatBhaijaan` · Rs 4,000 · +Rs 55/s · 5.2 studs tall, 2.3 x 1.3 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -835,7 +891,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.5 studs tall.
 ```
 
-**In the game:** id `GeneratorGainda` · Rs 5,000 · +Rs 65/s · 4.5 studs tall, 2.3 x 4.5 studs wide · Hatches in Khet (Punjab Fields), Delta (Indus Mangroves), Namak Kaan (Pink Salt Caves).
+**In the game:** id `GeneratorGainda` · Rs 5,000 · +Rs 65/s · 4.5 studs tall, 2.3 x 4.5 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Sarson Fields (Punjab Mustard Fields), Namak Caves (Pink Salt Caves), Karachi Port (The Big Harbour).
 
 </details>
 
@@ -871,7 +927,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.8 studs tall.
 ```
 
-**In the game:** id `BiryaniBadshah` · Rs 6,000 · +Rs 75/s · 3.8 studs tall, 4.4 x 3.7 studs wide · Hatches in Samandar (Arabian Sea Beach), Registan (Cholistan Desert), Namak Kaan (Pink Salt Caves).
+**In the game:** id `BiryaniBadshah` · Rs 6,000 · +Rs 75/s · 3.8 studs tall, 4.4 x 3.7 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Thar Desert (Thar Sand Dunes), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -907,7 +963,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.2 studs tall.
 ```
 
-**In the game:** id `DhabaDragon` · Rs 8,000 · +Rs 100/s · 4.2 studs tall, 4.4 x 5.8 studs wide · Hatches in Jungle (Forest and River), Registan (Cholistan Desert).
+**In the game:** id `DhabaDragon` · Rs 8,000 · +Rs 100/s · 4.2 studs tall, 4.4 x 5.8 studs wide · Hatches in Camel Mela (Thar Camel Fair), Sahil Beach (Arabian Sea Beach), Thar Desert (Thar Sand Dunes).
 
 </details>
 
@@ -943,7 +999,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.1 studs tall.
 ```
 
-**In the game:** id `ShaadiShehnaiShark` · Rs 10,000 · +Rs 120/s · 5.1 studs tall, 2.4 x 3.9 studs wide · Hatches in Samandar (Arabian Sea Beach), Delta (Indus Mangroves).
+**In the game:** id `ShaadiShehnaiShark` · Rs 10,000 · +Rs 120/s · 5.1 studs tall, 2.4 x 3.9 studs wide · Hatches in Sahil Beach (Arabian Sea Beach), Karachi Port (The Big Harbour).
 
 </details>
 
@@ -982,7 +1038,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 2.9 studs tall.
 ```
 
-**In the game:** id `ChipaSahab` · Rs 16,000 · +Rs 180/s · 2.9 studs tall, 4.5 x 2.5 studs wide · Hatches in Registan (Cholistan Desert), Namak Kaan (Pink Salt Caves).
+**In the game:** id `ChipaSahab` · Rs 16,000 · +Rs 180/s · 2.9 studs tall, 4.5 x 2.5 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1016,7 +1072,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
 ```
 
-**In the game:** id `MehndiMummy` · Rs 20,000 · +Rs 230/s · 4.3 studs tall, 2.2 x 4.2 studs wide · Hatches in Jheel (Lake and Meadows), Namak Kaan (Pink Salt Caves).
+**In the game:** id `MehndiMummy` · Rs 20,000 · +Rs 230/s · 4.3 studs tall, 2.2 x 4.2 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1052,7 +1108,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.5 studs tall.
 ```
 
-**In the game:** id `TikkaTiger` · Rs 24,000 · +Rs 270/s · 4.5 studs tall, 3.1 x 2.8 studs wide · Hatches in Jungle (Forest and River), Namak Kaan (Pink Salt Caves).
+**In the game:** id `TikkaTiger` · Rs 24,000 · +Rs 270/s · 4.5 studs tall, 3.1 x 2.8 studs wide · Hatches in Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -1088,7 +1144,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.5 studs tall.
 ```
 
-**In the game:** id `JalebiJinn` · Rs 30,000 · +Rs 320/s · 5.5 studs tall, 3.7 x 3.6 studs wide, floats · Hatches in Samandar (Arabian Sea Beach), Pahar (Karakoram Mountains).
+**In the game:** id `JalebiJinn` · Rs 30,000 · +Rs 320/s · 5.5 studs tall, 3.7 x 3.6 studs wide, floats · Hatches in Sahil Beach (Arabian Sea Beach), Lahore Qila (The Old Fort of Lahore), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1123,7 +1179,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.6 studs tall.
 ```
 
-**In the game:** id `DholakDino` · Rs 40,000 · +Rs 400/s · 4.6 studs tall, 2.4 x 4.8 studs wide · Hatches in Jungle (Forest and River), Delta (Indus Mangroves).
+**In the game:** id `DholakDino` · Rs 40,000 · +Rs 400/s · 4.6 studs tall, 2.4 x 4.8 studs wide · Hatches in Camel Mela (Thar Camel Fair), Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -1158,7 +1214,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.3 studs tall.
 ```
 
-**In the game:** id `RishtaAuntyRobot` · Rs 50,000 · +Rs 500/s · 5.3 studs tall, 2.9 x 2.6 studs wide · Hatches in Delta (Indus Mangroves), Pahar (Karakoram Mountains).
+**In the game:** id `RishtaAuntyRobot` · Rs 50,000 · +Rs 500/s · 5.3 studs tall, 2.9 x 2.6 studs wide · Hatches in Namak Caves (Pink Salt Caves), Karachi Port (The Big Harbour), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1193,7 +1249,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `TongaTornado` · Rs 60,000 · +Rs 600/s · 4.1 studs tall, 3.2 x 3.7 studs wide · Hatches in Jheel (Lake and Meadows), Registan (Cholistan Desert).
+**In the game:** id `TongaTornado` · Rs 60,000 · +Rs 600/s · 4.1 studs tall, 3.2 x 3.7 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Thar Desert (Thar Sand Dunes), Karachi Port (The Big Harbour).
 
 </details>
 
@@ -1233,7 +1289,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.6 studs tall.
 ```
 
-**In the game:** id `TruckArtTotaa` · Rs 80,000 · +Rs 800/s · 5.6 studs tall, 2.8 x 3.8 studs wide · Hatches in Pahar (Karakoram Mountains).
+**In the game:** id `TruckArtTotaa` · Rs 80,000 · +Rs 800/s · 5.6 studs tall, 2.8 x 3.8 studs wide · Hatches in Sahil Beach (Arabian Sea Beach), Karachi Port (The Big Harbour), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1269,7 +1325,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.7 studs tall.
 ```
 
-**In the game:** id `SixerSher` · Rs 150,000 · +Rs 1,400/s · 5.7 studs tall, 3.7 x 4.0 studs wide · Hatches in Samandar (Arabian Sea Beach), Namak Kaan (Pink Salt Caves).
+**In the game:** id `SixerSher` · Rs 150,000 · +Rs 1,400/s · 5.7 studs tall, 3.7 x 4.0 studs wide · Hatches in Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1304,7 +1360,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 6.0 studs tall.
 ```
 
-**In the game:** id `ChilgozaChachaChipka` · Rs 200,000 · +Rs 1,800/s · 6.0 studs tall, 5.3 x 4.9 studs wide · Hatches in Delta (Indus Mangroves), Namak Kaan (Pink Salt Caves).
+**In the game:** id `ChilgozaChachaChipka` · Rs 200,000 · +Rs 1,800/s · 6.0 studs tall, 5.3 x 4.9 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1339,7 +1395,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.7 studs tall.
 ```
 
-**In the game:** id `CylinderCycleChacha` · Rs 240,000 · +Rs 2,200/s · 5.7 studs tall, 4.4 x 4.4 studs wide · Hatches in Registan (Cholistan Desert), Namak Kaan (Pink Salt Caves).
+**In the game:** id `CylinderCycleChacha` · Rs 240,000 · +Rs 2,200/s · 5.7 studs tall, 4.4 x 4.4 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Karachi Port (The Big Harbour).
 
 </details>
 
@@ -1375,7 +1431,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 6.6 studs tall.
 ```
 
-**In the game:** id `MelaMaharaja` · Rs 300,000 · +Rs 2,600/s · 6.6 studs tall, 5.0 x 1.9 studs wide · Hatches in Jheel (Lake and Meadows), Pahar (Karakoram Mountains).
+**In the game:** id `MelaMaharaja` · Rs 300,000 · +Rs 2,600/s · 6.6 studs tall, 5.0 x 1.9 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Lahore Qila (The Old Fort of Lahore), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1414,7 +1470,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 6.0 studs tall.
 ```
 
-**In the game:** id `AmmiKiUdtiChappal` · Rs 500,000 · +Rs 4,000/s · 6.0 studs tall, 4.8 x 1.9 studs wide, floats · Hatches in Delta (Indus Mangroves), Namak Kaan (Pink Salt Caves).
+**In the game:** id `AmmiKiUdtiChappal` · Rs 500,000 · +Rs 4,000/s · 6.0 studs tall, 4.8 x 1.9 studs wide, floats · Hatches in Namak Caves (Pink Salt Caves), Karachi Port (The Big Harbour), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1450,7 +1506,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.5 studs tall.
 ```
 
-**In the game:** id `ChandRaatCheetah` · Rs 800,000 · +Rs 6,500/s · 5.5 studs tall, 5.1 x 6.7 studs wide · Hatches in Registan (Cholistan Desert), Namak Kaan (Pink Salt Caves).
+**In the game:** id `ChandRaatCheetah` · Rs 800,000 · +Rs 6,500/s · 5.5 studs tall, 5.1 x 6.7 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Mohenjo-daro (The Ancient Brick City), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1486,7 +1542,154 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.6 studs tall.
 ```
 
-**In the game:** id `KiteKaptaan` · Rs 1,000,000 · +Rs 8,000/s · 7.6 studs tall, 5.3 x 1.9 studs wide, floats · Hatches in Pahar (Karakoram Mountains), Namak Kaan (Pink Salt Caves).
+**In the game:** id `KiteKaptaan` · Rs 1,000,000 · +Rs 8,000/s · 7.6 studs tall, 5.3 x 1.9 studs wide, floats · Hatches in Sahil Beach (Arabian Sea Beach), Lahore Qila (The Old Fort of Lahore), Barfani Pahar (The Snowy North).
+
+</details>
+
+#### Secret (4)
+
+![Secret brainrots](docs/brainrots/secret.jpg)
+
+<details>
+<summary><b>Kahwa Yeti</b> · Secret · <i>"Ek cup kahwa, garam garam!"</i></summary>
+
+**Look and personality.** A big, fluffy, friendly yeti from the snowy north who always has a hot brass samovar of green kahwa to share. Frosty blue eyebrows, cardamom pods for buttons and a huge warm smile. Ek cup kahwa, garam garam!
+
+**Colour palette**
+
+| Part | Hex |
+| --- | --- |
+| Yeti fur | `#FAFAFA` |
+| Frosty face | `#78BEFF` |
+| Samovar brass | `#BE6E3C` |
+| Cardamom | `#AACD78` |
+| Steam | `#F0F0F5` |
+
+**Ready-to-paste prompt (ChatGPT Astra or any image or 3D generator)**
+
+```text
+Create a 3D cartoon character for my kid-friendly Roblox game "Chai Chaos", a funny game about Pakistani street food, bazaars and family life.
+
+Character: Kahwa Yeti. A big, round, fluffy white yeti with tufts of fur all over, a pale blue face, frosty icy-blue eyebrows and a big happy open mouth. Green cardamom pods as buttons down its tummy. It holds a shiny brass samovar (a tall tea urn with a little tap) of green kahwa in its arms, with white steam curling up. Big blue feet.
+
+Style: chunky and cute, low-poly with flat colours (no textures, no gradients), soft rounded toy-like shapes, big round cartoon eyes (white with a black pupil and a small white shine), friendly and funny, made for kids.
+
+Colours: yeti fur #FAFAFA, frosty face #78BEFF, samovar brass #BE6E3C, cardamom #AACD78, steam #F0F0F5.
+
+Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
+
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.5 studs tall.
+```
+
+**In the game:** id `KahwaYeti` · Rs 2,400,000 · +Rs 15,000/s · 7.5 studs tall, 5.0 x 6.1 studs wide · Hatches in Barfani Pahar (The Snowy North).
+
+</details>
+
+<details>
+<summary><b>Gola Ganda Golem</b> · Secret · <i>"Thanda thanda, rang birangi!"</i></summary>
+
+**Look and personality.** A giant golem built from crushed-ice gola gandas, with rainbow syrup dripping all over and wooden gola sticks for fingers. Big and strong, but it just wants everyone to cool down. Thanda thanda, rang birangi!
+
+**Colour palette**
+
+| Part | Hex |
+| --- | --- |
+| Crushed ice | `#BEE1F5` |
+| Red syrup | `#DC3232` |
+| Orange syrup | `#FA8C28` |
+| Green syrup | `#28A050` |
+| Pink syrup | `#FF69B4` |
+| Gola sticks | `#BE915F` |
+
+**Ready-to-paste prompt (ChatGPT Astra or any image or 3D generator)**
+
+```text
+Create a 3D cartoon character for my kid-friendly Roblox game "Chai Chaos", a funny game about Pakistani street food, bazaars and family life.
+
+Character: Gola Ganda Golem. A giant, chunky golem made of icy-blue crushed-ice balls (gola ganda): a big round body, a round head and lumpy ice arms and legs. Splashes of bright red, orange, green, pink and blue syrup on the ice, with drips running down. Its fingers are wooden ice-lolly sticks. Big friendly eyes, a gentle smile.
+
+Style: chunky and cute, low-poly with flat colours (no textures, no gradients), soft rounded toy-like shapes, big round cartoon eyes (white with a black pupil and a small white shine), friendly and funny, made for kids.
+
+Colours: crushed ice #BEE1F5, red syrup #DC3232, orange syrup #FA8C28, green syrup #28A050, pink syrup #FF69B4, gola sticks #BE915F.
+
+Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
+
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.6 studs tall.
+```
+
+**In the game:** id `GolaGandaGolem` · Rs 3,600,000 · +Rs 21,000/s · 7.6 studs tall, 7.0 x 3.4 studs wide · Hatches in Barfani Pahar (The Snowy North).
+
+</details>
+
+<details>
+<summary><b>Barfi Barfani Bagh</b> · Secret · <i>"Barf bhi, barfi bhi!"</i></summary>
+
+**Look and personality.** A snow leopard made of white and pistachio barfi squares, with shiny silver warq for spots, a long fluffy tail and a woolly Chitrali cap (pakol). Barf (snow) and barfi in one. Barf bhi, barfi bhi!
+
+**Colour palette**
+
+| Part | Hex |
+| --- | --- |
+| White barfi | `#FAFAFA` |
+| Pistachio barfi | `#AACD78` |
+| Silver warq | `#DCDCE6` |
+| Pakol cap | `#EECD91` |
+| Cap rim | `#966437` |
+| Blush | `#FF96A0` |
+
+**Ready-to-paste prompt (ChatGPT Astra or any image or 3D generator)**
+
+```text
+Create a 3D cartoon character for my kid-friendly Roblox game "Chai Chaos", a funny game about Pakistani street food, bazaars and family life.
+
+Character: Barfi Barfani Bagh. A cute snow leopard cub built from soft square sweets (barfi) in white and pistachio green, with little shiny silver squares as its spots. A boxy head with big eyes and rosy cheeks, a long thick fluffy tail curling up, and a round woolly beige cap with a rolled brown rim (a Chitrali pakol). Standing on four short legs, shown from three-quarters.
+
+Style: chunky and cute, low-poly with flat colours (no textures, no gradients), soft rounded toy-like shapes, big round cartoon eyes (white with a black pupil and a small white shine), friendly and funny, made for kids.
+
+Colours: white barfi #FAFAFA, pistachio barfi #AACD78, silver warq #DCDCE6, pakol cap #EECD91, cap rim #966437, blush #FF96A0.
+
+Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
+
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.4 studs tall.
+```
+
+**In the game:** id `BarfiBarfaniBagh` · Rs 5,000,000 · +Rs 28,000/s · 5.4 studs tall, 4.9 x 7.4 studs wide · Hatches in Barfani Pahar (The Snowy North).
+
+</details>
+
+<details>
+<summary><b>Jalebi Markhor</b> · Secret · <i>"Seengh meethe, dil bhi meetha!"</i></summary>
+
+**Look and personality.** A proud markhor, Pakistan's national animal, whose huge spiral horns are golden jalebis. It wears a warm maroon shawl with a gold border and a collar of little bells. Seengh meethe, dil bhi meetha!
+
+**Colour palette**
+
+| Part | Hex |
+| --- | --- |
+| Markhor coat | `#E8CDA5` |
+| Jalebi horns | `#FA9119` |
+| Syrup shine | `#F0AA28` |
+| Shawl | `#821E32` |
+| Shawl border | `#F0BE3C` |
+| Beard | `#966437` |
+
+**Ready-to-paste prompt (ChatGPT Astra or any image or 3D generator)**
+
+```text
+Create a 3D cartoon character for my kid-friendly Roblox game "Chai Chaos", a funny game about Pakistani street food, bazaars and family life.
+
+Character: Jalebi Markhor. A friendly markhor (a wild mountain goat) with a beige coat, a cream muzzle and a dark pointed beard. Its two huge horns twist up in spirals and are made of glossy orange jalebi sweets. A maroon shawl with a gold border over its back, a red collar with small gold bells, big kind eyes. Standing on four legs.
+
+Style: chunky and cute, low-poly with flat colours (no textures, no gradients), soft rounded toy-like shapes, big round cartoon eyes (white with a black pupil and a small white shine), friendly and funny, made for kids.
+
+Colours: markhor coat #E8CDA5, jalebi horns #FA9119, syrup shine #F0AA28, shawl #821E32, shawl border #F0BE3C, beard #966437.
+
+Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
+
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.6 studs tall.
+```
+
+**In the game:** id `JalebiMarkhor` · Rs 7,000,000 · +Rs 36,000/s · 7.6 studs tall, 2.8 x 5.2 studs wide · Hatches in Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1711,11 +1914,11 @@ If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles),
 
 <!-- characters:end -->
 
-To change a sheet, edit its text in [`blender/characters.py`](blender/characters.py) and run `python blender/characters.py` (plain Python, no Blender needed). Prices, rarities, biomes and sizes come from the game's own files, so they stay correct.
+To change a sheet, edit its text in [`blender/characters.py`](blender/characters.py) and run `python blender/characters.py` (plain Python, no Blender needed). Prices, rarities, zones and sizes come from the game's own files, so they stay correct.
 
 ## Pacing
 
-A simulation of the egg loop (walking, radar, gear, incubators, riding and hatch odds) puts the first Naya Safar at about **37, 51 and 67 minutes** for fast, typical and casual players. All brainrot prices are the design doc's prices times `PRICE_MULTIPLIER = 2` in `Config.luau`. Raise it to slow the game down, lower it to speed it up. Egg times, hatch times and odds per biome are in `Biomes.luau`.
+Before the zone gates and vehicles, a simulation of the egg loop put the first Naya Safar at about 37, 51 and 67 minutes for fast, typical and casual players. The new map adds zone prices (about Rs 3 million to open every ring 1 and ring 2 zone) and vehicle costs, but vehicles also make trips shorter, so **playtest the pacing** before you publish. The knobs: brainrot prices are the design doc's prices times `PRICE_MULTIPLIER = 2` in `Config.luau`; zone prices, egg times, hatch times and odds are in `Biomes.luau`; vehicle prices, speeds and upgrade costs are in `Vehicles.luau`; fuel prices are in `Config.luau`.
 
 ## Getting it into Roblox Studio
 
@@ -1743,10 +1946,10 @@ Create these in Roblox Studio, then paste in each file's code. The name in Studi
 
 | File | Create in Studio | Type |
 | --- | --- | --- |
-| All 12 `src/shared/*.luau` files (Biomes, Brainrots, Config, Events, Format, Gear, Motion, Mutations, Quests, Remotes, Sounds, Themes) | `ReplicatedStorage > ChaiChaos` (a Folder) | ModuleScript |
+| All 13 `src/shared/*.luau` files (Biomes, Brainrots, Config, Events, Format, Gear, Motion, Mutations, Quests, Remotes, Sounds, Themes, Vehicles) | `ReplicatedStorage > ChaiChaos` (a Folder) | ModuleScript |
 | `src/server/Main.server.luau` | `ServerScriptService > ChaiChaosServer` (a Folder), named `Main` | Script |
-| The other 24 `src/server/*.luau` files | `ServerScriptService > ChaiChaosServer` | ModuleScript |
-| The 11 `src/client/*.client.luau` files (Events, Haveli, Hud, Kismat, Prompts, Quests, Radar, Shops, Smooth, Sounds, Weather) | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` (a Folder) | LocalScript |
+| The other 25 `src/server/*.luau` files | `ServerScriptService > ChaiChaosServer` | ModuleScript |
+| The 14 `src/client/*.client.luau` files (Driving, Events, Garage, Haveli, Hud, Kismat, Prompts, Quests, Radar, Shops, Smooth, Sounds, Weather, Zones) | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` (a Folder) | LocalScript |
 | `src/client/Ui.luau` and `src/client/SoundPlayer.luau` | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` | ModuleScript |
 
 With this many files, Option A or B is much easier.
@@ -1762,26 +1965,26 @@ With this many files, Option A or B is much easier.
 The Robux buttons stay hidden, and stealing stays free, until you create the products:
 
 1. Publish the game, then open it on the [Creator Dashboard](https://create.roblox.com/dashboard/creations).
-2. Go to **Monetization > Developer Products** and create four products: "1 Kismat Roll", "10 Kismat Rolls", "1 Chor Pass" and "5 Chor Passes". Set each price there.
-3. Copy each product's id into `Config.ROLL_PRODUCTS` and `Config.STEAL_PRODUCTS` in [`src/shared/Config.luau`](src/shared/Config.luau).
+2. Go to **Monetization > Developer Products** and create the products: "1 Kismat Roll", "10 Kismat Rolls", "1 Chor Pass", "5 Chor Passes", and the four paint jobs "Phool Patti", "Sona", "Rangeela" and "Chamak". Set each price there.
+3. Copy each product's id into `Config.ROLL_PRODUCTS`, `Config.STEAL_PRODUCTS` and `Config.PAINT_PRODUCTS` in [`src/shared/Config.luau`](src/shared/Config.luau). A paint job with id 0 stays hidden.
 
 In Studio, purchases are test purchases and cost nothing.
 
 Other settings in `Config.luau`: `STEAL_COSTS_ROBUX = false` makes stealing free, `STEAL_REFUND_ON_FAIL` controls whether failed steals give the Chor Pass back, and `DAILY_FREE_ROLLS` / `DAILY_FREE_STEALS` set what daily chai gives.
 
-**Roblox rules for paid random items.** Kismat Rolls bought with Robux count as paid random items on Roblox. The game shows the exact odds before anyone buys, and never offers Robux rolls to players in countries where Roblox restricts paid random items (it asks `PolicyService` for each player). Those players can still roll with rupees. Before you publish, read Roblox's current rules on paid random items on the Creator Hub, and answer the experience questionnaire honestly. Eggs, gear and the radar are never sold for Robux, and no guaranteed top-rarity brainrot is ever sold.
+**Roblox rules for paid random items.** Kismat Rolls bought with Robux count as paid random items on Roblox. The game shows the exact odds before anyone buys, and never offers Robux rolls to players in countries where Roblox restricts paid random items (it asks `PolicyService` for each player). Those players can still roll with rupees. Before you publish, read Roblox's current rules on paid random items on the Creator Hub, and answer the experience questionnaire honestly. Eggs, gear, the radar, zones, vehicles, upgrades and petrol are never sold for Robux (paint jobs change looks only), and no guaranteed top-rarity brainrot is ever sold.
 
 ## Making it yours
 
-- **Numbers:** prices, timers, haveli levels, incubators, radar levels, hazards and odds are in [`Config.luau`](src/shared/Config.luau). Each biome's egg time, hatch time, odds, brainrot pool and hazards are in [`Biomes.luau`](src/shared/Biomes.luau). Gear is in [`Gear.luau`](src/shared/Gear.luau). Brainrot prices, income and catchphrases are in [`Brainrots.luau`](src/shared/Brainrots.luau).
+- **Numbers:** prices, timers, haveli levels, incubators, radar levels, hazards and odds are in [`Config.luau`](src/shared/Config.luau). Each zone's gate price or rebirths, egg time, hatch time, odds, brainrot pool and hazards are in [`Biomes.luau`](src/shared/Biomes.luau). Vehicles, upgrades and paint jobs are in [`Vehicles.luau`](src/shared/Vehicles.luau). Gear is in [`Gear.luau`](src/shared/Gear.luau). Brainrot prices, income and catchphrases are in [`Brainrots.luau`](src/shared/Brainrots.luau).
 - **Themes, events, quests and mutations:** each has its own list you can edit or add to: [`Themes.luau`](src/shared/Themes.luau), [`Events.luau`](src/shared/Events.luau), [`Quests.luau`](src/shared/Quests.luau) and [`Mutations.luau`](src/shared/Mutations.luau). Theme decorations are in [`HaveliStyle.luau`](src/server/HaveliStyle.luau).
-- **The biomes** are built from code in [`BiomeBuilder.luau`](src/server/BiomeBuilder.luau): terrain, the Blender props, chests and hazard zones. Each one is planned from a fixed seed, so the world is the same every time. The zones' shape and size are in `Biomes.luau` (`ZONE_WIDTH`).
-- **Brainrot models:** every brainrot has a Blender model (see [The 42 brainrots](#the-42-brainrots)). To use your own model instead, for example one you made from a character sheet's prompt, make a Folder named `Brainrots` in **ServerStorage** and put a Model in it named after the brainrot's `id`, for example `SamosaSupremo`, `RickshawRaptor` or `AmmiKiUdtiChappal`. All the ids are on the character sheets and in `Brainrots.luau`. Make the front of the model face its -Z side (the Studio default). The script anchors it and adds the name pop-up, the rarity glow and the mutation tint for you. Name its eye parts `Eye` and they keep their colour on Golden, Diamond and Rainbow brainrots.
-- **The map:** press Play, select `ChaiChaosMap` in the Explorer, copy it, stop the game and paste it into Workspace. Now you can decorate it. Keep the names of the important parts (`ChowkSpawn`, `Leaderboard`, the stalls with a `Shop` attribute, and inside each haveli `Floor`, `Deck`, `Plot1` to `Plot20`, `Incubator1` to `Incubator4`, `Galla`, `Door`, `Barrier`, `Sign`, `Spawn`, `GuardSpot`, `Roof` and the `Walls`, `Trim`, `Accent`, `StairGates` and `Decor` folders), and the game will use your version instead of building a new one. The terrain is not copied that way; the biomes' eggs, chests and hazard zones still follow the plan in `BiomeBuilder.luau`.
+- **The zones** are built from code in [`BiomeBuilder.luau`](src/server/BiomeBuilder.luau): terrain, the Blender props, chests and hazard areas. Each one is planned from a fixed seed, so the world is the same every time. The layout (ring sizes, region angles, where the gates, roads, shortcut doors and petrol pumps go, the train's track) is in `Biomes.luau`.
+- **Brainrot models:** every brainrot has a Blender model (see [The 46 brainrots](#the-46-brainrots)). To use your own model instead, for example one you made from a character sheet's prompt, make a Folder named `Brainrots` in **ServerStorage** and put a Model in it named after the brainrot's `id`, for example `SamosaSupremo`, `RickshawRaptor` or `AmmiKiUdtiChappal`. All the ids are on the character sheets and in `Brainrots.luau`. Make the front of the model face its -Z side (the Studio default). The script anchors it and adds the name pop-up, the rarity glow and the mutation tint for you. Name its eye parts `Eye` and they keep their colour on Golden, Diamond and Rainbow brainrots.
+- **The map:** press Play, select `ChaiChaosMap` in the Explorer, copy it, stop the game and paste it into Workspace. Now you can decorate it. Keep the names of the important parts (`ChowkSpawn`, `Leaderboard`, the stalls with a `Shop` attribute, and inside each haveli `Floor`, `Deck`, `Plot1` to `Plot20`, `Incubator1` to `Incubator4`, `Galla`, `Door`, `Barrier`, `Sign`, `Spawn`, `GuardSpot`, `Roof` and the `Walls`, `Trim`, `Accent`, `StairGates` and `Decor` folders, plus the `GateBarrier`, `ShortcutDoor` and `PumpPad` parts), and the game will use your version instead of building a new one. The terrain is not copied that way; the zones' eggs, chests and hazard areas still follow the plan in `BiomeBuilder.luau`.
 
 ## Not built yet
 
-The kite-flying minigame became the **Basant Kite Festival** event instead. Brainrots stand still apart from bobbing and hopping (no walk cycles or animations yet). Still to come: the 2x Cash and Extra Plots game passes, cosmetics, special behaviours for individual brainrots, and real music (the slots are ready).
+The kite-flying minigame became the **Basant Kite Festival** event instead. Brainrots stand still apart from bobbing and hopping (no walk cycles or animations yet). Vehicles are driven by moving your character (with car-like steering), not by Roblox's physics car parts, so they glide through walls and trees instead of crashing. From the biome-slices map plan, the roaming rare brainrots (wander points) and the brainrot conveyor lane are not built. Still to come: the 2x Cash and Extra Plots game passes, horns and other cosmetics, special behaviours for individual brainrots, and real music (the slots are ready).
 
 ## For developers
 
@@ -1793,4 +1996,4 @@ python blender/build.py --no-render   # rebuild the props and brainrots without 
 python blender/characters.py          # rewrite the brainrot character sheets in this README
 ```
 
-`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game (1237 checks): the world (havelis facing the Chowk, the stalls, 8 separate biome zones with terrain, eggs, chests, hazard zones and their landmarks, the countryside and its rules, every Blender prop as parts and as an imported mesh, and a part budget), every brainrot's Blender model (eyes, size limits, welds, mutation tints, imported meshes, custom models first, the parrot's tail lettering, and old saves with renamed brainrots), joining, picking up eggs, the egg timer and the radar, carrying eggs home, incubators, hatching from each biome's pool, cracking, dropping eggs, every hazard and the gear that stops it, the Gear shop, radar upgrades, golden eggs, egg rushes, hatch odds and luck, riding (speed, respawning, stopping), selling at the stall, treasure (digging, climbing, cooldowns), haveli levels and incubators, themes, the galla, quests, Collection Book rewards, Kismat Rolls with their odds and pity, stealing with every rule (including eggs), the Chowkidar, the Laser Darwaza, chappal bonks on thieves and egg carriers, events and their boosts (with the Basant kites), Robux receipts (including retries and failed saves), the paid random item restriction, Chor Passes, Naya Safar at the Chowk, saving and loading (including eggs and rides, and old saves), sounds and music slots, every theme at every level, the leaderboard and smooth movement. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.
+`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game (1828 checks): the world (havelis facing the Chowk, the stalls and bazaar shops, 12 zones in 4 regions and 3 rings with terrain, eggs, chests, hazard areas and their landmarks, prices that grow outward, zigzag gates, shortcut doors, roads, petrol pumps, the train schedule, the bazaar, every Blender prop as parts and as an imported mesh, and a part budget), every brainrot's Blender model (eyes, size limits, welds, mutation tints, imported meshes, custom models first, the parrot's tail lettering, and old saves with renamed brainrots), joining, picking up eggs, locked zones and unlocking gates, the egg timer and the radar, carrying eggs home, incubators, hatching from each zone's pool, cracking, dropping eggs, every hazard (including the train, waves and salt rocks that push you back) and the gear that stops it, the Gear shop, radar upgrades, golden eggs, egg rushes, hatch odds and luck (including Secret brainrots), selling at the stall, vehicles (the showroom, driving and steering, fuel, the boot, driving home, free refills, running out of petrol, petrol pumps, workshop upgrades, grip on mud and sand, paint jobs, friends riding along, parking, dying), treasure (digging, climbing, cooldowns), haveli levels and incubators, themes, the galla, quests, Collection Book rewards, Kismat Rolls with their odds and pity, stealing with every rule (including eggs), the Chowkidar, the Laser Darwaza, chappal bonks on thieves and egg carriers, events and their boosts (with the Basant kites), Robux receipts (including retries and failed saves), the paid random item restriction, Chor Passes, Naya Safar at the Chowk, saving and loading (including eggs, zones and vehicles, and old saves), sounds and music slots, every theme at every level, the leaderboard and smooth movement. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.

@@ -1,7 +1,7 @@
--- Treasure chests hidden in every biome.
+-- Treasure chests hidden in every zone.
 --
 -- "dig" chests are buried under an X: you need a Belcha (shovel) to dig them up.
--- "climb" chests sit on a cliff, a fort tower, a stilt hut or a cave ledge:
+-- "climb" chests sit on a clock tower, a fort gate, a crane or an ice cave:
 -- you need a Rassi Seedhi (rope ladder) to climb up from the marked spot.
 -- Each player can open each chest once every 10 minutes.
 
@@ -146,6 +146,10 @@ function Treasure.open(player: Player, model: Model?)
 		return
 	end
 	if not State.isNear(player, chest.model.PrimaryPart.Position, 16) then
+		return
+	end
+	if not State.isZoneOpen(profile, chest.biome) then
+		State.notify(player, "bad", ("Unlock %s to open its treasure!"):format(chest.biome.name))
 		return
 	end
 	if chest.kind == "dig" and not profile.data.gear.Shovel then

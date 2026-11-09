@@ -3,8 +3,11 @@
 --
 -- The Chowk (town square) is in the middle with the fountain and the shops:
 -- Sell, Gear, Tracker, Kismat Kettle, Naya Safar, Quests and the leaderboard.
--- The 8 havelis stand in a ring around it, facing the fountain. Between the
--- havelis, 8 roads lead out to the 8 biomes (see BiomeBuilder.luau).
+-- The 8 havelis stand in a ring around it, facing the fountain. Around them is
+-- the Lahore bazaar (with the Gaari Showroom and Ustad's Workshop) inside the
+-- town wall. Four roads lead out through the town gates to the 4 regions,
+-- and zigzag from gate to gate through their 3 rings of zones (see
+-- Biomes.luau for the layout and BiomeBuilder.luau for the zones).
 --
 -- Haveli layout (looking from the Chowk): the door is in the front wall, the
 -- courtyard has the galla, the egg incubators and the stairs, plots 1-10 are on
@@ -84,6 +87,9 @@ export type Map = {
 	shops: { [string]: BasePart },
 	leaderboard: Frame?,
 	biomes: { [string]: any },
+	gates: { [string]: BasePart }, -- the barrier across each zone's gate (not the free one)
+	doors: { BasePart }, -- the shortcut doors between regions
+	pumps: { BasePart }, -- petrol pumps
 }
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -144,27 +150,6 @@ local BRIGHT = {
 	rgb(255, 120, 220),
 	rgb(255, 150, 40),
 }
-
-local function buildBunting(parent: Instance, from: Vector3, to: Vector3)
-	local count = math.floor((to - from).Magnitude / 2)
-	local along = (to - from).Unit
-	for i = 0, count do
-		local t = i / count
-		local sag = math.sin(t * math.pi) * 1.5
-		local pos = from:Lerp(to, t) - Vector3.new(0, sag, 0)
-		part({
-			Name = "Flag",
-			Size = Vector3.new(0.1, 1.2, 1.2),
-			-- a diamond hanging on the string
-			CFrame = CFrame.lookAt(pos, pos + along) * CFrame.Angles(math.rad(45), 0, 0),
-			Color = BRIGHT[i % #BRIGHT + 1],
-			Material = Enum.Material.Fabric,
-			CanCollide = false,
-			CastShadow = false,
-			Parent = parent,
-		})
-	end
-end
 
 local function buildHaveli(parent: Instance, index: number, center: Vector3)
 	local origin = CFrame.lookAt(center, Vector3.new(0, center.Y, 0))
@@ -787,78 +772,252 @@ local function buildHub(map: Model): { [string]: BasePart }
 end
 
 ---------------------------------------------------------------------------
--- Roads, gates, countryside and the edge of the world
+-- Roads, walls, gates, shortcut doors, petrol pumps and the edge of the world
 ---------------------------------------------------------------------------
+local ROAD_COLORS = {
+	spoke = rgb(75, 75, 82),
+	zone = rgb(75, 75, 82),
+	street = rgb(200, 175, 140),
+	alley = rgb(200, 175, 140),
+}
+
 local function buildRoads(map: Model)
 	local roads = Instance.new("Folder")
 	roads.Name = "Roads"
 	roads.Parent = map
-	for _, biome in Biomes.list do
-		local dir = Biomes.direction(biome)
-		local from, to = Biomes.PLAZA_RADIUS - 2, Biomes.innerRadius(biome)
-		local mid = dir * ((from + to) / 2) + Vector3.new(0, GROUND_Y + 0.15, 0)
-		local cf = CFrame.lookAt(mid, mid + dir)
+	for _, road in Biomes.roads() do
+		local a, b = road.a + Vector3.new(0, 0.15, 0), road.b + Vector3.new(0, 0.15, 0)
+		local cf = CFrame.lookAt((a + b) / 2, b)
+		local paved = road.kind == "street" or road.kind == "alley"
 		part({
 			Name = "Road",
-			Size = Vector3.new(14, 0.3, to - from),
+			Size = Vector3.new(road.width, 0.3, (b - a).Magnitude + road.width * 0.25),
 			CFrame = cf,
-			Color = rgb(200, 175, 140),
-			Material = Enum.Material.Cobblestone,
+			Color = ROAD_COLORS[road.kind],
+			Material = if paved then Enum.Material.Cobblestone else Enum.Material.Asphalt,
 			Parent = roads,
 		})
-		for _, x in { -7.5, 7.5 } do
+		if not paved then
 			part({
-				Name = "RoadEdge",
-				Size = Vector3.new(1, 0.5, to - from),
-				CFrame = cf * CFrame.new(x, 0.1, 0),
-				Color = biome.color,
+				Name = "RoadLine",
+				Size = Vector3.new(0.5, 0.32, (b - a).Magnitude),
+				CFrame = cf,
+				Color = rgb(250, 210, 60),
+				CanCollide = false,
 				Parent = roads,
 			})
 		end
-		-- the biome gate
-		local gatePos = dir * to + Vector3.new(0, GROUND_Y, 0)
-		local gate = CFrame.lookAt(gatePos, Vector3.new(0, GROUND_Y, 0))
-		for _, x in { -9, 9 } do
+	end
+end
+
+-- A round wall made of straight pieces, with openings at the given angles.
+local function ringWall(
+	parent: Instance,
+	name: string,
+	radius: number,
+	height: number,
+	color: Color3,
+	material: Enum.Material,
+	gaps: { number },
+	gapWidth: number
+)
+	local count = math.ceil(2 * math.pi * radius / 20)
+	local step = 360 / count
+	local length = 2 * math.pi * radius * step / 360 + 0.6
+	for i = 0, count - 1 do
+		local angle = (i + 0.5) * step
+		local open = false
+		for _, gap in gaps do
+			local off = math.abs(Biomes.angleDiff(angle, gap)) * math.pi * radius / 180
+			if off < gapWidth / 2 + length / 2 then
+				open = true
+			end
+		end
+		if not open then
+			local position = Biomes.polar(angle, radius) + Vector3.new(0, height / 2, 0)
 			part({
-				Name = "GatePillar",
-				Size = Vector3.new(3, 16, 3),
-				CFrame = gate * CFrame.new(x, 8, 0),
-				Color = biome.color,
-				Parent = roads,
+				Name = name,
+				Size = Vector3.new(length, height, 2.4),
+				CFrame = CFrame.lookAt(position, Vector3.new(0, position.Y, 0)),
+				Color = color,
+				Material = material,
+				Parent = parent,
 			})
 		end
-		local sign = part({
-			Name = "GateSign",
-			Size = Vector3.new(21, 4.5, 1),
-			CFrame = gate * CFrame.new(0, 17, 0),
-			Color = biome.color:Lerp(rgb(0, 0, 0), 0.45),
-			Parent = roads,
+	end
+end
+
+-- A straight fence along a radius, from r1 to r2.
+local function radialFence(parent: Instance, angle: number, r1: number, r2: number, height: number)
+	local a, b = Biomes.polar(angle, r1), Biomes.polar(angle, r2)
+	part({
+		Name = "RegionFence",
+		Size = Vector3.new(2.4, height, (b - a).Magnitude),
+		CFrame = CFrame.lookAt((a + b) / 2 + Vector3.new(0, height / 2, 0), b + Vector3.new(0, height / 2, 0)),
+		Color = rgb(150, 105, 65),
+		Material = Enum.Material.WoodPlanks,
+		Parent = parent,
+	})
+end
+
+local function forceField(props: { [string]: any }): Part
+	local p = part(props)
+	p.Material = Enum.Material.ForceField
+	p.Transparency = 0.45
+	p.CastShadow = false
+	return p
+end
+
+local function buildWalls(map: Model)
+	local walls = Instance.new("Folder")
+	walls.Name = "Walls"
+	walls.Parent = map
+	local regionGaps, ring2Gaps, ring3Gaps = {}, {}, {}
+	for _, region in Biomes.REGIONS do
+		local zones = Biomes.byRegion[region.id]
+		table.insert(regionGaps, region.angle)
+		table.insert(ring2Gaps, (Biomes.gate(zones[2])))
+		table.insert(ring3Gaps, (Biomes.gate(zones[3])))
+	end
+	local gateW = Biomes.GATE_WIDTH
+	ringWall(walls, "TownWall", Biomes.TOWN_RADIUS, 10, rgb(196, 120, 80), Enum.Material.Brick, regionGaps, gateW)
+	ringWall(walls, "Ring2Wall", Biomes.RINGS[2][1], 9, rgb(150, 105, 65), Enum.Material.WoodPlanks, ring2Gaps, gateW)
+	ringWall(
+		walls,
+		"Ring3Wall",
+		Biomes.RINGS[3][1],
+		11,
+		rgb(170, 160, 150),
+		Enum.Material.Cobblestone,
+		ring3Gaps,
+		gateW
+	)
+
+	-- the fences between regions, each with a shortcut door in every ring
+	local doors = Instance.new("Folder")
+	doors.Name = "ShortcutDoors"
+	doors.Parent = map
+	local doorWidth = 24
+	for _, region in Biomes.REGIONS do
+		local angle = region.angle + Biomes.SPAN
+		local r = Biomes.TOWN_RADIUS
+		for _, span in Biomes.RINGS do
+			local mid = (span[1] + span[2]) / 2
+			radialFence(walls, angle, r, mid - doorWidth / 2, 9)
+			r = mid + doorWidth / 2
+		end
+		radialFence(walls, angle, r, Biomes.WORLD_RADIUS, 9)
+	end
+	for _, door in Biomes.shortcuts() do
+		local position = Biomes.polar(door.angle, door.radius) + Vector3.new(0, 6, 0)
+		local cf = CFrame.lookAt(position, Vector3.new(0, position.Y, 0))
+		local field = forceField({
+			Name = "ShortcutDoor",
+			Size = Vector3.new(1.2, 12, doorWidth),
+			CFrame = cf,
+			Color = rgb(80, 200, 255),
+			Parent = doors,
 		})
-		local label = ("%s · %s"):format(biome.name:upper(), biome.title)
-		surfaceText(sign, Enum.NormalId.Front, label, rgb(255, 240, 170))
-		surfaceText(sign, Enum.NormalId.Back, "TO THE CHOWK", rgb(255, 240, 170))
-		buildBunting(roads, (gate * CFrame.new(-8, 13.5, 0)).Position, (gate * CFrame.new(8, 13.5, 0)).Position)
-		-- a road sign by the Chowk for players heading out
-		local signPos = dir * (Biomes.PLAZA_RADIUS + 14) + Vector3.new(0, GROUND_Y, 0) + dir:Cross(Vector3.yAxis) * 10
-		local signCF = CFrame.lookAt(signPos, Vector3.new(0, GROUND_Y, 0))
-		Props.place("Signboard", signCF, roads)
-		Props.text(
-			roads,
-			signCF,
-			Props.anchor("Signboard", "Face", signCF),
-			5.2,
-			2.2,
-			("%s\nTier %d"):format(biome.name:upper(), biome.tier)
-		)
+		field:SetAttribute("ZoneA", door.a.id)
+		field:SetAttribute("ZoneB", door.b.id)
+		local board = part({
+			Name = "DoorSign",
+			Size = Vector3.new(0.4, 3.2, 16),
+			CFrame = cf * CFrame.new(0, 8, 0),
+			Color = rgb(30, 60, 110),
+			Parent = doors,
+		})
+		local text = ("SHORTCUT\n%s / %s"):format(door.a.name:upper(), door.b.name:upper())
+		surfaceText(board, Enum.NormalId.Left, text, rgb(170, 230, 255))
+		surfaceText(board, Enum.NormalId.Right, text, rgb(170, 230, 255))
 	end
 
-	-- the edge of the world
+	-- the gates: an arch over every zone's way in, with a barrier until you unlock it
+	local gates = Instance.new("Folder")
+	gates.Name = "Gates"
+	gates.Parent = map
+	for _, biome in Biomes.list do
+		local angle, radius = Biomes.gate(biome)
+		local ground = Biomes.polar(angle, radius)
+		local cf = CFrame.lookAt(ground, Vector3.new(0, ground.Y, 0))
+		Props.place("ZoneGate", cf, gates)
+		local best = ""
+		for _, rarity in { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" } do
+			if (biome.odds[rarity] or 0) > 0 then
+				best = rarity
+			end
+		end
+		Props.text(
+			gates,
+			cf,
+			Props.anchor("ZoneGate", "Sign", cf),
+			20,
+			3,
+			("%s\n%s · up to %s"):format(biome.name:upper(), Biomes.costText(biome), best)
+		)
+		Props.text(
+			gates,
+			cf * CFrame.Angles(0, math.pi, 0),
+			Props.anchor("ZoneGate", "SignBack", cf),
+			20,
+			3,
+			biome.name:upper()
+		)
+		if biome.price > 0 or biome.rebirths > 0 then
+			local barrier = forceField({
+				Name = "GateBarrier",
+				Size = Vector3.new(Biomes.GATE_WIDTH, 16, 1.2),
+				CFrame = cf * CFrame.new(0, 8, 0),
+				Color = rgb(255, 190, 50),
+				Parent = gates,
+			})
+			barrier:SetAttribute("Zone", biome.id)
+			local prompt = Instance.new("ProximityPrompt")
+			prompt.Name = "GatePrompt"
+			prompt.ActionText = if biome.rebirths > 0 then "Open" else "Unlock"
+			prompt.ObjectText = ("%s (%s)"):format(biome.name, Biomes.costText(biome))
+			prompt.HoldDuration = 0.8
+			prompt.MaxActivationDistance = 16
+			prompt.RequiresLineOfSight = false
+			prompt.Parent = barrier
+		end
+	end
+
+	-- petrol pumps
+	local pumps = Instance.new("Folder")
+	pumps.Name = "PetrolPumps"
+	pumps.Parent = map
+	for _, spot in Biomes.pumps() do
+		local cf = CFrame.lookAt(spot, Vector3.new(0, spot.Y, 0))
+		Props.place("PetrolPump", cf, pumps)
+		Props.text(pumps, cf, Props.anchor("PetrolPump", "Sign", cf), 7.6, 1.4, "PETROL")
+		local pad = part({
+			Name = "PumpPad",
+			Size = Vector3.new(14, 0.4, 10),
+			CFrame = cf * CFrame.new(0, 0.5, 0),
+			Color = rgb(255, 230, 120),
+			Material = Enum.Material.Neon,
+			Transparency = 0.7,
+			CanCollide = false,
+			Parent = pumps,
+		})
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "PumpPrompt"
+		prompt.ActionText = "Fill up"
+		prompt.ObjectText = "Petrol Pump"
+		prompt.HoldDuration = 0.5
+		prompt.MaxActivationDistance = Config.PUMP_DISTANCE
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = pad
+	end
+
+	-- the edge of the world: an invisible wall, with mountains beyond it
 	local edge = Instance.new("Folder")
 	edge.Name = "WorldEdge"
 	edge.Parent = map
 	for k = 0, 47 do
-		local a = math.rad(k * 7.5)
-		local position = Vector3.new(math.cos(a), 0, math.sin(a)) * Biomes.WORLD_RADIUS + Vector3.new(0, 100, 0)
+		local a = k * 7.5
+		local position = Biomes.polar(a, Biomes.WORLD_RADIUS) + Vector3.new(0, 100, 0)
 		part({
 			Name = "Edge",
 			Size = Vector3.new(Biomes.WORLD_RADIUS * math.rad(7.5) + 4, 220, 4),
@@ -868,226 +1027,171 @@ local function buildRoads(map: Model)
 			Parent = edge,
 		})
 	end
+	local terrain = workspace.Terrain
+	local rng = Random.new(91)
+	for k = 0, 59 do
+		local a = k * 6
+		local region = nil
+		for _, r in Biomes.REGIONS do
+			if math.abs(Biomes.angleDiff(a, r.angle)) <= 45 then
+				region = r.id
+			end
+		end
+		local material = if region == "KPK"
+			then Enum.Material.Snow
+			elseif region == "Thar" then Enum.Material.Sandstone
+			elseif region == "Sindh" then Enum.Material.Rock
+			else Enum.Material.Grass
+		local radius = rng:NextNumber(40, 70)
+		terrain:FillBall(
+			Biomes.polar(a, Biomes.WORLD_RADIUS + 30 + radius * 0.6) - Vector3.new(0, 10, 0),
+			radius,
+			material
+		)
+	end
 end
 
 ---------------------------------------------------------------------------
--- The countryside between the bazaar and the biomes: roadside dhabas and
--- stalls, parked trucks and rickshaws, bus stops, milestones, little farms,
--- ponds and trees. Everything comes from Props (modelled in Blender).
+-- The Lahore bazaar: the town ring between the havelis and the town wall.
+-- Two rows of stalls along the bazaar street, and 6 sectors: Brainrot Mandi,
+-- Kite Point, Cricket Gali, Mela Ground, Chai Dhaba Bazaar (with Ustad's
+-- Workshop) and the Rickshaw Stand (with the Gaari Showroom).
 ---------------------------------------------------------------------------
-local Countryside = {}
-
-local function roadInfo(biome)
-	local dir = Biomes.direction(biome)
-	return dir, Vector3.new(-dir.Z, 0, dir.X), Biomes.innerRadius(biome)
-end
-
--- Is this spot open countryside, `radius` studs clear of roads, biomes and the bazaar?
-function Countryside.isOpen(position: Vector3, radius: number): boolean
-	local r = math.sqrt(position.X * position.X + position.Z * position.Z)
-	if r < Biomes.HUB_RADIUS + 6 + radius or r > Biomes.WORLD_RADIUS - 40 - radius then
-		return false
+local function buildTown(map: Model)
+	local town = Instance.new("Folder")
+	town.Name = "Bazaar"
+	town.Parent = map
+	workspace.Terrain:FillCylinder(CFrame.new(0, GROUND_Y - 2, 0), 4, Biomes.TOWN_RADIUS, Enum.Material.Pavement)
+	local function at(angle: number, r: number): Vector3
+		return Biomes.polar(angle, r)
 	end
-	for _, biome in Biomes.list do
-		if Biomes.zoneDistance(biome, position) < 1 + (radius + 8) / 100 then
-			return false
-		end
-		local dir, across, inner = roadInfo(biome)
-		local along = position.X * dir.X + position.Z * dir.Z
-		local side = math.abs(position.X * across.X + position.Z * across.Z)
-		if along > Biomes.PLAZA_RADIUS - 10 and along < inner + 12 and side < 9 + radius then
-			return false
-		end
+	local function facingIn(position: Vector3): CFrame
+		return CFrame.lookAt(position, Vector3.new(0, position.Y, 0))
 	end
-	return true
-end
-
-local function buildCountryside(map: Model)
-	local folder = Instance.new("Folder")
-	folder.Name = "Countryside"
-	folder.Parent = map
-	local rng = Random.new(77)
-	local taken: { { position: Vector3, radius: number } } = {}
-	local function free(position: Vector3, radius: number): boolean
-		for _, t in taken do
-			if ((position - t.position) * Vector3.new(1, 0, 1)).Magnitude < radius + t.radius then
+	local function facingOut(position: Vector3): CFrame
+		return CFrame.lookAt(position, position * 2 - Vector3.new(0, position.Y, 0))
+	end
+	-- angles to keep clear of stalls: roads, pumps and the big landmarks
+	local keepClear = {}
+	for _, region in Biomes.REGIONS do
+		table.insert(keepClear, { angle = region.angle, width = 7 })
+		table.insert(keepClear, { angle = region.angle + 45, width = 5 })
+		table.insert(keepClear, { angle = region.angle + 10, width = 5 })
+	end
+	for _, landmark in { { -30, 7 }, { 30, 9 }, { 76, 7 }, { 104, 8 }, { 150, 8 }, { 162, 5 }, { 210, 8 }, { 224, 6 } } do
+		table.insert(keepClear, { angle = landmark[1], width = landmark[2] })
+	end
+	local function clear(angle: number): boolean
+		for _, k in keepClear do
+			if math.abs(Biomes.angleDiff(angle, k.angle)) < k.width then
 				return false
 			end
 		end
 		return true
 	end
-	local function put(name: string, cf: CFrame, radius: number, scale: number?)
-		Props.place(name, cf, folder, scale)
-		table.insert(taken, { position = cf.Position, radius = radius })
-	end
-	local function ground(x: number, z: number): Vector3
-		return Vector3.new(x, GROUND_Y, z)
-	end
-
-	-- along every road
-	local stalls = { "FruitStall", "PakoraStall", "GolaCart" }
-	local vehicles = { "TruckArt", "Rickshaw" }
-	for i, biome in Biomes.list do
-		local dir, across, inner = roadInfo(biome)
-		local side = if i % 2 == 0 then 1 else -1
-		local function roadside(along: number, offset: number): Vector3
-			local p = dir * along + across * offset
-			return ground(p.X, p.Z)
-		end
-		local function facingRoad(position: Vector3, offset: number): CFrame
-			return CFrame.lookAt(position, position - across * math.sign(offset))
-		end
-		-- lamp posts between the havelis
-		for _, offset in { -9.5, 9.5 } do
-			local p = roadside(118, offset)
-			Props.place("Lamppost", facingRoad(p, offset), folder)
-		end
-		-- milestones counting down to the biome
-		local along = 214
-		local n = 0
-		while along < inner - 12 do
+	local stalls = { "BazaarStallRed", "BazaarStallGreen", "BazaarStallBlue", "BazaarStallYellow" }
+	local n = 0
+	for angle = 4, 360, 9 do
+		if clear(angle) then
 			n += 1
-			local offset = if n % 2 == 0 then 10.5 else -10.5
-			local cf = facingRoad(roadside(along, offset), offset)
-			put("Milestone", cf, 1.5)
-			Props.text(
-				folder,
-				cf,
-				Props.anchor("Milestone", "Face", cf),
-				1.5,
-				1.3,
-				("%s\n%d"):format(biome.name:upper(), math.ceil((inner - along) / 10))
-			)
-			along += 60
-		end
-		local length = inner - Biomes.HUB_RADIUS
-		-- a bus stop just outside the bazaar on every other road
-		if i % 2 == 1 then
-			put("BusStop", facingRoad(roadside(212, -side * 11.5), -side * 11.5), 5)
-		end
-		-- a chai dhaba with charpais and a parked truck or rickshaw
-		if length >= 70 then
-			local at = Biomes.HUB_RADIUS + length * 0.45
-			local offset = side * 19
-			local cf = facingRoad(roadside(at, offset), offset)
-			put("ChaiDhaba", cf, 9)
-			Props.text(folder, cf, Props.anchor("ChaiDhaba", "Sign", cf), 5.6, 1.2, "CHAI")
-			for k, dz in { -10.5, 10.5 } do
-				put("Charpai", CFrame.new(roadside(at + dz, side * 17)) * CFrame.Angles(0, math.rad(20 + k * 70), 0), 3)
-			end
-			local spot = roadside(at + 20, side * 14)
-			put(vehicles[i % 2 + 1], CFrame.lookAt(spot, spot - dir), 8)
-		end
-		-- a snack stall near the biome gate
-		if length >= 45 then
-			local offset = -side * 13
-			put(stalls[i % 3 + 1], facingRoad(roadside(inner - 26, offset), offset), 4)
+			Props.place(stalls[n % #stalls + 1], facingOut(at(angle, 218)), town)
 		end
 	end
-
-	-- little farms in the open land between the biomes
-	local crops = { "WheatField", "SarsonField", "SugarcaneField", "WheatField" }
-	local farms = 0
-	for k = 0, 7 do
-		local a = math.rad(45 * k)
-		for _, r in { 300, 470, 640 } do
-			local c = ground(math.cos(a) * r, math.sin(a) * r)
-			if Countryside.isOpen(c, 26) and free(c, 26) then
-				farms += 1
-				local frame = CFrame.lookAt(c, ground(0, 0))
-				for _, offset in
-					{
-						Vector3.new(-11, 0, -11),
-						Vector3.new(11, 0, -11),
-						Vector3.new(-11, 0, 11),
-						Vector3.new(11, 0, 11),
-					}
-				do
-					local spot = frame * CFrame.new(offset)
-					if Countryside.isOpen(spot.Position, 10) then
-						put(crops[rng:NextInteger(1, #crops)], spot, 10)
-					end
-				end
-				local edge = frame * CFrame.new(0, 0, -25)
-				put("TubeWell", edge * CFrame.new(-6, 0, 0), 3)
-				put("Charpai", edge * CFrame.new(3, 0, 0) * CFrame.Angles(0, math.rad(rng:NextNumber(0, 180)), 0), 3)
-				put("Haystack", frame * CFrame.new(26, 0, 6), 3)
-				put("Haystack", frame * CFrame.new(28, 0, -4), 3)
-				if farms % 2 == 1 then
-					put("TractorTrolley", frame * CFrame.new(-28, 0, 0), 9)
-				end
-				if farms % 3 == 1 then
-					put("MudHut", frame * CFrame.new(-26, 0, 20) * CFrame.Angles(0, math.rad(15), 0), 7)
-				end
-			end
+	for angle = 0, 360, 7.5 do
+		if clear(angle) then
+			n += 1
+			Props.place(stalls[n % #stalls + 1], facingIn(at(angle, 274)), town)
 		end
 	end
-
-	-- ponds with reeds
-	local ponds = 0
-	for _ = 1, 400 do
-		if ponds >= 6 then
-			break
+	-- string lights over the bazaar street
+	for k = 0, 35 do
+		local angle = k * 10 + 5
+		for _, r in { 233, 257 } do
+			part({
+				Name = "LightPole",
+				Size = Vector3.new(0.5, 11, 0.5),
+				Position = at(angle, r) + Vector3.new(0, 5.5, 0),
+				Color = rgb(110, 70, 45),
+				Parent = town,
+			})
 		end
-		local r = rng:NextNumber(260, 700)
-		local a = rng:NextNumber(0, math.pi * 2)
-		local c = ground(math.cos(a) * r, math.sin(a) * r)
-		local radius = rng:NextNumber(8, 13)
-		if Countryside.isOpen(c, radius + 4) and free(c, radius + 4) then
-			ponds += 1
-			BiomeBuilder.pondAt(c, radius, 3, Enum.Material.Water)
-			table.insert(taken, { position = c, radius = radius + 2 })
-			for j = 1, 5 do
-				local b = j * 2 * math.pi / 5 + rng:NextNumber(-0.3, 0.3)
-				local spot = c + Vector3.new(math.cos(b), 0, math.sin(b)) * (radius + 0.5)
-				Props.place("Reeds", CFrame.new(spot) * CFrame.Angles(0, b, 0), folder)
-			end
-		end
-	end
-
-	-- street cricket and kites near the bazaar
-	local fun = { "CricketStumps", "KiteLine", "CricketStumps", "KiteLine" }
-	local placed = 0
-	for _ = 1, 300 do
-		if placed >= #fun then
-			break
-		end
-		local r = rng:NextNumber(215, 290)
-		local a = rng:NextNumber(0, math.pi * 2)
-		local c = ground(math.cos(a) * r, math.sin(a) * r)
-		if Countryside.isOpen(c, 11) and free(c, 11) then
-			placed += 1
-			put(fun[placed], CFrame.lookAt(c, ground(0, 0)) * CFrame.Angles(0, math.rad(90), 0), 11)
+		local bulb = part({
+			Name = "Bulb",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 1.1,
+			Position = at(angle, Biomes.BAZAAR_STREET) + Vector3.new(0, 10.5, 0),
+			Color = BRIGHT[k % #BRIGHT + 1],
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = town,
+		})
+		if k % 3 == 0 then
+			local light = Instance.new("PointLight")
+			light.Color = bulb.Color
+			light.Range = 18
+			light.Brightness = 1.2
+			light.Parent = bulb
 		end
 	end
-
-	-- trees, bushes and rocks everywhere else
-	local scatter = {
-		{ "KikarTree", 46, 5, { 0.9, 1.35 } },
-		{ "MangoTree", 26, 5, { 0.9, 1.25 } },
-		{ "JungleBush", 24, 2.5, { 0.8, 1.2 } },
-		{ "Boulder", 12, 3, { 0.7, 1.3 } },
-	}
-	for _, entry in scatter do
-		local name, count, radius, scales = entry[1], entry[2], entry[3], entry[4]
-		local done = 0
-		for _ = 1, count * 12 do
-			if done >= count then
-				break
-			end
-			local r = rng:NextNumber(Biomes.HUB_RADIUS + 10, Biomes.WORLD_RADIUS - 50)
-			local a = rng:NextNumber(0, math.pi * 2)
-			local c = ground(math.cos(a) * r, math.sin(a) * r)
-			local scale = rng:NextNumber(scales[1], scales[2])
-			if Countryside.isOpen(c, radius * scale) and free(c, radius * scale) then
-				done += 1
-				put(name, CFrame.new(c) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0), radius * scale, scale)
-			end
-		end
+	-- a sign for every sector
+	for _, sector in Biomes.TOWN_SECTORS do
+		local spot = at(sector.angle + 4, 262)
+		local cf = facingIn(spot)
+		Props.place("Signboard", cf, town)
+		Props.text(town, cf, Props.anchor("Signboard", "Face", cf), 5.2, 2.2, sector.name:upper())
+	end
+	-- Kite Point
+	Props.place("KiteTower", facingIn(at(-30, 262)), town)
+	Props.place("KiteLine", facingIn(at(-22, 262)) * CFrame.Angles(0, math.rad(90), 0), town)
+	-- Cricket Gali: a pitch, stumps at both ends and a bench
+	local pitchCF = facingIn(at(30, 262)) * CFrame.Angles(0, math.rad(90), 0)
+	part({
+		Name = "Pitch",
+		Size = Vector3.new(8, 0.3, 40),
+		CFrame = pitchCF * CFrame.new(0, 0.15, 0),
+		Color = rgb(210, 190, 140),
+		Material = Enum.Material.Ground,
+		Parent = town,
+	})
+	Props.place("CricketStumps", pitchCF * CFrame.new(0, 0, -18), town)
+	Props.place("CricketStumps", pitchCF * CFrame.new(0, 0, 18) * CFrame.Angles(0, math.pi, 0), town)
+	Props.place("Bench", facingIn(at(38, 262)), town)
+	-- Mela Ground
+	Props.place("MelaStage", facingIn(at(76, 266)), town)
+	Props.place("FerrisWheel", facingIn(at(104, 268)) * CFrame.Angles(0, math.rad(90), 0), town)
+	Props.place("GolaCart", facingIn(at(84, 262)), town)
+	-- Chai Dhaba Bazaar, with Ustad's Workshop where vehicles are upgraded
+	local workshopCF = facingIn(at(150, 270))
+	Props.place("Workshop", workshopCF, town)
+	Props.text(town, workshopCF, Props.anchor("Workshop", "Sign", workshopCF), 15, 2.2, "USTAD'S WORKSHOP")
+	local dhabaCF = facingIn(at(163, 266))
+	Props.place("ChaiDhaba", dhabaCF, town)
+	Props.text(town, dhabaCF, Props.anchor("ChaiDhaba", "Sign", dhabaCF), 5.6, 1.2, "CHAI")
+	Props.place("Tandoor", facingIn(at(167, 258)), town)
+	-- the Rickshaw Stand, with the Gaari Showroom where vehicles are sold
+	local showroomCF = facingIn(at(210, 270))
+	Props.place("Showroom", showroomCF, town)
+	Props.text(town, showroomCF, Props.anchor("Showroom", "Sign", showroomCF), 17, 2.4, "GAARI SHOWROOM")
+	Props.place("VehiclePiliTaxi", showroomCF * CFrame.new(0, 0.9, 1.5), town)
+	for k, angle in { 220, 224, 228 } do
+		Props.place("Rickshaw", facingIn(at(angle, 262)) * CFrame.Angles(0, math.rad(90 + k * 4), 0), town)
+	end
+	-- the counters you talk to at the workshop and the showroom
+	for _, shop in
+		{ { "Workshop", workshopCF, "Ustad's Workshop", 9 }, { "Showroom", showroomCF, "Gaari Showroom", 10 } }
+	do
+		local counter = part({
+			Name = shop[1] .. "Counter",
+			Size = Vector3.new(6, 3, 2),
+			CFrame = (shop[2] :: CFrame) * CFrame.new(0, 1.5, -(shop[4] :: number)),
+			Color = rgb(150, 100, 60),
+			Material = Enum.Material.WoodPlanks,
+			Parent = town,
+		})
+		shopPrompt(counter, shop[1] :: string, shop[3] :: string)
 	end
 end
-
-MapBuilder.isCountryside = Countryside.isOpen
 
 local function build(): (Model, { [string]: any })
 	local map = Instance.new("Model")
@@ -1105,7 +1209,8 @@ local function build(): (Model, { [string]: any })
 		)
 	end
 	buildRoads(map)
-	buildCountryside(map)
+	buildWalls(map)
+	buildTown(map)
 	local biomes = Instance.new("Folder")
 	biomes.Name = "Biomes"
 	biomes.Parent = map
@@ -1227,12 +1332,27 @@ function MapBuilder.read(map: Model, plans: { [string]: any }): Map
 	end
 	local board = map:FindFirstChild("Leaderboard")
 	local list = board and board:FindFirstChild("List", true)
+	local gates, doors, pumps = {}, {}, {}
+	for _, d in map:GetDescendants() do
+		if d:IsA("BasePart") then
+			if d.Name == "GateBarrier" and type(d:GetAttribute("Zone")) == "string" then
+				gates[d:GetAttribute("Zone")] = d
+			elseif d.Name == "ShortcutDoor" then
+				table.insert(doors, d)
+			elseif d.Name == "PumpPad" then
+				table.insert(pumps, d)
+			end
+		end
+	end
 	return {
 		model = map,
 		havelis = havelis,
 		shops = shops,
 		leaderboard = if list and list:IsA("Frame") then list else nil,
 		biomes = plans,
+		gates = gates,
+		doors = doors,
+		pumps = pumps,
 	}
 end
 

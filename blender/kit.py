@@ -30,6 +30,7 @@ LIGHT = 8  # gives off light (a PointLight in Roblox)
 NOSHADOW = 16
 PARTSONLY = 32  # only in the parts version (the mesh has a nicer shape instead)
 EYE = 64  # eyes and pupils: they keep their colour when a brainrot is Golden, Diamond or Rainbow
+PAINT = 128  # a vehicle's painted panels: paint jobs recolour these
 
 # fmt: off
 PALETTE = [

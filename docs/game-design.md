@@ -4,11 +4,23 @@ Oct 31, 2026 · @RANA ABDULLAH
 
 ## Pitch
 
-**Chai Chaos** is a collect-and-earn tycoon set in a loud Pakistani bazaar. Silly desi "brainrot" creatures walk down the market lane, you buy them with rupees, park them at your haveli, and they earn more rupees every second so you can buy rarer ones.
+**Chai Chaos** is a collect-and-earn tycoon set in a loud Pakistani bazaar. You live in a haveli next to the Chowk, drive out into 12 zones across 4 regions of Pakistan, collect eggs and bring them home, where they hatch into silly desi "brainrot" creatures. Brainrots earn rupees every second, so you can unlock farther zones, better vehicles and rarer brainrots.
+
+*Updated Nov 2026: the game now uses the biome-slices map (12 zones), vehicles to reach the eggs, and 4 Secret brainrots. The first version's conveyor-lane loop is kept below for reference.*
 
 Tone rules: food, rickshaws, cricket, load shedding, aunties and uncles are fair game. No real people, no religion, no politics, and no jokes that put down any city, province or group. Every joke should be something a Pakistani kid would laugh at with their family.
 
 ## Core loop
+
+1. Leave your haveli and head out through a town gate (on foot, or in a vehicle once you have one).
+2. Find an egg with your radar in a zone you have unlocked and pick it up. A timer starts; farther zones have rarer brainrots but shorter timers.
+3. Bring it home before it cracks. On foot you carry one egg; a vehicle's boot carries more.
+4. The egg hatches in an incubator, and the brainrot walks to a plot and earns rupees every second into your **galla**.
+5. Spend rupees on zone gates, vehicles, upgrades, petrol, gear, haveli levels and Kismat Rolls, then rebirth (Naya Safar) to open the ring 3 zones.
+
+Other ways to get brainrots: the Kismat Roll (RNG), stealing from other players' havelis (with a Chor Pass), and Collection Book rewards.
+
+### The first version's loop (conveyor lane)
 
 One loop takes about 30 seconds, and every pass makes you a bit richer.
 
@@ -76,7 +88,62 @@ Spawn odds: new Commons and Uncommons share the same 60% and 25% pools as before
 | Cylinder Cycle Chacha | Legendary | 120,000 | 2,200 | A living bicycle with headlight eyes and a handlebar moustache, carrying a tower of gas cylinders. |
 | Chand Raat Cheetah | Mythic | 400,000 | 6,500 | A sparkly cheetah covered in bangles and glow. Only spawns at night. |
 
-## Map
+### Characters, batch 4: Secret brainrots (4 more, 40 in total)
+
+The rarest brainrots in the game. They only hatch from Barfani Pahar's eggs (4 rebirths), about 7% of the time, and never come from Kismat Rolls.
+
+| Brainrot | Rarity | Price (Rs) | Income (Rs/sec) | Look and joke |
+| --- | --- | --- | --- | --- |
+| Kahwa Yeti | Secret | 1,200,000 | 15,000 | A big fluffy yeti with a steaming brass samovar of kahwa. "Ek cup kahwa, garam garam!" |
+| Gola Ganda Golem | Secret | 1,800,000 | 21,000 | A giant golem of crushed-ice gola gandas, dripping rainbow syrup, with gola sticks for fingers. "Thanda thanda, rang birangi!" |
+| Barfi Barfani Bagh | Secret | 2,500,000 | 28,000 | A snow leopard made of white and pistachio barfi, with silver warq spots and a Chitrali pakol. "Barf bhi, barfi bhi!" |
+| Jalebi Markhor | Secret | 3,500,000 | 36,000 | A markhor whose spiral horns are jalebis, in a warm shawl with bells. "Seengh meethe, dil bhi meetha!" |
+
+Six more special brainrots (Mithai Mamu, Lassi Lightning, Chowkidar Choocha, Rangeela Raja, Shalimar Sultan and Taaron Wala Tonga) are Collection Book rewards: finish a rarity to earn one. They never hatch and cannot be stolen. Every brainrot has a character sheet and a ready-to-paste art prompt in the README.
+
+## Map: biome slices
+
+![The world from above](world-map.png)
+
+One big circle, about 1,500 studs across.
+
+- **The Chowk** in the middle: a fountain, the Sell stall, Gear Shop, Radar Wala, Kismat Kettle, Naya Safar gate, quest board and leaderboard.
+- **8 havelis** in a ring around the Chowk, facing the fountain. Each is two floors with up to 20 plots, incubators, a galla and a rooftop.
+- **The Lahore bazaar** (the town ring): stalls along a round bazaar street and six sectors: Brainrot Mandi, Kite Point, Cricket Gali, Mela Ground, Chai Dhaba Bazaar (Ustad's Workshop for vehicle upgrades) and the Rickshaw Stand (the Gaari Showroom).
+- **The town wall** with four gates. Outside it, **4 regions** (Punjab, Sindh, Thar and Balochistan, KPK and the North), each cut into **3 rings**: 12 zones.
+
+| Region | Ring 1 | Ring 2 | Ring 3 |
+| --- | --- | --- | --- |
+| Punjab | Mango Bagh · free | Sarson Fields · Rs 200,000 | Lahore Qila · 1 rebirth |
+| Sindh | Railway Junction · Rs 10,000 | Sahil Beach · Rs 400,000 | Karachi Port · 2 rebirths |
+| Thar | Camel Mela · Rs 30,000 | Thar Desert · Rs 750,000 | Mohenjo-daro · 3 rebirths |
+| KPK | Qissa Khawani · Rs 75,000 | Namak Caves · Rs 1,500,000 | Barfani Pahar · 4 rebirths (Secret brainrots) |
+
+- **Farther out always costs more:** every ring 2 zone costs more than every ring 1 zone, and ring 3 needs rebirths. Unlocks are kept after a rebirth.
+- **No straight runs:** the gate into ring 2 is turned 30 degrees one way and the gate into ring 3 30 degrees the other way, so you zigzag through each zone.
+- **Shortcut doors** between neighbouring regions open once you have unlocked both sides.
+- **Hazards** knock you back and knock time off eggs, but never hurt: the train in Railway Junction (watch the crossing light), waves at Sahil Beach, falling salt rocks in the Namak Caves, slippery frozen lakes and snowballs in Barfani Pahar, sandstorms in the Thar Desert and Mohenjo-daro, mud in Mango Bagh and Sarson Fields, and water at the beach, port and fort moat.
+- **Roads** run from the Chowk through every gate, with **petrol pumps** by the gates and a **rickshaw stand** at the far end of each ring 3 zone that takes you back to the Chowk for free.
+
+## Vehicles
+
+Vehicles are how you reach the far zones. Everything about them is bought with rupees.
+
+| Vehicle | Cost (Rs) | Speed | Range | Boot | Tyres | Friends |
+| --- | --- | --- | --- | --- | --- | --- |
+| Motorbike | 3,000 | 34 | 1,500 | 1 egg | 0 | 1 |
+| Rickshaw | 25,000 | 38 | 2,000 | 2 eggs | 0 | 2 |
+| Pili Taxi | 150,000 | 46 | 2,800 | 3 eggs | 1 | 3 |
+| Phool Patti Truck | 1,200,000 | 42 | 4,500 | 6 eggs | 2 | 1 |
+
+- **Upgrades** at Ustad's Workshop: Engine (+10% speed per level, 5 levels), Fuel Tank (+25% range, 5 levels), Egg Space (+1 egg, 3 levels) and Tyres (grip 1 for mud, 2 for sand, 3 for ice).
+- **Fuel:** driving uses fuel; an empty tank crawls at walking speed. Petrol pumps fill you up for rupees, and parked vehicles refill slowly for free at your haveli.
+- **The boot:** eggs picked up while driving ride in the boot. Drive up to your haveli door and they go straight into your incubators.
+- **Friends** can hop on and ride along.
+- **Paint jobs** (Phool Patti, Sona, Rangeela, Chamak) are the only Robux item for vehicles, and they change looks only.
+- Riding brainrots was removed when vehicles came in.
+
+### The first version's map
 
 The map is one big bazaar with a lane down the middle and eight havelis (player bases) on the sides.
 
@@ -87,10 +154,11 @@ The map is one big bazaar with a lane down the middle and eight havelis (player 
 
 ## Progression and events
 
-- **Plots:** start with 3 plots and unlock up to 10 for Rs 500, 2,000, 5,000 and so on.
-- **Rebirth ("Naya Safar"):** at Rs 1,000,000 you reset your rupees and plots for a permanent +50% income multiplier and a new haveli colour.
+- **Haveli levels:** 9 levels from 4 plots up to 20, with incubators, a Laser Darwaza, a garden, a second floor, a Chowkidar and a rooftop along the way.
+- **Zones:** unlock ring 1 and ring 2 zones with rupees at their gates.
+- **Rebirth ("Naya Safar"):** starts at Rs 1,000,000 (2.5 times more each time). You reset your rupees, haveli level, radar and brainrots for a permanent +50% income multiplier and a new haveli theme, and each of the first four rebirths opens one ring 3 zone. You keep gear, vehicles and unlocked zones.
 - **Daily chai:** log in each day for a free brainrot or a rupee boost.
-- **Events:** Eid-style festival nights, Basant kite nights with flying brainrots, and Cricket Mania weekends with a Sixer Sher spawn boost. Event content stays friendly to everyone.
+- **Events:** every 15-20 minutes: Basant Kite Festival, Baarish, Cricket Mania, Load Shedding, Mela Night and Sardi, each with its own boosts. Event content stays friendly to everyone.
 - **Collection book:** a Pokédex-style page that fills in as you discover each brainrot.
 
 ## Monetization ideas
@@ -100,7 +168,8 @@ Keep it fair, because most players are kids.
 - **2x Cash** game pass.
 - **Extra plots** game pass.
 - **Lucky spawn** developer product: raises rare spawn odds for 10 minutes.
-- **Cosmetics:** haveli skins, trails and hats, with no pay-to-win advantage.
+- **Cosmetics:** haveli skins, trails and hats, with no pay-to-win advantage. Vehicle paint jobs are sold for Robux and change looks only.
+- Zones, vehicles, upgrades and petrol are rupees only.
 - Never sell guaranteed top-rarity brainrots directly.
 
 ## How to build the characters
@@ -136,7 +205,9 @@ Search the Creator Store for free food or animal models and reshape or recolour 
 
 A good order is to build 3 blocky Commons first, get the buy and steal loop working, and then add one new character at a time.
 
-## Build steps and starter script
+## Build steps and starter script (the first prototype)
+
+*This is the original starter script from before the full game. The real game's code is in `src/`; see the README.*
 
 1. Install Roblox Studio and create a new Baseplate place.
 2. Build a long Part for Bazaar Lane and a Part named `SpawnGate` at its start. Make a folder `Brainrots` in ServerStorage with one simple Model per character (a coloured block is fine at first).

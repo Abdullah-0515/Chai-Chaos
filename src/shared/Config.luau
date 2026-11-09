@@ -50,20 +50,21 @@ Config.ROOFTOP_LEVEL = 8
 Config.LOCKER_PLOTS = 2 -- plots 1 and 2 can never be stolen from
 Config.MAX_INCUBATORS = 4
 
--- Tracker (radar): each level tracks eggs in one more biome and sees further.
+-- Tracker (radar): shows eggs in every zone you have unlocked. Each level
+-- sees further; level 3 finds golden eggs and level 5 treasure chests.
 Config.TRACKER_LEVELS = {
-	{ cost = 0, range = 150 },
-	{ cost = 2_500, range = 180 },
-	{ cost = 8_000, range = 210, golden = true },
-	{ cost = 25_000, range = 240, golden = true },
-	{ cost = 70_000, range = 270, golden = true, treasure = true },
-	{ cost = 160_000, range = 300, golden = true, treasure = true },
-	{ cost = 320_000, range = 340, golden = true, treasure = true },
-	{ cost = 600_000, range = 400, golden = true, treasure = true },
+	{ cost = 0, range = 180 },
+	{ cost = 2_500, range = 220 },
+	{ cost = 8_000, range = 260, golden = true },
+	{ cost = 25_000, range = 300, golden = true },
+	{ cost = 70_000, range = 340, golden = true, treasure = true },
+	{ cost = 160_000, range = 390, golden = true, treasure = true },
+	{ cost = 320_000, range = 440, golden = true, treasure = true },
+	{ cost = 600_000, range = 520, golden = true, treasure = true },
 }
 
 -- Eggs
-Config.EGGS_PER_BIOME = 7 -- eggs lying around in each biome at once
+Config.EGGS_PER_BIOME = 8 -- eggs lying around in each zone at once
 Config.EGG_RESPAWN = 6 -- seconds between new eggs in a biome that is short of eggs
 Config.GOLDEN_EGG_CHANCE = 0.03 -- golden eggs always hatch a mutated brainrot and are luckier
 Config.GOLDEN_EGG_LUCK = 2
@@ -71,27 +72,29 @@ Config.GOLDEN_EGG_TIME = 1.3 -- golden eggs last a bit longer...
 Config.GOLDEN_HATCH_TIME = 1.5 -- ...and take longer to hatch
 Config.EGG_HIT_PENALTY = 8 -- seconds a hazard knocks off a carried egg
 Config.DROPPED_EGG_LIFETIME = 60 -- a dropped egg disappears after this long
-Config.EGG_RUSH_EVERY = 240 -- an egg rush in a random biome every 4 minutes
+Config.EGG_RUSH_EVERY = 240 -- an egg rush in a random zone every 4 minutes
 Config.EGG_RUSH_DURATION = 60
 Config.EGG_RUSH_EGGS = 14
 Config.PICKUP_DISTANCE = 12
 
 -- Treasure chests (need a Rope Ladder for cliff tops, a Shovel for buried ones)
 Config.TREASURE_COOLDOWN = 600 -- each player can open each chest once every 10 minutes
-Config.TREASURE_RUPEES = 1_500 -- times the biome's tier squared
+Config.TREASURE_RUPEES = 1_200 -- times the zone's tier squared
 Config.TREASURE_ROLL_CHANCE = 0.35 -- chance of a free Kismat Roll too
 
--- Riding: one brainrot carries you; rarer ones are faster. Your ride does not earn rupees.
-Config.RIDE_SPEED = {
-	Common = 1.15,
-	Uncommon = 1.25,
-	Rare = 1.4,
-	Epic = 1.6,
-	Legendary = 1.8,
-	Mythic = 2.1,
-	Special = 1.7,
+-- Vehicles (see Vehicles.luau for each vehicle's speed, tank and egg space)
+Config.FUEL_PRICE = 0.25 -- rupees for every stud of fuel at a petrol pump
+Config.FUEL_HOME_REFILL = 40 -- studs of fuel per second, free, while you are at your haveli
+Config.PARK_DISTANCE = 14 -- driving this close to your own door parks your vehicle
+Config.PUMP_DISTANCE = 16 -- how close to a petrol pump you must be to fill up
+Config.DRIVE_SURFACE_SPEED = { mud = 0.6, sand = 0.75, sandstorm = 0.7, ice = 0.8, water = 0.45 }
+-- Robux paint jobs (looks only): Developer Product ids. A paint with id = 0 is hidden.
+Config.PAINT_PRODUCTS = {
+	PhoolPatti = 0,
+	Sona = 0,
+	Rangeela = 0,
+	Chamak = 0,
 }
-Config.RIDE_MUTATION_BONUS = { Golden = 0.05, Diamond = 0.1, Rainbow = 0.2 }
 
 -- Blender props (see the README). If the imported meshes all face backwards,
 -- set this to 180.
@@ -99,17 +102,26 @@ Config.PROP_MESH_TURN = 0
 
 -- Players
 Config.WALK_SPEED = 20 -- a bit faster than Roblox's 16, the world is big
+Config.FUEL_EMPTY_SPEED = Config.WALK_SPEED -- a vehicle with an empty tank only goes this fast
 Config.PROMPT_DISTANCE = 12 -- how close you must be to press E
 Config.WALK_HOME_SPEED = 22 -- studs per second when a brainrot walks to its plot
 
--- Hazards (see Biomes.luau for which biome has which)
+-- Hazards (see Biomes.luau for which zone has which)
 Config.HAZARD_SPEED = { water = 0.6, mud = 0.55, ice = 0.7, sandstorm = 0.65 }
 Config.HAZARD_EGG_DRAIN = { water = 2, ice = 1.5, sandstorm = 2 } -- eggs crack this many times faster
 Config.SANDSTORM_EVERY = 50
 Config.SANDSTORM_DURATION = 15
 Config.WAVE_EVERY = 35
 Config.SNOWBALL_EVERY = 20
-Config.SALT_FALL_EVERY = 18
+Config.SALT_FALL_EVERY = 6 -- a salt rock falls near someone in the Namak Caves this often
+Config.SALT_WARNING = 1.5 -- seconds the red circle shows before the rock lands
+Config.SALT_RADIUS = 7
+-- The train in Railway Junction: it waits, the crossing light blinks, then it runs the track
+Config.TRAIN_WAIT = 9
+Config.TRAIN_BLINK = 3.2
+Config.TRAIN_SPEED = 40
+Config.TRAIN_HIT_RADIUS = 9
+Config.KNOCKBACK = 70 -- how hard the train, waves and salt rocks push you (they never hurt)
 
 -- Stealing
 Config.STEAL_HOLD_TIME = 1.5
@@ -128,6 +140,7 @@ Config.CARRY_SPEED = { -- thieves walk this much slower while carrying a brainro
 	Epic = 0.72,
 	Legendary = 0.65,
 	Mythic = 0.58,
+	Secret = 0.5,
 }
 Config.CARRY_MUTATION_SPEED = 0.93 -- extra slowdown for a mutated brainrot
 Config.GUARD_RANGE = 12 -- the Chowkidar spots thieves this close to him
@@ -212,6 +225,7 @@ Config.COLLECTION_REWARDS = {
 	Epic = { rupees = 240_000, rolls = 4, special = "RangeelaRaja" },
 	Legendary = { rupees = 1_000_000, rolls = 5, special = "ShalimarSultan" },
 	Mythic = { rupees = 4_000_000, rolls = 10, special = "TaaronWalaTonga" },
+	Secret = { rupees = 20_000_000, rolls = 20 },
 }
 
 -- World

@@ -1,4 +1,5 @@
--- All 36 brainrots from docs/game-design.md, plus 6 special quest brainrots.
+-- All 36 brainrots from docs/game-design.md, 4 Secret brainrots that only hatch in
+-- Barfani Pahar, and 6 special quest brainrots.
 --
 -- id     : the Model name to use in ServerStorage/Brainrots if you build your own model.
 -- price  : the price from the design doc; the game multiplies it by Config.PRICE_MULTIPLIER.
@@ -13,10 +14,11 @@ local Config = require(script.Parent.Config)
 
 local Brainrots = {}
 
--- The rarities that hatch from eggs and Kismat Rolls.
-Brainrots.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
+-- The rarities that hatch from eggs (Secret only from Barfani Pahar's eggs,
+-- never from Kismat Rolls).
+Brainrots.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
 -- The Collection Book also shows the special quest brainrots.
-Brainrots.BOOK_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Special" }
+Brainrots.BOOK_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Special" }
 
 Brainrots.RARITY_COLORS = {
 	Common = Color3.fromRGB(190, 190, 190),
@@ -25,6 +27,7 @@ Brainrots.RARITY_COLORS = {
 	Epic = Color3.fromRGB(180, 90, 255),
 	Legendary = Color3.fromRGB(255, 195, 40),
 	Mythic = Color3.fromRGB(255, 80, 170),
+	Secret = Color3.fromRGB(190, 230, 255),
 	Special = Color3.fromRGB(40, 225, 200),
 }
 
@@ -91,6 +94,11 @@ Brainrots.list = {
 	{ id = "RishtaAuntyRobot", name = "Rishta Aunty Robot", rarity = "Epic", price = 25000, income = 500, phrase = "Beta, kya karte ho?", color = rgb(200, 200, 215), shape = "Tall", extras = { "glasses" } },
 	{ id = "CylinderCycleChacha", name = "Cylinder Cycle Chacha", rarity = "Legendary", price = 120000, income = 2200, phrase = "Cylinder le lo, cylinder!", color = rgb(200, 40, 40), shape = "Wheel", extras = { "moustache" } },
 	{ id = "ChandRaatCheetah", name = "Chand Raat Cheetah", rarity = "Mythic", price = 400000, income = 6500, phrase = "Choorian chamak rahi hain!", color = rgb(250, 210, 80), shape = "Block", extras = { "ears", "tail", "legs" } },
+	-- Secret brainrots: only from Barfani Pahar's eggs (4 rebirths)
+	{ id = "KahwaYeti", name = "Kahwa Yeti", rarity = "Secret", price = 1200000, income = 15000, phrase = "Ek cup kahwa, garam garam!", color = rgb(240, 245, 250), shape = "Ball", extras = { "ears", "legs" } },
+	{ id = "GolaGandaGolem", name = "Gola Ganda Golem", rarity = "Secret", price = 1800000, income = 21000, phrase = "Thanda thanda, rang birangi!", color = rgb(150, 220, 255), shape = "Block", extras = { "legs" } },
+	{ id = "BarfiBarfaniBagh", name = "Barfi Barfani Bagh", rarity = "Secret", price = 2500000, income = 28000, phrase = "Barf bhi, barfi bhi!", color = rgb(245, 245, 235), shape = "Block", extras = { "ears", "tail", "legs" } },
+	{ id = "JalebiMarkhor", name = "Jalebi Markhor", rarity = "Secret", price = 3500000, income = 36000, phrase = "Seengh meethe, dil bhi meetha!", color = rgb(200, 160, 110), shape = "Block", extras = { "horn", "legs" } },
 
 	-- Special quest brainrots: rewards for finishing a rarity in the Collection Book
 	{ id = "MithaiMamu", name = "Mithai Mamu", rarity = "Special", price = 2000, income = 60, phrase = "Ek aur laddoo, beta!", color = rgb(255, 170, 60), shape = "Block", extras = { "moustache", "legs" }, questOnly = true },

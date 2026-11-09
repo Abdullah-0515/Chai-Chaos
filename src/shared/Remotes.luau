@@ -10,7 +10,7 @@ local NAMES = {
 	"LockHaveli", -- client -> server: lock your haveli (Taala)
 	"Rebirth", -- client -> server: start a Naya Safar
 	"Roll", -- client -> server: ("rupees" or "token") do a Kismat Roll
-	"BuyProduct", -- client -> server: ("rolls" or "steals", pack index) show a Robux purchase prompt
+	"BuyProduct", -- client -> server: ("rolls" or "steals", pack index) or ("paint", paint id): show a Robux purchase prompt
 	"RollResult", -- server -> client: (brainrot id, mutation or "", isNew, wasPity)
 	"UpgradeHaveli", -- client -> server: buy the next haveli level
 	"SetTheme", -- client -> server: (theme id) change your haveli theme
@@ -19,7 +19,10 @@ local NAMES = {
 	"BuyGear", -- client -> server: (gear id) buy gear at the Chowk
 	"UpgradeTracker", -- client -> server: buy the next tracker level
 	"SellBrainrot", -- client -> server: (brainrot uid) sell at the Chowk's Sell stall
-	"SetRide", -- client -> server: (brainrot uid, or nil to stop) pick your ride
+	"BuyVehicle", -- client -> server: (vehicle id) buy at the Gaari Showroom
+	"UpgradeVehicle", -- client -> server: (vehicle id, upgrade id) buy an upgrade at Ustad's Workshop
+	"Drive", -- client -> server: (vehicle id) get in and drive, or (nil) park and get out
+	"SetPaint", -- client -> server: (paint id) pick the paint job for your vehicles
 	"PlaySound", -- server -> client: (sound name, position or nil)
 }
 
@@ -53,6 +56,9 @@ return {
 	BuyGear = folder:WaitForChild("BuyGear") :: RemoteEvent,
 	UpgradeTracker = folder:WaitForChild("UpgradeTracker") :: RemoteEvent,
 	SellBrainrot = folder:WaitForChild("SellBrainrot") :: RemoteEvent,
-	SetRide = folder:WaitForChild("SetRide") :: RemoteEvent,
+	BuyVehicle = folder:WaitForChild("BuyVehicle") :: RemoteEvent,
+	UpgradeVehicle = folder:WaitForChild("UpgradeVehicle") :: RemoteEvent,
+	Drive = folder:WaitForChild("Drive") :: RemoteEvent,
+	SetPaint = folder:WaitForChild("SetPaint") :: RemoteEvent,
 	PlaySound = folder:WaitForChild("PlaySound") :: RemoteEvent,
 }

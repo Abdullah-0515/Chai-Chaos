@@ -17,7 +17,7 @@ local PropData = require(script.Parent.PropData)
 
 local Props = {}
 
-local NOCOLLIDE, KEEP, GLASS, LIGHT, NOSHADOW, EYE = 1, 2, 4, 8, 16, 64
+local NOCOLLIDE, KEEP, GLASS, LIGHT, NOSHADOW, EYE, PAINT = 1, 2, 4, 8, 16, 64, 128
 local SHAPES = { B = Enum.PartType.Block, C = Enum.PartType.Cylinder, L = Enum.PartType.Ball }
 local MESH_FOLDER = "ChaiChaosProps"
 
@@ -139,6 +139,8 @@ local function newPart(entry, cf: CFrame, scale: number, visible: boolean): Part
 	if visible then
 		if hasFlag(flags, EYE) then
 			p.Name = "Eye" -- eyes keep their colour on Golden, Diamond and Rainbow brainrots
+		elseif hasFlag(flags, PAINT) then
+			p.Name = "Paint" -- a vehicle's panels: paint jobs recolour these
 		end
 		p.Color = palette[entry[12]]
 		p.Material = materials[entry[13]]

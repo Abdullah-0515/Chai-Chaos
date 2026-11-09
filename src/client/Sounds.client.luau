@@ -35,8 +35,6 @@ for _, descendant in gui:GetDescendants() do
 	hook(descendant)
 end
 
-local WINDY = { Pahar = true } -- the desert is only windy in a sandstorm
-
 local function update()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -45,11 +43,13 @@ local function update()
 	for _, name in { "MusicBazaar", "MusicBiome", "MusicEvent" } do
 		SoundPlayer.loop(name, name == music)
 	end
-	SoundPlayer.loop(
-		"Wind",
-		biome ~= nil
-			and (WINDY[biome.id] == true or (biome.id == "Registan" and workspace:GetAttribute("Sandstorm") == true))
-	)
+	-- windy in the snowy mountains, and in the desert during a sandstorm
+	local windy = biome ~= nil
+		and (
+			table.find(biome.hazards, "snowballs") ~= nil
+			or (table.find(biome.hazards, "sandstorm") ~= nil and workspace:GetAttribute("Sandstorm") == true)
+		)
+	SoundPlayer.loop("Wind", windy)
 end
 
 task.spawn(function()

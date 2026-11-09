@@ -1,4 +1,5 @@
--- Robux purchases (Developer Products) for Kismat Rolls and Chor Passes.
+-- Robux purchases (Developer Products) for Kismat Rolls, Chor Passes and
+-- vehicle paint jobs (looks only).
 --
 -- Roblox calls ProcessReceipt for every purchase, and calls it again later if
 -- we return NotProcessedYet. We only say PurchaseGranted once the item is given
@@ -25,6 +26,14 @@ local Shop = {}
 
 local MAX_RECEIPTS = 50
 
+-- Set by Main: gives a bought paint job (see Garage.onPaintBought).
+Shop.paintHook = nil :: ((any, string) -> ())?
+
+local paintPacks = {}
+for paintId, productId in Config.PAINT_PRODUCTS do
+	table.insert(paintPacks, { id = productId, amount = 1, paint = paintId })
+end
+
 -- What each kind of pack gives and which save field it adds to.
 Shop.KINDS = {
 	rolls = {
@@ -41,6 +50,12 @@ Shop.KINDS = {
 		many = "Chor Passes",
 		random = false,
 	},
+	paint = {
+		packs = paintPacks,
+		one = "paint job",
+		many = "paint jobs",
+		random = false,
+	},
 }
 
 function Shop.give(profile, field: string, amount: number)
@@ -48,13 +63,43 @@ function Shop.give(profile, field: string, amount: number)
 	State.syncTokens(profile)
 end
 
+-- Gives (or takes back, if saving failed) what a pack is worth.
+local function grant(profile, kind, pack, undo: boolean?)
+	if kind.field then
+		Shop.give(profile, kind.field, if undo then -pack.amount else pack.amount)
+	elseif undo then
+		profile.data.paints[pack.paint] = nil
+		if profile.data.paint == pack.paint then
+			profile.data.paint = "Factory"
+		end
+	elseif Shop.paintHook then
+		Shop.paintHook(profile, pack.paint)
+	else
+		profile.data.paints[pack.paint] = true
+	end
+end
+
 -- Shows the Robux purchase prompt for pack `index` of `kindName`.
 function Shop.prompt(player: Player, kindName: any, index: any): boolean
 	local kind = Shop.KINDS[kindName]
-	if not kind or type(index) ~= "number" then
+	if not kind then
 		return false
 	end
-	local pack = kind.packs[index]
+	local pack = nil
+	if kindName == "paint" then
+		for _, p in kind.packs do
+			if p.paint == index then
+				pack = p
+			end
+		end
+		local profile = State.profiles[player]
+		if pack and profile and profile.data.paints[pack.paint] then
+			State.notify(player, "info", "You already have that paint job!")
+			return false
+		end
+	elseif type(index) == "number" then
+		pack = kind.packs[index]
+	end
 	if not pack or pack.id == 0 then
 		return false
 	end
@@ -96,14 +141,14 @@ function Shop.processReceipt(receipt)
 	end
 
 	local function undo()
-		Shop.give(profile, kind.field, -pack.amount)
+		grant(profile, kind, pack, true)
 		local index = table.find(data.receipts, purchaseId)
 		if index then
 			table.remove(data.receipts, index)
 		end
 	end
 
-	Shop.give(profile, kind.field, pack.amount)
+	grant(profile, kind, pack)
 	table.insert(data.receipts, purchaseId)
 	while #data.receipts > MAX_RECEIPTS do
 		table.remove(data.receipts, 1)
@@ -121,11 +166,15 @@ function Shop.processReceipt(receipt)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	State.notify(
-		player,
-		"good",
-		("Shukriya! You got %d %s."):format(pack.amount, if pack.amount == 1 then kind.one else kind.many)
-	)
+	if pack.paint then
+		State.notify(player, "good", ("Shukriya! Your vehicles now have the %s paint job."):format(pack.paint))
+	else
+		State.notify(
+			player,
+			"good",
+			("Shukriya! You got %d %s."):format(pack.amount, if pack.amount == 1 then kind.one else kind.many)
+		)
+	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 

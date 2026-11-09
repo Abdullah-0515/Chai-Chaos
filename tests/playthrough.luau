@@ -257,7 +257,9 @@ local EventRunner = serverModule("EventRunner")
 local EggSystem = serverModule("EggSystem")
 local Hazards = serverModule("Hazards")
 local Treasure = serverModule("Treasure")
-local Riding = serverModule("Riding")
+local Garage = serverModule("Garage")
+local Zones = serverModule("Zones")
+local Vehicles = sharedModule("Vehicles")
 local BiomeBuilder = serverModule("BiomeBuilder")
 local Picker = serverModule("Picker")
 local Brainrots = sharedModule("Brainrots")
@@ -270,7 +272,7 @@ local Themes = sharedModule("Themes")
 local Remotes = sharedModule("Remotes")
 local Motion = sharedModule("Motion")
 local FLAT = Vector3.new(1, 0, 1)
-check(#Brainrots.list == 42, "36 brainrots + 6 quest brainrots, got " .. #Brainrots.list)
+check(#Brainrots.list == 46, "36 brainrots + 4 Secret + 6 quest brainrots, got " .. #Brainrots.list)
 check(Brainrots.byId.SamosaSupremo.price == 100, "prices use the multiplier")
 check(Format.rupees(1234567) == "Rs 1,234,567", "format commas")
 check(Format.short(12500) == "12.5K" and Format.short(2000000) == "2M", "format short")
@@ -296,7 +298,7 @@ end
 check(ringOk, "havelis stand in a ring around the Chowk")
 check(facingOk, "every haveli faces the fountain")
 check(map:FindFirstChild("ChowkSpawn") ~= nil and map:FindFirstChild("FountainTop") ~= nil, "Chowk fountain and spawn")
--- the Chowk shops
+-- the Chowk shops, and the vehicle shops in the bazaar
 local shops = {}
 for _, d in map:GetDescendants() do
 	if d:IsA("BasePart") and type(d:GetAttribute("Shop")) == "string" then
@@ -308,21 +310,128 @@ for _, name in { "Sell", "Gear", "Tracker", "Kismat", "Rebirth", "Quests" } do
 	check(shop ~= nil and shop:FindFirstChild("ShopPrompt") ~= nil, "Chowk shop " .. name)
 	check(shop and (shop.Position * FLAT).Magnitude < Biomes.PLAZA_RADIUS, name .. " is in the Chowk")
 end
--- 8 biomes, each with a road, a gate, terrain, eggs and treasure
-check(#Biomes.list == 8, "8 biomes")
+for _, name in { "Showroom", "Workshop" } do
+	local shop = shops[name]
+	local r = shop and Biomes.radiusOf(shop.Position)
+	check(shop ~= nil and shop:FindFirstChild("ShopPrompt") ~= nil, "bazaar shop " .. name)
+	check(r and r > Biomes.HUB_RADIUS and r < Biomes.TOWN_RADIUS, name .. " is in the Lahore bazaar")
+end
+check(Biomes.townSectorAt(shops.Showroom.Position).id == "RickshawStand", "the showroom is at the Rickshaw Stand")
+check(Biomes.townSectorAt(shops.Workshop.Position).id == "ChaiDhabaBazaar", "the workshop is in the Chai Dhaba Bazaar")
+-- 12 zones: 4 regions x 3 rings
+check(#Biomes.list == 12, "12 zones")
 local tiers = {}
 for _, biome in Biomes.list do
 	tiers[biome.tier] = true
 end
-check(#tiers == 8, "biome tiers 1 to 8")
-check(#map.Biomes:GetChildren() == 8, "8 biome folders")
-local gates = 0
-for _, d in map.Roads:GetChildren() do
-	if d.Name == "GateSign" then
-		gates += 1
+check(#tiers == 12, "zone tiers 1 to 12")
+for _, region in Biomes.REGIONS do
+	local rings = Biomes.byRegion[region.id]
+	check(rings[1] and rings[2] and rings[3], region.id .. " has 3 rings")
+	check(
+		rings[3].rebirths > 0 and rings[1].rebirths == 0 and rings[2].rebirths == 0,
+		region.id .. " ring 3 needs rebirths"
+	)
+end
+local ring1Max, ring2Min = 0, math.huge
+for _, biome in Biomes.list do
+	if biome.ring == 1 then
+		ring1Max = math.max(ring1Max, biome.price)
+	elseif biome.ring == 2 then
+		ring2Min = math.min(ring2Min, biome.price)
 	end
 end
-check(gates == 8, "8 biome gates")
+check(ring2Min > ring1Max, "every ring 2 zone costs more than every ring 1 zone")
+check(
+	Biomes.byId.MangoBagh.price == 0 and Biomes.byId.BarfaniPahar.rebirths == 4,
+	"Mango Bagh is free, Barfani needs 4 rebirths"
+)
+check(Biomes.byId.BarfaniPahar.odds.Secret ~= nil, "Barfani Pahar has Secret brainrots")
+local secretOnly = true
+for _, biome in Biomes.list do
+	if biome.id ~= "BarfaniPahar" and biome.odds.Secret then
+		secretOnly = false
+	end
+end
+check(secretOnly and Config.ROLL_ODDS.Secret == nil, "Secret brainrots only hatch in Barfani Pahar")
+check(#map.Biomes:GetChildren() == 12, "12 zone folders")
+-- every brainrot hatches somewhere
+local hatches = {}
+for _, biome in Biomes.list do
+	for _, id in biome.pool do
+		check(Brainrots.byId[id] ~= nil, biome.id .. " pool: " .. id)
+		hatches[id] = true
+	end
+	for rarity in biome.odds do
+		local found = false
+		for _, id in biome.pool do
+			found = found or Brainrots.byId[id].rarity == rarity
+		end
+		check(found, biome.id .. " has a " .. rarity .. " in its pool")
+	end
+end
+for _, def in Brainrots.list do
+	check(def.questOnly or hatches[def.id], def.id .. " hatches in some zone")
+end
+-- gates zigzag: ring 2 gates 30 degrees one way, ring 3 gates 30 degrees the other
+for _, biome in Biomes.list do
+	local angle, radius = Biomes.gate(biome)
+	local expected = biome.angle + (if biome.ring == 2 then 30 elseif biome.ring == 3 then -30 else 0)
+	check(math.abs(Biomes.angleDiff(angle, expected)) < 0.01, biome.id .. " gate angle")
+	local barrier = Havelis.map().gates[biome.id]
+	if biome.price == 0 and biome.rebirths == 0 then
+		check(barrier == nil, biome.id .. " has no barrier (free)")
+	else
+		check(
+			barrier ~= nil and barrier:FindFirstChild("GatePrompt") ~= nil,
+			biome.id .. " has a gate barrier with a prompt"
+		)
+		check(
+			barrier and ((barrier.Position - Biomes.polar(angle, radius)) * FLAT).Magnitude < 1,
+			biome.id .. " barrier is in its gate"
+		)
+	end
+end
+local gateArches = 0
+for _, d in map.Gates:GetChildren() do
+	gateArches += if d.Name == "ZoneGate" then 1 else 0
+end
+check(gateArches == 12, "12 gate arches")
+-- no wall piece blocks a gate
+local blocked = 0
+for _, wall in map.Walls:GetChildren() do
+	if wall.Name ~= "RegionFence" then
+		for _, biome in Biomes.list do
+			local angle, radius = Biomes.gate(biome)
+			if ((wall.Position - Biomes.polar(angle, radius)) * FLAT).Magnitude < Biomes.GATE_WIDTH / 2 then
+				blocked += 1
+			end
+		end
+	end
+end
+check(blocked == 0, "no wall blocks a gate: " .. blocked)
+check(#Havelis.map().doors == 12, "12 shortcut doors")
+for _, door in Havelis.map().doors do
+	local a, b = Biomes.byId[door:GetAttribute("ZoneA")], Biomes.byId[door:GetAttribute("ZoneB")]
+	check(a and b and a.ring == b.ring and a.region ~= b.region, "a shortcut door joins two zones in the same ring")
+end
+check(#Havelis.map().pumps == 12, "12 petrol pumps")
+for _, pump in Havelis.map().pumps do
+	check(pump:FindFirstChild("PumpPrompt") ~= nil, "pumps have a prompt")
+	check(Biomes.roadDistance(pump.Position) > 2, "pumps stand off the road")
+end
+-- the roads: from the Chowk through every town gate, then gate to gate
+local roadsOut = 0
+for _, road in Biomes.roads() do
+	if road.kind == "spoke" then
+		roadsOut += 1
+	end
+end
+check(roadsOut == 4, "4 roads out of the Chowk")
+for _, biome in Biomes.list do
+	local angle, radius = Biomes.gate(biome)
+	check(Biomes.roadDistance(Biomes.polar(angle, radius)) < 0, biome.id .. "'s gate is on a road")
+end
 local fillsIn = {}
 for _, fill in M.terrainFills do
 	local biome = Biomes.at(fill.position)
@@ -335,7 +444,7 @@ local eggsIn = {}
 local eggFolder = workspace:FindFirstChild("ChaiChaosEggs")
 for _, egg in eggFolder:GetChildren() do
 	local biome = Biomes.at(egg:GetPivot().Position)
-	check(biome and biome.id == egg:GetAttribute("Biome"), "egg lies in its own biome: " .. egg.Name)
+	check(biome and biome.id == egg:GetAttribute("Biome"), "egg lies in its own zone: " .. egg.Name)
 	if biome then
 		eggsIn[biome.id] = (eggsIn[biome.id] or 0) + 1
 	end
@@ -348,59 +457,54 @@ for _, biome in Biomes.list do
 	local plan = plans[biome.id]
 	check((fillsIn[biome.id] or 0) > 20, biome.id .. " has terrain: " .. (fillsIn[biome.id] or 0))
 	check(eggsIn[biome.id] == Config.EGGS_PER_BIOME, biome.id .. " has its eggs: " .. (eggsIn[biome.id] or 0))
-	check((chestsIn[biome.id] or 0) >= 2, biome.id .. " has treasure chests")
-	check(#plan.eggSpots >= 20, biome.id .. " has egg spots")
-	local inside = true
+	check((chestsIn[biome.id] or 0) >= 2, biome.id .. " has treasure chests: " .. (chestsIn[biome.id] or 0))
+	check(#plan.eggSpots >= 20, biome.id .. " has egg spots: " .. #plan.eggSpots)
+	local inside, offRoad = true, true
 	for _, spot in plan.eggSpots do
 		local b = Biomes.at(spot)
 		inside = inside and b ~= nil and b.id == biome.id
+		offRoad = offRoad and Biomes.roadDistance(spot) > 0
 	end
-	check(inside, biome.id .. " egg spots are inside the biome")
-	check(#plan.zones > 0, biome.id .. " has hazard zones")
-	check(Biomes.innerRadius(biome) + Biomes.DEPTH < Biomes.WORLD_RADIUS, biome.id .. " fits in the world")
+	check(inside, biome.id .. " egg spots are inside the zone")
+	check(offRoad, biome.id .. " egg spots are off the roads")
+	check(Biomes.at(Biomes.center(biome)) == biome, biome.id .. " has its own area")
+	check(not Biomes.contains(biome, Vector3.zero), biome.id .. " zone maths")
 end
-check(Biomes.at(Vector3.new(0, 5, 0)) == nil, "the Chowk is not a biome")
-local khet = Biomes.byId.Khet
-check(Biomes.at(Biomes.point(khet, Biomes.innerRadius(khet) + 20)).id == "Khet", "Biomes.at finds Khet")
+check(Biomes.at(Vector3.new(0, 5, 0)) == nil, "the Chowk is not a zone")
 check(
-	(Biomes.innerRadius(Biomes.byId.NamakKaan) > Biomes.innerRadius(khet))
-		and Biomes.byId.NamakKaan.eggTime < khet.eggTime,
-	"further biomes are further away and their eggs crack sooner"
+	Biomes.at(Biomes.polar(0, 250)) == nil and Biomes.townSectorAt(Biomes.polar(0, 250)) ~= nil,
+	"the bazaar is not a zone"
+)
+check(
+	Biomes.byId.BarfaniPahar.eggTime < Biomes.byId.MangoBagh.eggTime
+		and Biomes.innerRadius(Biomes.byId.BarfaniPahar) > Biomes.innerRadius(Biomes.byId.MangoBagh),
+	"further zones are further away and their eggs crack sooner"
 )
 for name, info in Sounds.list do
 	check(type(info.id) == "string" and info.volume > 0, "sound " .. name)
 end
+local khet = Biomes.byId.MangoBagh -- the free starter zone
 
 do
 	---------------------------------------------------------------------------
-	section("Biome zones, landmarks and the countryside")
+	section("Zone landmarks, the train and the bazaar")
 	---------------------------------------------------------------------------
 	local Props = serverModule("Props")
 	local PropData = serverModule("PropData")
-	local MapBuilder = serverModule("MapBuilder")
-	-- the biomes are separate zones with countryside between them
-	for i, biome in Biomes.list do
-		local nextBiome = Biomes.list[i % #Biomes.list + 1]
-		local gapAngle = math.rad(45 * i)
-		local gapDistance = (Biomes.centerDistance(biome) + Biomes.centerDistance(nextBiome)) / 2
-		local gap = Vector3.new(math.cos(gapAngle) * gapDistance, Biomes.GROUND_Y, math.sin(gapAngle) * gapDistance)
-		check(Biomes.at(gap) == nil, "countryside between " .. biome.id .. " and " .. nextBiome.id)
-		check(Biomes.at(Biomes.center(biome)) == biome, biome.id .. " has its own zone")
-		check(
-			not Biomes.contains(biome, Vector3.zero) and Biomes.zoneDistance(biome, Biomes.center(biome)) < 0.01,
-			biome.id .. " zone maths"
-		)
-	end
-	-- each biome's landmark, modelled in Blender
+	-- each zone's landmarks, modelled in Blender
 	local landmarks = {
-		Khet = { "Rehat", "WaterTank", "MudHut" },
-		Jungle = { "Treehouse", "RopeBridge", "BanyanTree" },
-		Samandar = { "Lighthouse", "BeachHutTeal", "FishingBoat", "CoconutPalm" },
-		Jheel = { "RestHouse", "Jetty", "RowBoat", "Willow" },
-		Registan = { "DesertFort", "DesertTent", "KikarDry" },
-		Delta = { "StiltVillage", "Mangrove", "NetRack" },
-		Pahar = { "SuspensionBridge", "MountainHut", "DeodarSnowy" },
-		NamakKaan = { "MineEntrance", "MineTrack", "CaveSupport", "CrystalCluster" },
+		MangoBagh = { "MangoTree", "TubeWell", "WaterTank" },
+		RailwayJunction = { "RailwayStation", "Train", "CrossingLight", "Rail" },
+		CamelMela = { "MelaTent", "Camel" },
+		QissaKhawani = { "GhantaGhar", "KahwaStall", "DryFruitStall" },
+		SarsonFields = { "SarsonField", "TractorTrolley", "Scarecrow" },
+		SahilBeach = { "Lighthouse", "BeachUmbrella", "CoconutPalm", "Camel" },
+		TharDesert = { "DesertFort", "KikarDry" },
+		NamakCaves = { "MineEntrance", "CrystalCluster" },
+		LahoreQila = { "QilaGate", "QilaWall", "QilaTower", "Chhatri" },
+		KarachiPort = { "PortCrane", "CargoShip" },
+		MohenjoDaro = { "GreatBath", "RuinMound" },
+		BarfaniPahar = { "IceCave", "Snowman", "MountainHut" },
 	}
 	for biomeId, names in landmarks do
 		local folder = map.Biomes:FindFirstChild(biomeId)
@@ -408,40 +512,62 @@ do
 			check(folder and folder:FindFirstChild(name) ~= nil, biomeId .. " has a " .. name)
 		end
 	end
-	check(map.Biomes.NamakKaan:FindFirstChild("SignText", true).Gui.Text.Text == "NAMAK KAAN", "mine entrance sign")
+	check(map.Biomes.QissaKhawani:FindFirstChild("QissaHouseA") ~= nil, "Qissa Khawani's tall houses")
+	check(map.Biomes.NamakCaves:FindFirstChild("SignText", true).Gui.Text.Text == "NAMAK CAVES", "mine entrance sign")
+	local containers = 0
+	for _, d in map.Biomes.KarachiPort:GetChildren() do
+		containers += if d.Name:match("^Container") then 1 else 0
+	end
+	check(containers >= 10, "stacks of containers at the port: " .. containers)
+	-- every ring 3 zone has a rickshaw home
+	for _, biome in Biomes.list do
+		local pad = map.Biomes[biome.id]:FindFirstChild("RickshawHome")
+		check((biome.ring == 3) == (pad ~= nil), biome.id .. " rickshaw home only in ring 3")
+	end
 	-- climbing chests land you next to the treasure
 	for _, chest in Treasure.all() do
 		if chest.kind == "climb" and chest.stand then
 			check((chest.stand - chest.top).Magnitude < 6, chest.model.Name .. " stand spot is next to the chest")
 		end
 	end
-	-- the countryside
-	local country = map.Countryside
+	-- the train waits, blinks, runs the track and comes back
+	local train = map.Biomes.RailwayJunction.Train
+	check(train.ModelStreamingMode == M.Enum.ModelStreamingMode.Persistent, "the train is always loaded")
+	local w, b, sp = Config.TRAIN_WAIT, Config.TRAIN_BLINK, Config.TRAIN_SPEED
+	local a0, moving0, light0 = Biomes.trainAt(0, w, b, sp)
+	local _, moving1, light1 = Biomes.trainAt(w + 0.1, w, b, sp)
+	local a2, moving2, light2 = Biomes.trainAt(w + b + 1, w, b, sp)
+	check(not moving0 and light0 == "green", "the train waits with a green light")
+	check(not moving1 and light1 == "blink", "the light blinks before it comes")
+	check(moving2 and light2 == "red" and a2 > a0, "then it runs with a red light")
+	local runTime = 80 * math.pi * Biomes.TRAIN.radius / 180 / sp
+	local aBack, _, _, dirBack = Biomes.trainAt(w + b + runTime + w + b + 1, w, b, sp)
+	check(dirBack == -1 and aBack < Biomes.byId.RailwayJunction.angle + 40, "and comes back the other way")
+	-- the bazaar
+	local bazaar = map.Bazaar
 	local counts = {}
-	for _, item in country:GetChildren() do
+	for _, item in bazaar:GetChildren() do
 		counts[item.Name] = (counts[item.Name] or 0) + 1
 	end
-	check((counts.ChaiDhaba or 0) >= 5, "roadside dhabas: " .. tostring(counts.ChaiDhaba))
-	check((counts.Milestone or 0) >= 12, "milestones: " .. tostring(counts.Milestone))
-	check((counts.BusStop or 0) == 4, "bus stops: " .. tostring(counts.BusStop))
-	check((counts.TruckArt or 0) + (counts.Rickshaw or 0) >= 5, "parked trucks and rickshaws")
-	check(((counts.WheatField or 0) + (counts.SarsonField or 0) + (counts.SugarcaneField or 0)) >= 20, "farm fields")
-	check((counts.TractorTrolley or 0) >= 3 and (counts.TubeWell or 0) >= 6, "tractors and tube wells on the farms")
-	check((counts.KikarTree or 0) >= 30 and (counts.MangoTree or 0) >= 15, "trees")
-	check((counts.Reeds or 0) >= 20, "ponds with reeds")
-	check((counts.CricketStumps or 0) >= 1 and (counts.KiteLine or 0) >= 1, "street cricket and kites")
+	local stallCount = (counts.BazaarStallRed or 0)
+		+ (counts.BazaarStallGreen or 0)
+		+ (counts.BazaarStallBlue or 0)
+		+ (counts.BazaarStallYellow or 0)
+	check(stallCount >= 30, "rows of bazaar stalls: " .. stallCount)
+	check(counts.FerrisWheel == 1 and counts.KiteTower == 1 and counts.MelaStage == 1, "Mela Ground and Kite Point")
+	check(counts.Showroom == 1 and counts.Workshop == 1, "the Gaari Showroom and Ustad's Workshop")
+	check((counts.Signboard or 0) == #Biomes.TOWN_SECTORS, "a sign for every bazaar sector")
 	local onRoads = 0
-	for _, item in country:GetChildren() do
-		if item:IsA("Model") and item.Name ~= "Lamppost" and item.Name ~= "Reeds" and item.Name ~= "Milestone" then
-			if not MapBuilder.isCountryside(item.WorldPivot.Position, 0) then
-				onRoads += 1
-			end
+	for _, item in bazaar:GetChildren() do
+		if
+			item:IsA("Model")
+			and item.Name:match("^BazaarStall")
+			and Biomes.roadDistance(item.WorldPivot.Position) < 2
+		then
+			onRoads += 1
 		end
 	end
-	check(onRoads == 0, "nothing in the countryside sits on a road, in a biome or in the bazaar: " .. onRoads)
-	local milestone = country:FindFirstChild("SignText")
-	check(milestone and milestone.Gui.Text.Text:match("^%u+\n%d+$") ~= nil, "milestones count down to a biome")
-	check(map.Roads:FindFirstChild("Signboard") ~= nil, "road signs by the Chowk")
+	check(onRoads == 0, "no stall sits on a road: " .. onRoads)
 	check(
 		map:FindFirstChild("ChaiDhaba") ~= nil and map:FindFirstChild("FruitStall") ~= nil,
 		"a dhaba and a fruit cart in the Chowk"
@@ -647,7 +773,10 @@ do
 		migrated.discovered.CylinderCycleChacha and migrated.mutations["CylinderCycleChacha:Golden"],
 		"and in your Collection Book"
 	)
-	check(migrated.ride == "CylinderCycleChacha:Rainbow", "and as your ride")
+	check(
+		migrated.owned[3] == "CylinderCycleChacha:Rainbow" and migrated.ride == nil,
+		"an old ride walks back to a plot (riding is gone)"
+	)
 	check(migrated.incubators[1] and migrated.incubators[1].id == "CylinderCycleChacha", "and in your incubator")
 	check(Brainrots.byId.CycleWalaCyclops == nil, "the old id is gone")
 end
@@ -740,7 +869,9 @@ check(pa and pa.haveli and pa.haveli.index == 1, "Ali got haveli 1")
 check(pa.haveli.signLabel.Text == "Ali ki Haveli · Lv 1", "sign: " .. pa.haveli.signLabel.Text)
 check(pa.data.theme == "MughalMarble" and pa.data.level == 1, "starts in a level 1 Mughal Marble haveli")
 check(pa.data.rupees >= Config.START_RUPEES, "starts with at least Rs 1,000: " .. pa.data.rupees)
-check(pa.data.version == 3 and pa.data.trackerLevel == 1 and next(pa.data.gear) == nil, "v3 data: tracker 1, no gear")
+check(pa.data.version == 4 and pa.data.trackerLevel == 1 and next(pa.data.gear) == nil, "v4 data: tracker 1, no gear")
+check(A:GetAttribute("OpenZones") == "MangoBagh", "only Mango Bagh is open at the start")
+check(A:GetAttribute("Vehicles") == "" and A:GetAttribute("Driving") == "", "no vehicles yet")
 check(A:GetAttribute("TrackerLevel") == 1 and A:GetAttribute("Gear") == "", "tracker and gear sent to the HUD")
 check(A:GetAttribute("HomePosition") == pa.haveli.doorOutside.Position, "the radar knows where home is")
 check(notified("Ali", "Daily chai") and notified("Ali", "free Kismat Roll"), "daily chai with a free roll")
@@ -769,7 +900,7 @@ runScripts(client, "client")
 M.advance(0.5)
 local hud = A.PlayerGui:FindFirstChild("ChaiChaosHud")
 check(hud ~= nil, "HUD created")
-for _, name in { "Taala", "Haveli", "Kismat", "Quests", "Collection", "Brainrots" } do
+for _, name in { "Taala", "Haveli", "Kismat", "Quests", "Collection", "Brainrots", "Gaari" } do
 	check(hud.Buttons:FindFirstChild(name) ~= nil, "HUD button " .. name)
 end
 check(hud.Buttons:FindFirstChild("NayaSafar") == nil, "Naya Safar is at the Chowk now, not a button")
@@ -777,8 +908,8 @@ check(hud.Buttons:FindFirstChild("ChorPass") == nil, "no Chor Pass button while 
 check(hud.EventBanner.Title.Text == "Next event", "event banner")
 check(hud.Money:FindFirstChildWhichIsA("TextLabel").Text == Format.rupees(pa.data.rupees), "HUD shows rupees")
 check(hud.RadarHolder.Radar.Level.Text == "Radar Lv 1", "radar level shown")
-check(hud.RadarHolder.Tracks.Text == "Tracks: Khet", "radar tracks Khet: " .. hud.RadarHolder.Tracks.Text)
-check(hud.RadarHolder.Area.Text == "Chowk Bazaar", "radar says where you are: " .. hud.RadarHolder.Area.Text)
+check(hud.RadarHolder.Tracks.Text == "Tracks: 1 open zone", "radar tracks Mango Bagh: " .. hud.RadarHolder.Tracks.Text)
+check(hud.RadarHolder.Area.Text == "Chowk", "radar says where you are: " .. hud.RadarHolder.Area.Text)
 check(hud.CollectionBook:FindFirstChild("SamosaSupremo", true) ~= nil, "collection book cards")
 
 ---------------------------------------------------------------------------
@@ -814,15 +945,15 @@ setQuests(pa, {
 	{ id = "biomes", target = 2, progress = 0, claimed = false },
 	{ id = "discover", target = 1, progress = 0, claimed = false },
 })
-local khetEgg = eggIn("Khet", false)
-check(khetEgg ~= nil, "found a Khet egg")
+local khetEgg = eggIn("MangoBagh", false)
+check(khetEgg ~= nil, "found a Mango Bagh egg")
 markLog()
 PPS.PromptTriggered:Fire(khetEgg.PrimaryPart.EggPrompt, A)
 M.advance(0.05)
 check(pa.egg == nil, "cannot pick up an egg from far away")
 pickUp(A, khetEgg)
-check(pa.egg ~= nil and pa.egg.model == khetEgg, "picked up the Khet egg")
-check(A:GetAttribute("EggBiome") == "Khet" and A:GetAttribute("EggTimeTotal") == 60, "egg timer starts at 60s")
+check(pa.egg ~= nil and pa.egg.model == khetEgg, "picked up the Mango Bagh egg")
+check(A:GetAttribute("EggBiome") == "MangoBagh" and A:GetAttribute("EggTimeTotal") == 60, "egg timer starts at 60s")
 check(khetEgg.PrimaryPart:FindFirstChild("CarryWeld") ~= nil and not khetEgg.PrimaryPart.Anchored, "egg in Ali's hands")
 check(not khetEgg.PrimaryPart.EggPrompt.Enabled, "nobody else can grab a carried egg")
 check(notified("Ali", "Run it home") and soundsFor("Ali", "EggPickup") == 1, "pickup message and sound")
@@ -834,36 +965,89 @@ M.advance(5)
 local left = A:GetAttribute("EggTimeLeft")
 check(left < 56 and left > 54, "egg timer runs down: " .. left)
 check(hud.RadarStatus.EggBar.Visible, "egg bar on the radar")
-check(hud.RadarStatus.EggBar.Text.Text:find("Khet egg") ~= nil, "egg bar: " .. hud.RadarStatus.EggBar.Text.Text)
-check(hud.RadarHolder.Area.Text == "Khet", "radar: in Khet")
+check(hud.RadarStatus.EggBar.Text.Text:find("Mango Bagh egg") ~= nil, "egg bar: " .. hud.RadarStatus.EggBar.Text.Text)
+check(hud.RadarHolder.Area.Text == "Mango Bagh", "radar: in Mango Bagh")
 local sawEggDot = false
 for _, d in visibleDots() do
 	sawEggDot = sawEggDot or d.BackgroundColor3 == khet.eggColor
 end
 check(sawEggDot, "radar shows the egg next to Ali")
 check(#visibleDots() >= 3, "radar shows eggs, home and the Chowk")
-check(hud.AreaTitle.Text == "KHET · Punjab Fields", "biome title when walking in: " .. hud.AreaTitle.Text)
-local beforeRefill = groundEggs("Khet")
+check(hud.AreaTitle.Text == "MANGO BAGH · Punjab Mango Orchards", "zone title when walking in: " .. hud.AreaTitle.Text)
+local beforeRefill = groundEggs("MangoBagh")
 M.advance(Config.EGG_RESPAWN + 0.5)
-check(groundEggs("Khet") >= beforeRefill, "eggs refill over time")
+check(groundEggs("MangoBagh") >= beforeRefill, "eggs refill over time")
 
 markLog()
 goTo(A, pa.haveli.spawn.Position)
 M.advance(0.5)
 check(pa.egg == nil and pa.incubating[1] ~= nil, "home safe: the egg is in the incubator")
 local record = pa.incubating[1]
-check(inPool(khet, record.id), "what hatches is from Khet's pool: " .. record.id)
+check(inPool(khet, record.id), "what hatches is from Mango Bagh's pool: " .. record.id)
 check(khetEgg.Parent == pa.haveli.brainrotFolder, "the egg sits in the nest")
 check(notified("Ali", "Home safe") and soundsFor("Ali", "EggHome") == 1, "home message and sound")
 check(A:GetAttribute("EggBiome") == "" and not hud.RadarStatus.EggBar.Visible, "egg bar gone")
 check(pa.haveli.incubatorLabels[1].Text:find("Hatching") ~= nil, "nest shows the countdown")
 check(pa.data.quests.list[1].progress == 1 and pa.data.quests.list[2].progress == 1, "egg quests count")
 
--- a second egg while the incubator is busy
-local jungle = Biomes.byId.Jungle
-local jungleEgg = eggIn("Jungle", false)
+-- locked zones: unlock them at their gates
+local jungle = Biomes.byId.RailwayJunction
+local jungleEgg = eggIn("RailwayJunction", false)
+markLog()
 pickUp(A, jungleEgg)
-check(pa.egg and A:GetAttribute("EggTimeTotal") == jungle.eggTime, "Jungle egg picked up")
+check(pa.egg == nil and notified("Ali", "Unlock Railway Junction"), "no eggs from a locked zone")
+local function gateOf(id)
+	return Havelis.map().gates[id]
+end
+local function atGate(player, id)
+	local barrier = gateOf(id)
+	goTo(player, barrier.Position * FLAT - barrier.CFrame.LookVector * FLAT * 6)
+end
+pa.data.rupees = 5_000
+State.syncStats(pa)
+atGate(A, "RailwayJunction")
+markLog()
+PPS.PromptTriggered:Fire(gateOf("RailwayJunction").GatePrompt, A)
+M.advance(0.1)
+check(not pa.data.zones.RailwayJunction and notified("Ali", "costs Rs 10,000"), "unlocking costs rupees")
+pa.data.rupees = 2_000_000
+State.syncStats(pa)
+PPS.PromptTriggered:Fire(gateOf("RailwayJunction").GatePrompt, A)
+M.advance(0.1)
+check(pa.data.zones.RailwayJunction and pa.data.rupees == 1_990_000, "Railway Junction unlocked for Rs 10,000")
+check(A:GetAttribute("OpenZones") == "MangoBagh,RailwayJunction" and notified("Ali", "unlocked"), "open zones sent")
+check(soundsFor("Ali", "Purchase") >= 1, "unlock sound")
+check(not gateOf("RailwayJunction").GatePrompt.Enabled, "Ali's screen hides the prompt on an open gate")
+check(not gateOf("RailwayJunction").CanCollide, "and lets Ali through the barrier")
+check(gateOf("SahilBeach").CanCollide, "locked gates stay solid")
+atGate(A, "NamakCaves")
+markLog()
+PPS.PromptTriggered:Fire(gateOf("NamakCaves").GatePrompt, A)
+M.advance(0.1)
+check(not pa.data.zones.NamakCaves and notified("Ali", "Unlock Qissa Khawani first"), "unlock the ring in front first")
+atGate(A, "LahoreQila")
+markLog()
+PPS.PromptTriggered:Fire(gateOf("LahoreQila").GatePrompt, A)
+M.advance(0.1)
+check(not State.isZoneOpen(pa, Biomes.byId.LahoreQila) and notified("Ali", "1 rebirth"), "ring 3 needs rebirths")
+goTo(A, pa.haveli.spawn.Position)
+PPS.PromptTriggered:Fire(gateOf("CamelMela").GatePrompt, A)
+M.advance(0.1)
+check(not pa.data.zones.CamelMela, "gates only work up close")
+-- the rest of the zones (rings 1 and 2) for the tests that follow
+for _, biome in Biomes.list do
+	if biome.price > 0 then
+		pa.data.zones[biome.id] = true
+	end
+end
+State.syncZones(pa)
+pa.data.rupees = 100_000
+State.syncStats(pa)
+M.advance(0.1)
+
+-- a second egg while the incubator is busy
+pickUp(A, jungleEgg)
+check(pa.egg and A:GetAttribute("EggTimeTotal") == jungle.eggTime, "Railway Junction egg picked up")
 markLog()
 goTo(A, pa.haveli.spawn.Position)
 M.advance(0.5)
@@ -873,20 +1057,23 @@ M.advance(3)
 check(A:GetAttribute("EggTimeLeft") == held, "the egg is safe at home while you wait")
 markLog()
 M.advance(khet.hatchTime)
-check(#pa.owned == 1 and inPool(khet, pa.owned[1].def.id), "the Khet egg hatched")
+check(#pa.owned == 1 and inPool(khet, pa.owned[1].def.id), "the Mango Bagh egg hatched")
 check(notified("Ali", "Your egg hatched") and soundsFor("Ali", "EggHatch") == 1, "hatch message and sound")
-check(pa.egg == nil and pa.incubating[1] and pa.incubating[1].biome == "Jungle", "the Jungle egg took the nest")
-check(pa.data.quests.list[2].progress == 2, "two different biomes")
+check(
+	pa.egg == nil and pa.incubating[1] and pa.incubating[1].biome == "RailwayJunction",
+	"the Railway Junction egg took the nest"
+)
+check(pa.data.quests.list[2].progress == 2, "two different zones")
 check(pa.data.quests.list[3].progress == 1, "first brainrot discovered")
 M.advance(jungle.hatchTime + 1)
-check(#pa.owned == 2 and inPool(jungle, pa.owned[2].def.id), "the Jungle egg hatched")
+check(#pa.owned == 2 and inPool(jungle, pa.owned[2].def.id), "the Railway Junction egg hatched")
 M.advance(10)
 check(pa.owned[1].arrived and pa.owned[2].arrived, "hatched brainrots walk to their plots")
 check(A:GetAttribute("Owned"):find(pa.owned[1].def.id) ~= nil, "the Brainrots window knows what Ali owns")
 
 -- an egg that cracks
-local samandar = Biomes.byId.Samandar
-local seaEgg = eggIn("Samandar", false)
+local samandar = Biomes.byId.SahilBeach
+local seaEgg = eggIn("SahilBeach", false)
 pickUp(A, seaEgg)
 markLog()
 M.advance(samandar.eggTime + 1)
@@ -895,7 +1082,7 @@ check(notified("Ali", "cracked") and soundsFor("Ali", "EggCrack") == 1, "crack m
 check(A:GetAttribute("EggBiome") == "", "nothing carried")
 
 -- dying drops the egg
-local dropEgg = eggIn("Khet", false)
+local dropEgg = eggIn("MangoBagh", false)
 pickUp(A, dropEgg)
 M.advance(2)
 local leftBefore = pa.egg.timeLeft
@@ -910,7 +1097,7 @@ check(dropEgg.Parent == nil, "dropped eggs vanish after a while")
 nearEgg:Destroy()
 
 ---------------------------------------------------------------------------
-section("Biome hazards")
+section("Zone hazards")
 ---------------------------------------------------------------------------
 local function zoneSpot(biomeId, kind)
 	local biome = Biomes.byId[biomeId]
@@ -919,119 +1106,196 @@ local function zoneSpot(biomeId, kind)
 			if z.center then
 				return Vector3.new(z.center.X, Biomes.GROUND_Y, z.center.Z)
 			end
-			local r = (z.inner + math.min(z.outer, Biomes.innerRadius(biome) + Biomes.DEPTH)) / 2
-			return Biomes.point(biome, r, 0)
+			-- a band: find a spot in it, off the roads
+			for side = -40, 40, 4 do
+				local spot = Biomes.point(biome, (z.inner + math.min(z.outer, Biomes.outerRadius(biome))) / 2, side)
+				if Biomes.at(spot) == biome and Biomes.roadDistance(spot) > 4 then
+					return spot
+				end
+			end
 		end
 	end
 	error("no " .. kind .. " zone in " .. biomeId)
 end
 
-markLog()
-goTo(A, zoneSpot("Khet", "mud"))
-M.advance(0.5)
-check(pa.hazardSpeed == Config.HAZARD_SPEED.mud, "mud slows you down")
-check(math.abs(charA.Humanoid.WalkSpeed - Config.WALK_SPEED * Config.HAZARD_SPEED.mud) < 1e-6, "walk speed in mud")
-check(A:GetAttribute("Hazard") == "Mud! Gum Boots helps", "hazard warning: " .. A:GetAttribute("Hazard"))
-check(hud.RadarStatus.Hazard.Visible and hud.RadarStatus.Hazard.Text == "Mud! Gum Boots helps", "warning on the radar")
-pa.data.gear.GumBoots = true
-State.syncGear(pa)
-M.advance(0.5)
-check(charA.Humanoid.WalkSpeed == Config.WALK_SPEED and A:GetAttribute("Hazard") == "", "Gum Boots: no more mud")
-goTo(A, pa.haveli.spawn.Position)
-M.advance(0.5)
+do
+	markLog()
+	goTo(A, zoneSpot("MangoBagh", "mud"))
+	M.advance(0.5)
+	check(pa.hazardSpeed == Config.HAZARD_SPEED.mud, "mud slows you down")
+	check(math.abs(charA.Humanoid.WalkSpeed - Config.WALK_SPEED * Config.HAZARD_SPEED.mud) < 1e-6, "walk speed in mud")
+	check(A:GetAttribute("Hazard") == "Mud! Gum Boots helps", "hazard warning: " .. A:GetAttribute("Hazard"))
+	check(
+		hud.RadarStatus.Hazard.Visible and hud.RadarStatus.Hazard.Text == "Mud! Gum Boots helps",
+		"warning on the radar"
+	)
+	pa.data.gear.GumBoots = true
+	State.syncGear(pa)
+	M.advance(0.5)
+	check(charA.Humanoid.WalkSpeed == Config.WALK_SPEED and A:GetAttribute("Hazard") == "", "Gum Boots: no more mud")
+	goTo(A, pa.haveli.spawn.Position)
+	M.advance(0.5)
 
--- water makes eggs crack faster
-local riverEgg = eggIn("Jungle", false)
-pickUp(A, riverEgg)
-goTo(A, zoneSpot("Jungle", "water"))
-M.advance(0.3)
-local t0 = pa.egg.timeLeft
-M.advance(2)
-check(
-	pa.egg and t0 - pa.egg.timeLeft > 3.5,
-	"water cracks eggs twice as fast: " .. (t0 - (pa.egg and pa.egg.timeLeft or 0))
-)
-check(pa.hazardSpeed == Config.HAZARD_SPEED.water, "water slows you down")
-pa.data.gear.LifeJacket = true
-State.syncGear(pa)
-M.advance(0.3)
-t0 = pa.egg.timeLeft
-M.advance(2)
-check(t0 - pa.egg.timeLeft < 2.2 and pa.hazardSpeed == 1, "Life Jacket keeps you and the egg safe")
-pa.data.gear.LifeJacket = nil
-State.syncGear(pa)
+	-- water makes eggs crack faster
+	local riverEgg = eggIn("SahilBeach", false)
+	pickUp(A, riverEgg)
+	goTo(A, zoneSpot("SahilBeach", "water"))
+	M.advance(0.3)
+	local t0 = pa.egg.timeLeft
+	M.advance(2)
+	check(
+		pa.egg and t0 - pa.egg.timeLeft > 3.5,
+		"water cracks eggs twice as fast: " .. (t0 - (pa.egg and pa.egg.timeLeft or 0))
+	)
+	check(pa.hazardSpeed == Config.HAZARD_SPEED.water, "water slows you down")
+	pa.data.gear.LifeJacket = true
+	State.syncGear(pa)
+	M.advance(0.3)
+	t0 = pa.egg.timeLeft
+	M.advance(2)
+	check(t0 - pa.egg.timeLeft < 2.2 and pa.hazardSpeed == 1, "Life Jacket keeps you and the egg safe")
+	pa.data.gear.LifeJacket = nil
+	State.syncGear(pa)
+	-- the roads are always safe: the road out to Karachi Port crosses the sea
+	local causeway = nil
+	for _, road in Biomes.roads() do
+		for t = 0, 1, 0.02 do
+			local p = road.a:Lerp(road.b, t)
+			if Biomes.at(p) == Biomes.byId.SahilBeach and BiomeBuilder.inZone(plans.SahilBeach, p, "water") then
+				causeway = p
+			end
+		end
+	end
+	check(causeway ~= nil, "a road crosses the sea")
+	goTo(A, causeway)
+	M.advance(0.3)
+	check(pa.hazardSpeed == 1, "no water on a road")
 
--- waves on the beach
-goTo(A, zoneSpot("Samandar", "shore"))
-M.advance(0.3)
-markLog()
-t0 = pa.egg.timeLeft
-Hazards.wave()
-M.advance(0.05)
-check(t0 - pa.egg.timeLeft >= Config.EGG_HIT_PENALTY - 0.1, "a big wave knocks time off the egg")
-check(notified("Ali", "SPLASH") and soundsFor("Ali", "Splash") == 1, "splash message and sound (once)")
-check(workspace:GetAttribute("WaveAt") ~= nil, "clients are told about the wave")
-pa.data.gear.LifeJacket = true
-State.syncGear(pa)
-t0 = pa.egg.timeLeft
-Hazards.wave()
-M.advance(0.05)
-check(t0 - pa.egg.timeLeft < 0.2, "a Life Jacket shrugs off waves")
+	-- waves on the beach push you back
+	goTo(A, zoneSpot("SahilBeach", "shore"))
+	M.advance(1.2)
+	markLog()
+	t0 = pa.egg.timeLeft
+	Hazards.wave()
+	M.advance(0.05)
+	check(t0 - pa.egg.timeLeft >= Config.EGG_HIT_PENALTY - 0.1, "a big wave knocks time off the egg")
+	check(notified("Ali", "SPLASH") and soundsFor("Ali", "Splash") == 1, "splash message and sound (once)")
+	check(workspace:GetAttribute("WaveAt") ~= nil, "clients are told about the wave")
+	check(charA.HumanoidRootPart:FindFirstChild("Knockback") ~= nil, "the wave pushes you back")
+	M.advance(1.2)
+	check(charA.HumanoidRootPart:FindFirstChild("Knockback") == nil, "the push is short")
+	pa.data.gear.LifeJacket = true
+	State.syncGear(pa)
+	t0 = pa.egg.timeLeft
+	Hazards.wave()
+	M.advance(0.05)
+	check(t0 - pa.egg.timeLeft < 0.5, "a Life Jacket shrugs off waves")
 
--- snowballs in the mountains, salt in the caves
-goTo(A, Biomes.point(Biomes.byId.Pahar, Biomes.innerRadius(Biomes.byId.Pahar) + 30, 10))
-M.advance(0.3)
-t0 = pa.egg.timeLeft
-Hazards.snowball()
-M.advance(0.05)
-check(t0 - pa.egg.timeLeft >= Config.EGG_HIT_PENALTY - 0.1, "snowball hit")
-pa.data.gear.SnowBoots = true
-State.syncGear(pa)
-t0 = pa.egg.timeLeft
-Hazards.snowball()
-M.advance(0.05)
-check(t0 - pa.egg.timeLeft < 0.2, "Snow Boots dodge snowballs")
-goTo(A, zoneSpot("Pahar", "ice"))
-M.advance(0.3)
-check(pa.hazardSpeed == 1, "Snow Boots: no slipping on ice")
-local namak = Biomes.byId.NamakKaan
-goTo(A, Biomes.point(namak, Biomes.innerRadius(namak) + 40, 0))
-M.advance(0.5)
-t0 = pa.egg.timeLeft
-Hazards.salt()
-M.advance(0.05)
-check(t0 - pa.egg.timeLeft >= Config.EGG_HIT_PENALTY - 0.1, "falling salt")
-local tint = M.services.Lighting:FindFirstChild("ChaiChaosBiomeTint")
-check(tint and tint.Brightness < -0.2, "the salt caves are dark")
-pa.data.gear.Lantern = true
-State.syncGear(pa)
-M.advance(0.5)
-t0 = pa.egg.timeLeft
-Hazards.salt()
-M.advance(0.05)
-check(t0 - pa.egg.timeLeft < 0.2, "a Lantern lights the way")
-check(charA.HumanoidRootPart:FindFirstChild("LanternGlow") ~= nil and tint.Brightness > -0.2, "lantern glow")
+	-- snowballs and ice in Barfani Pahar, falling salt in the Namak Caves
+	pa.egg.timeLeft = 45 -- a fresh timer, so the egg lasts through every hazard
+	local barfani = Biomes.byId.BarfaniPahar
+	goTo(A, zoneSpot("BarfaniPahar", "ice") + Vector3.new(0, 0, 0))
+	M.advance(0.3)
+	check(pa.hazardSpeed == Config.HAZARD_SPEED.ice, "frozen lakes are slippery")
+	goTo(A, Biomes.point(barfani, Biomes.innerRadius(barfani) + 20, 20))
+	M.advance(0.3)
+	t0 = pa.egg.timeLeft
+	Hazards.snowball()
+	M.advance(0.05)
+	check(t0 - pa.egg.timeLeft >= Config.EGG_HIT_PENALTY - 0.1, "snowball hit")
+	pa.data.gear.SnowBoots = true
+	State.syncGear(pa)
+	t0 = pa.egg.timeLeft
+	Hazards.snowball()
+	M.advance(0.05)
+	check(t0 - pa.egg.timeLeft < 0.5, "Snow Boots dodge snowballs")
+	goTo(A, zoneSpot("BarfaniPahar", "ice"))
+	M.advance(0.3)
+	check(pa.hazardSpeed == 1, "Snow Boots: no slipping on ice")
+	pa.egg.timeLeft = 45
+	local namak = Biomes.byId.NamakCaves
+	goTo(A, zoneSpot("NamakCaves", "dark"))
+	M.advance(1.2)
+	t0 = pa.egg.timeLeft
+	markLog()
+	Hazards.salt()
+	M.advance(0.05)
+	local warning = workspace.ChaiChaosHazards:FindFirstChild("SaltWarning")
+	check(
+		warning ~= nil and (warning.Position * FLAT - charA:GetPivot().Position * FLAT).Magnitude < 6,
+		"a red circle near Ali"
+	)
+	M.advance(Config.SALT_WARNING + 0.1)
+	check(t0 - pa.egg.timeLeft >= Config.EGG_HIT_PENALTY - 0.1, "the salt rock lands on Ali")
+	check(notified("Ali", "salt rock"), "salt message")
+	local tint = M.services.Lighting:FindFirstChild("ChaiChaosBiomeTint")
+	check(tint and tint.Brightness < -0.2, "the salt caves are dark")
+	pa.data.gear.Lantern = true
+	State.syncGear(pa)
+	M.advance(1.2)
+	t0 = pa.egg.timeLeft
+	Hazards.salt()
+	M.advance(Config.SALT_WARNING + 0.1)
+	check(t0 - pa.egg.timeLeft < Config.SALT_WARNING + 0.6, "a Lantern lights the way")
+	check(charA.HumanoidRootPart:FindFirstChild("LanternGlow") ~= nil and tint.Brightness > -0.2, "lantern glow")
+	_ = namak
 
--- sandstorms in the desert
-goTo(A, Biomes.point(Biomes.byId.Registan, Biomes.innerRadius(Biomes.byId.Registan) + 60, 0))
-M.advance(0.5)
-check(pa.hazardSpeed == 1, "no sandstorm yet")
-workspace:SetAttribute("Sandstorm", true)
-M.advance(0.5)
-check(pa.hazardSpeed == Config.HAZARD_SPEED.sandstorm, "sandstorm slows you")
-local weather = workspace.CurrentCamera:FindFirstChild("ChaiChaosWeather")
-check(weather and weather.Sand.Enabled, "sand on screen")
-pa.data.gear.SandGoggles = true
-State.syncGear(pa)
-M.advance(0.5)
-check(pa.hazardSpeed == 1 and weather.Sand.Rate < 500, "Sand Goggles help")
-workspace:SetAttribute("Sandstorm", false)
-EggSystem.drop(A)
-pa.data.gear = {}
-State.syncGear(pa)
-goTo(A, pa.haveli.spawn.Position)
-M.advance(0.5)
-check(charA.Humanoid.WalkSpeed == Config.WALK_SPEED and A:GetAttribute("Hazard") == "", "back home, all normal")
+	-- sandstorms in the desert
+	goTo(A, zoneSpot("TharDesert", "sandstorm"))
+	M.advance(0.5)
+	check(pa.hazardSpeed == 1, "no sandstorm yet")
+	workspace:SetAttribute("Sandstorm", true)
+	M.advance(0.5)
+	check(pa.hazardSpeed == Config.HAZARD_SPEED.sandstorm, "sandstorm slows you")
+	local weather = workspace.CurrentCamera:FindFirstChild("ChaiChaosWeather")
+	check(weather and weather.Sand.Enabled, "sand on screen")
+	pa.data.gear.SandGoggles = true
+	State.syncGear(pa)
+	M.advance(0.5)
+	check(pa.hazardSpeed == 1 and weather.Sand.Rate < 500, "Sand Goggles help")
+	workspace:SetAttribute("Sandstorm", false)
+
+	-- the train in Railway Junction
+	local train = Biomes.TRAIN
+	local trainT = M.services.Workspace:GetServerTimeNow()
+	local angle, moving = Biomes.trainAt(trainT, Config.TRAIN_WAIT, Config.TRAIN_BLINK, Config.TRAIN_SPEED)
+	local waited = 0
+	while not moving and waited < 40 do
+		M.advance(0.5)
+		waited += 0.5
+		angle, moving = Biomes.trainAt(
+			M.services.Workspace:GetServerTimeNow() + 0.3,
+			Config.TRAIN_WAIT,
+			Config.TRAIN_BLINK,
+			Config.TRAIN_SPEED
+		)
+	end
+	check(moving, "the train comes")
+	if not pa.egg then
+		pickUp(A, eggIn("MangoBagh", false))
+	end
+	pa.egg.timeLeft = 45
+	goTo(A, Biomes.polar(angle, train.radius))
+	markLog()
+	t0 = pa.egg.timeLeft
+	local pushed = false
+	for _ = 1, 8 do
+		M.advance(0.05)
+		pushed = pushed or charA.HumanoidRootPart:FindFirstChild("Knockback") ~= nil
+	end
+	check(
+		notified("Ali", "TOOT TOOT") and t0 - pa.egg.timeLeft >= Config.EGG_HIT_PENALTY - 0.5,
+		"the train bumps you off the track"
+	)
+	check(pushed, "and pushes you away (it never hurts)")
+
+	EggSystem.drop(A)
+	pa.data.gear = {}
+	State.syncGear(pa)
+	goTo(A, pa.haveli.spawn.Position)
+	M.advance(0.5)
+	check(charA.Humanoid.WalkSpeed == Config.WALK_SPEED and A:GetAttribute("Hazard") == "", "back home, all normal")
+end
 
 ---------------------------------------------------------------------------
 section("Gear shop")
@@ -1091,7 +1355,11 @@ check(
 	trackerPanel.Content.Upgrade.Text == "Upgrade for Rs 2,500",
 	"tracker price: " .. trackerPanel.Content.Upgrade.Text
 )
-check(trackerPanel.Content.Next.Text:find("Jungle") ~= nil, "next level tracks Jungle")
+check(trackerPanel.Content.Next.Text:find("220 studs") ~= nil, "next level sees further")
+check(
+	trackerPanel.Content.Now.Text:find("8 open zones") ~= nil,
+	"the radar tracks Ali's open zones: " .. trackerPanel.Content.Now.Text
+)
 setQuests(pa, { { id = "upgrade", target = 1, progress = 0, claimed = false } })
 markLog()
 trackerPanel.Content.Upgrade.Activated:Fire()
@@ -1101,7 +1369,7 @@ check(A:GetAttribute("TrackerLevel") == 2 and notified("Ali", "Tracker level 2")
 check(soundsFor("Ali", "Upgrade") == 1, "upgrade sound")
 check(pa.data.quests.list[1].progress == 1, "tracker upgrades count for the upgrade quest")
 M.advance(0.2)
-check(hud.RadarHolder.Tracks.Text == "Tracks: Khet, Jungle", "radar tracks Jungle too")
+check(hud.RadarHolder.Tracks.Text:find("open zones") ~= nil, "radar tracks the open zones")
 goTo(A, pa.haveli.spawn.Position)
 Remotes.UpgradeTracker:FireServer()
 M.advance(0.1)
@@ -1118,7 +1386,7 @@ Remotes.UpgradeTracker:FireServer()
 M.advance(0.1)
 check(pa.data.trackerLevel == 8 and notified("Ali", "best there is"), "no level 9")
 M.advance(0.2)
-check(hud.RadarHolder.Tracks.Text:find("Namak Kaan") ~= nil, "radar tracks every biome")
+check(hud.RadarHolder.Tracks.Text:find("8 open zones") ~= nil, "radar tracks every open zone")
 check(
 	hud.RadarHolder.Tracks.Text:find("golden eggs") and hud.RadarHolder.Tracks.Text:find("treasure"),
 	"and golden eggs and treasure"
@@ -1143,7 +1411,11 @@ check(sawGold, "tracker level 3 shows golden eggs")
 setQuests(pa, { { id = "goldenEgg", target = 1, progress = 0, claimed = false } })
 pickUp(A, goldenEgg)
 check(A:GetAttribute("EggGolden") == true and A:GetAttribute("EggTimeTotal") == 75 * 1.3, "golden egg picked up")
-check(hud.RadarStatus.EggBar.Text.Text:find("Golden egg") ~= nil, "egg bar says golden")
+M.advance(0.15)
+check(
+	hud.RadarStatus.EggBar.Text.Text:find("Golden egg") ~= nil,
+	"egg bar says golden: " .. hud.RadarStatus.EggBar.Text.Text
+)
 goTo(A, pa.haveli.spawn.Position)
 M.advance(0.5)
 local goldenRecord = pa.incubating[1]
@@ -1158,15 +1430,15 @@ pa.data.trackerLevel = 1
 State.syncGear(pa)
 
 markLog()
-EggSystem.startRush("Registan")
+EggSystem.startRush("TharDesert")
 M.advance(0.5)
-check(workspace:GetAttribute("EggRush") == "Registan" and notified("Ali", "EGG RUSH in Registan"), "egg rush")
+check(workspace:GetAttribute("EggRush") == "TharDesert" and notified("Ali", "EGG RUSH in Thar Desert"), "egg rush")
 check(
-	groundEggs("Registan") >= Config.EGGS_PER_BIOME + Config.EGG_RUSH_EGGS - 1,
-	"lots of eggs: " .. groundEggs("Registan")
+	groundEggs("TharDesert") >= Config.EGGS_PER_BIOME + Config.EGG_RUSH_EGGS - 1,
+	"lots of eggs: " .. groundEggs("TharDesert")
 )
-check(groundEggs("Khet") <= Config.EGGS_PER_BIOME + 1, "only in the rush biome")
-check(hud.RadarStatus.Rush.Visible and hud.RadarStatus.Rush.Text:find("Registan"), "rush on the radar")
+check(groundEggs("MangoBagh") <= Config.EGGS_PER_BIOME + 1, "only in the rush biome")
+check(hud.RadarStatus.Rush.Visible and hud.RadarStatus.Rush.Text:find("Thar Desert"), "rush on the radar")
 check(soundsFor("Ali", "EventStart") == 1, "rush sound")
 EggSystem.stopRush()
 M.advance(0.3)
@@ -1185,14 +1457,17 @@ local function tally(biome, golden, n)
 	return rarities, outside
 end
 local khetCounts, khetOutside = tally(khet, false, 40000)
-check(khetOutside == 0, "Khet eggs only hatch Khet brainrots")
-check(math.abs(khetCounts.Common / 40000 - 0.7) < 0.015, "Khet common ~70%: " .. khetCounts.Common / 40000)
-check(math.abs((khetCounts.Rare or 0) / 40000 - 0.05) < 0.006, "Khet rare ~5%")
-check(not khetCounts.Epic and not khetCounts.Mythic, "no Epics in the starter biome")
-local namakCounts, namakOutside = tally(namak, false, 40000)
-check(namakOutside == 0 and (namakCounts.Mythic or 0) > 0, "Namak Kaan can hatch Mythics")
+check(khetOutside == 0, "Mango Bagh eggs only hatch Mango Bagh brainrots")
+check(math.abs(khetCounts.Common / 40000 - 0.72) < 0.015, "Mango Bagh common ~72%: " .. khetCounts.Common / 40000)
+check(math.abs((khetCounts.Rare or 0) / 40000 - 0.04) < 0.006, "Mango Bagh rare ~4%")
+check(not khetCounts.Epic and not khetCounts.Mythic, "no Epics in the starter zone")
+local barfaniCounts, barfaniOutside = tally(Biomes.byId.BarfaniPahar, false, 40000)
+check(barfaniOutside == 0 and (barfaniCounts.Secret or 0) > 0, "Barfani Pahar eggs can hatch Secret brainrots")
+check(math.abs((barfaniCounts.Secret or 0) / 40000 - 0.07) < 0.01, "Secret ~7% in Barfani Pahar")
+local namakCounts, namakOutside = tally(Biomes.byId.NamakCaves, false, 40000)
+check(namakOutside == 0 and (namakCounts.Mythic or 0) > 0, "the Namak Caves can hatch Mythics")
 local goldenCounts = tally(khet, true, 40000)
-check((goldenCounts.Rare or 0) / 40000 > 0.08, "golden eggs are luckier: " .. (goldenCounts.Rare or 0) / 40000)
+check((goldenCounts.Rare or 0) / 40000 > 0.06, "golden eggs are luckier: " .. (goldenCounts.Rare or 0) / 40000)
 local mutated = 0
 for _ = 1, 20000 do
 	if Mutations.roll("egg") then
@@ -1207,7 +1482,7 @@ end
 check(picks.SamosaSupremo and not picks.MithaiMamu, "quest brainrots never hatch")
 
 ---------------------------------------------------------------------------
-section("Brainrots window: riding and selling")
+section("Brainrots window and selling")
 ---------------------------------------------------------------------------
 local brainrotPanel = hud.BrainrotPanel
 goTo(A, pa.haveli.spawn.Position)
@@ -1224,72 +1499,20 @@ end
 check(rows == #pa.owned, "one row per brainrot: " .. rows)
 check(brainrotPanel.Content.SellInfo.Text:find("come to the BECHO") ~= nil, "sell only at the stall")
 check(brainrotPanel.Content.Brainrot1:FindFirstChild("Sell") == nil, "no sell buttons at home")
-check(not brainrotPanel.Content.StopRide.Visible, "not riding yet")
--- ride the most valuable one
-local best = pa.owned[1]
-for _, e in pa.owned do
-	if Havelis.entryValue(e) > Havelis.entryValue(best) then
-		best = e
-	end
-end
-local incomeBefore = Havelis.incomePerSecond(pa)
-markLog()
-brainrotPanel.Content.Brainrot1.Button.Activated:Fire()
-M.advance(0.2)
-check(pa.ride and pa.ride.def == best.def and pa.ride.mutation == best.mutation, "riding " .. best.def.id)
-check(entryOf(pa, best.def.id) == nil or #pa.owned == rows - 1, "the ride left its plot")
-check(Havelis.incomePerSecond(pa) < incomeBefore, "the ride does not earn")
-local rideSpeed = Riding.speedFor(best.def, best.mutation)
-check(A:GetAttribute("RideSpeed") == rideSpeed and A:GetAttribute("Ride") ~= "", "ride shown on the HUD")
-check(
-	charA:FindFirstChild("Ride") ~= nil and charA.Ride.PrimaryPart:FindFirstChild("RideWeld"),
-	"the brainrot carries Ali"
-)
-check(charA.Humanoid.HipHeight > 2, "Ali sits on top")
-check(
-	math.abs(charA.Humanoid.WalkSpeed - Config.WALK_SPEED * 1.1 * rideSpeed) < 1e-6,
-	"riding is faster: " .. charA.Humanoid.WalkSpeed
-)
-check(notified("Ali", "You're riding"), "ride message")
-check(brainrotPanel.Content.StopRide.Visible, "stop riding button")
-check(pa.data.ride == Mutations.key(best.def.id, best.mutation), "ride saved")
--- rarer is faster
-check(
-	Riding.speedFor(Brainrots.byId.AmmiKiUdtiChappal) > Riding.speedFor(Brainrots.byId.SamosaSupremo),
-	"Mythic rides are faster than Common ones"
-)
-check(
-	Riding.speedFor(Brainrots.byId.SamosaSupremo, "Rainbow") > Riding.speedFor(Brainrots.byId.SamosaSupremo),
-	"mutations ride faster"
-)
--- respawning keeps the ride
-local oldChar = charA
-charA = spawnCharacter(A)
-M.advance(0.3)
-oldChar:Destroy()
-check(charA:FindFirstChild("Ride") ~= nil, "back on the ride after respawning")
-check(math.abs(charA.Humanoid.WalkSpeed - Config.WALK_SPEED * 1.1 * rideSpeed) < 1e-6, "ride speed after respawn")
--- stop riding: it walks home
+check(brainrotPanel.Content:FindFirstChild("StopRide") == nil, "no more riding brainrots")
 local ownedBefore = #pa.owned
-brainrotPanel.Content.StopRide.Activated:Fire()
-M.advance(0.2)
-check(pa.ride == nil and #pa.owned == ownedBefore + 1, "the ride walked home")
-check(charA:FindFirstChild("Ride") == nil and charA.Humanoid.HipHeight == 2, "off the ride")
-check(math.abs(charA.Humanoid.WalkSpeed - Config.WALK_SPEED * 1.1) < 1e-6, "normal speed again")
-check(A:GetAttribute("Ride") == "" and pa.data.ride == nil, "no ride")
 
 -- selling at the BECHO stall
 markLog()
 Remotes.SellBrainrot:FireServer(pa.owned[1].uid)
 M.advance(0.1)
-check(#pa.owned == ownedBefore + 1 and notified("Ali", "BECHO stall"), "cannot sell from home")
+check(#pa.owned == ownedBefore and notified("Ali", "BECHO stall"), "cannot sell from home")
 hud.Buttons.Brainrots.Activated:Fire() -- close
 openShop("Sell")
 check(brainrotPanel.Visible, "the BECHO stall opens the Brainrots window")
 M.advance(0.6)
 local sellButton = brainrotPanel.Content.Brainrot1:FindFirstChild("Sell")
 check(sellButton ~= nil and brainrotPanel.Content.SellInfo.Text:find("half") ~= nil, "sell buttons at the stall")
-local sold = nil
 local mostValuable = 0
 for _, e in pa.owned do
 	mostValuable = math.max(mostValuable, Havelis.entryValue(e))
@@ -1298,25 +1521,282 @@ local beforeSale = pa.data.rupees
 sellButton.Activated:Fire()
 M.advance(0.2)
 check(pa.data.rupees == beforeSale + math.floor(mostValuable * Config.SELL_RATE), "sold for half its value")
-check(#pa.owned == ownedBefore and soundsFor("Ali", "Coin") >= 1, "sold, with a coin sound")
+check(#pa.owned == ownedBefore - 1 and soundsFor("Ali", "Coin") >= 1, "sold, with a coin sound")
 Remotes.SellBrainrot:FireServer(-5)
 Remotes.SellBrainrot:FireServer("abc")
 M.advance(0.1)
-check(#pa.owned == ownedBefore, "bad sell requests ignored")
-_ = sold
+check(#pa.owned == ownedBefore - 1, "bad sell requests ignored")
+
+do
+	---------------------------------------------------------------------------
+	section("Vehicles: showroom, driving, fuel, the boot, upgrades and paint")
+	---------------------------------------------------------------------------
+	-- drives a player to a spot in small steps, like a real drive
+	local function driveTo(player, target)
+		local root = player.Character.HumanoidRootPart
+		local from = root.Position * FLAT
+		local goal = target * FLAT
+		local distance = (goal - from).Magnitude
+		local steps = math.max(1, math.ceil(distance / 6))
+		for i = 1, steps do
+			local p = from:Lerp(goal, i / steps)
+			player.Character:PivotTo(CFrame.new(p + Vector3.new(0, 4, 0)))
+			M.advance(0.25)
+		end
+	end
+	EggSystem.reset(pa) -- start with empty incubators
+	pa.data.rupees = 50_000
+	State.syncStats(pa)
+	openShop("Showroom")
+	local showroomPanel = hud.ShowroomPanel
+	check(showroomPanel.Visible, "the Gaari Showroom window opens at the counter")
+	for _, def in Vehicles.list do
+		check(showroomPanel.Content:FindFirstChild(def.id) ~= nil, "the showroom sells the " .. def.name)
+	end
+	check(showroomPanel.Content.Motorbike.Button.Text == "Rs 3,000", "motorbike price")
+	markLog()
+	showroomPanel.Content.Motorbike.Button.Activated:Fire()
+	M.advance(0.1)
+	check(pa.data.vehicles.Motorbike ~= nil and pa.data.rupees == 47_000, "bought a motorbike for Rs 3,000")
+	check(
+		A:GetAttribute("Vehicles"):find("^Motorbike:0:0:0:0:1500") ~= nil,
+		"vehicles sent: " .. A:GetAttribute("Vehicles")
+	)
+	check(notified("Ali", "You bought a Motorbike"), "purchase message")
+	check(showroomPanel.Content.Motorbike.Button.Text == "Owned", "the window shows it is owned")
+	goTo(A, pa.haveli.spawn.Position)
+	Remotes.BuyVehicle:FireServer("Rickshaw")
+	M.advance(0.1)
+	check(pa.data.vehicles.Rickshaw == nil, "vehicles are only sold at the showroom")
+	-- the Gaari window: drive it
+	hud.Buttons.Gaari.Activated:Fire()
+	M.advance(0.1)
+	local garagePanel = hud.GaragePanel
+	check(
+		garagePanel.Visible and garagePanel.Content.Motorbike.Button.Text == "Drive",
+		"Gaari window lists the motorbike"
+	)
+	markLog()
+	garagePanel.Content.Motorbike.Button.Activated:Fire()
+	M.advance(0.1)
+	check(pa.driving == nil and notified("Ali", "Step outside"), "no driving inside a haveli")
+	goTo(A, pa.haveli.doorOutside.Position)
+	M.advance(0.1)
+	Remotes.Drive:FireServer("Motorbike")
+	M.advance(0.3)
+	check(pa.driving and pa.driving.def.id == "Motorbike", "driving the motorbike")
+	local bike = charA:FindFirstChild("Vehicle")
+	check(bike and bike.VehicleRoot:FindFirstChild("VehicleWeld") ~= nil, "the motorbike carries Ali")
+	check(
+		bike and bike:FindFirstChild("Paint") ~= nil and bike:FindFirstChild("PassengerSeat") ~= nil,
+		"panels and a pillion seat"
+	)
+	check(charA.Humanoid.WalkSpeed == Vehicles.byId.Motorbike.speed, "motorbike speed: " .. charA.Humanoid.WalkSpeed)
+	check(A:GetAttribute("Driving") == "Motorbike" and A:GetAttribute("FuelMax") == 1500, "driving shown on the HUD")
+	check(hud.Dashboard.Visible and hud.Dashboard.Vehicle.Text == "Motorbike", "the dashboard shows")
+	check(M.renderBindings.ChaiChaosDrive ~= nil and charA.Humanoid.AutoRotate == false, "car-like steering on screen")
+	-- steering: the stick points right, the motorbike turns towards it bit by bit
+	charA.HumanoidRootPart.CFrame = CFrame.new(charA.HumanoidRootPart.Position)
+	M.advance(0.05)
+	M.rawset(charA.Humanoid, "MoveDirection", Vector3.new(1, 0, 0))
+	M.advance(0.1)
+	local look = charA.HumanoidRootPart.CFrame.LookVector
+	check(look.X > 0.05 and look.Z < -0.5, "it turns gradually, not on the spot: " .. tostring(look))
+	M.advance(1)
+	look = charA.HumanoidRootPart.CFrame.LookVector
+	check(look.X > 0.95, "and ends up facing the way you push")
+	check(M.lastMove(charA.Humanoid) and M.lastMove(charA.Humanoid).Magnitude > 0.5, "it drives forward")
+	M.rawset(charA.Humanoid, "MoveDirection", Vector3.zero)
+	-- fuel: every stud uses fuel, a rickshaw ride or teleport does not
+	local fuel0 = pa.data.vehicles.Motorbike.fuel
+	local mango = Biomes.byId.MangoBagh
+	local drivePoint = Biomes.point(mango, Biomes.innerRadius(mango) + 40, 12)
+	driveTo(A, drivePoint)
+	local used = fuel0 - pa.data.vehicles.Motorbike.fuel
+	local distance = ((drivePoint - pa.haveli.doorOutside.Position) * FLAT).Magnitude
+	check(math.abs(used - distance) < 15, ("fuel used %d for %d studs"):format(used, distance))
+	check(A:GetAttribute("Fuel") == math.floor(pa.data.vehicles.Motorbike.fuel), "fuel on the dashboard")
+	local before = pa.data.vehicles.Motorbike.fuel
+	goTo(A, drivePoint + Vector3.new(300, 0, 0))
+	M.advance(0.3)
+	goTo(A, drivePoint)
+	M.advance(0.3)
+	check(math.abs(pa.data.vehicles.Motorbike.fuel - before) < 1, "teleports use no fuel")
+	-- eggs ride in the boot
+	local bootEgg = nil
+	for _, egg in eggFolder:GetChildren() do
+		if
+			egg:GetAttribute("Biome") == "MangoBagh"
+			and egg.PrimaryPart.Anchored
+			and egg.PrimaryPart.EggPrompt.Enabled
+		then
+			bootEgg = egg
+			break
+		end
+	end
+	driveTo(A, bootEgg:GetPivot().Position)
+	trigger(bootEgg, "EggPrompt", A)
+	M.advance(0.1)
+	check(#pa.boot == 1 and pa.egg == nil, "the egg goes in the boot")
+	check(bootEgg.PrimaryPart.CarryWeld.Part0 == bike.VehicleRoot, "welded to the motorbike")
+	check(A:GetAttribute("BootEggs") == 1 and A:GetAttribute("EggCount") == 1, "boot count on the HUD")
+	check(hud.Dashboard.FuelText.Text:find("Boot 1/1") ~= nil, "dashboard: " .. hud.Dashboard.FuelText.Text)
+	local second = eggIn("MangoBagh", false)
+	markLog()
+	pickUp(A, second)
+	check(#pa.boot == 1 and notified("Ali", "boot is full"), "the motorbike's boot holds one egg")
+	local leftBoot = pa.boot[1].timeLeft
+	M.advance(2)
+	check(pa.boot[1].timeLeft < leftBoot - 1.5, "boot eggs count down too")
+	-- drive home: the egg goes in the incubator and the motorbike parks
+	markLog()
+	driveTo(A, pa.haveli.doorOutside.Position)
+	M.advance(0.5)
+	check(#pa.boot == 0 and pa.incubating[1] ~= nil, "home: the boot egg went into the incubator")
+	check(pa.driving == nil and charA:FindFirstChild("Vehicle") == nil, "and the motorbike parked itself")
+	check(
+		charA.Humanoid.WalkSpeed == Havelis.walkSpeed(pa) and A:GetAttribute("Driving") == "",
+		"walking again: " .. charA.Humanoid.WalkSpeed
+	)
+	check(notified("Ali", "Home safe"), "home message")
+	-- parked vehicles refill for free at home
+	pa.data.vehicles.Motorbike.fuel = 100
+	M.advance(2.1)
+	check(pa.data.vehicles.Motorbike.fuel > 150, "free refill at home: " .. pa.data.vehicles.Motorbike.fuel)
+	-- out of petrol: crawl at walking speed, then fill up at a pump
+	pa.data.vehicles.Motorbike.fuel = 10
+	local pump = Havelis.map().pumps[1]
+	goTo(A, pump.Position * FLAT + Vector3.new(30, 0, 0))
+	M.advance(0.1)
+	Remotes.Drive:FireServer("Motorbike")
+	M.advance(0.3)
+	markLog()
+	driveTo(A, pump.Position * FLAT + Vector3.new(14, 0, 0))
+	check(pa.driving.empty and charA.Humanoid.WalkSpeed == Config.FUEL_EMPTY_SPEED, "out of petrol: walking speed")
+	check(
+		notified("Ali", "Out of petrol") and hud.Dashboard.FuelText.Text:find("Out of petrol") ~= nil,
+		"empty warning"
+	)
+	local rupeesAtPump = pa.data.rupees
+	markLog()
+	PPS.PromptTriggered:Fire(pump.PumpPrompt, A)
+	M.advance(0.1)
+	check(pa.data.vehicles.Motorbike.fuel == 1500, "filled up")
+	check(pa.data.rupees == rupeesAtPump - math.ceil(1500 * Config.FUEL_PRICE), "petrol costs rupees")
+	check(not pa.driving.empty and charA.Humanoid.WalkSpeed == Vehicles.byId.Motorbike.speed, "full speed again")
+	PPS.PromptTriggered:Fire(pump.PumpPrompt, A)
+	M.advance(0.1)
+	check(notified("Ali", "already full"), "a full tank needs no petrol")
+	-- upgrades at Ustad's Workshop
+	pa.data.rupees = 1_000_000
+	State.syncStats(pa)
+	openShop("Workshop")
+	local workshopPanel = hud.WorkshopPanel
+	check(workshopPanel.Visible, "Ustad's Workshop window opens")
+	local engineRow = workshopPanel.Content:FindFirstChild("Motorbikespeed")
+	check(engineRow and engineRow.Button.Text == "Rs 1,500", "engine level 1 price")
+	markLog()
+	engineRow.Button.Activated:Fire()
+	M.advance(0.1)
+	check(pa.data.vehicles.Motorbike.speed == 1 and notified("Ali", "Engine is now level 1"), "engine upgraded")
+	check(math.abs(charA.Humanoid.WalkSpeed - Vehicles.byId.Motorbike.speed * 1.1) < 1e-6, "faster right away")
+	for _ = 1, 3 do
+		Remotes.UpgradeVehicle:FireServer("Motorbike", "eggs")
+		M.advance(0.05)
+	end
+	check(pa.data.vehicles.Motorbike.eggs == 3 and A:GetAttribute("BootSpace") == 4, "egg space: 4 eggs now")
+	Remotes.UpgradeVehicle:FireServer("Motorbike", "eggs")
+	M.advance(0.05)
+	check(pa.data.vehicles.Motorbike.eggs == 3, "egg space stops at its max")
+	Remotes.UpgradeVehicle:FireServer("Motorbike", "tank")
+	M.advance(0.05)
+	check(A:GetAttribute("FuelMax") == math.floor(1500 * 1.25), "a bigger tank")
+	Remotes.UpgradeVehicle:FireServer("Motorbike", "nitro")
+	Remotes.UpgradeVehicle:FireServer("Bicycle", "speed")
+	M.advance(0.05)
+	check(pa.data.vehicles.Motorbike.speed == 1, "bad upgrade requests ignored")
+	-- grip: mud slows a vehicle until its tyres are good enough
+	goTo(A, zoneSpot("MangoBagh", "mud"))
+	M.advance(0.5)
+	check(pa.surfaceSpeed == Config.DRIVE_SURFACE_SPEED.mud, "mud slows the motorbike")
+	check(
+		A:GetAttribute("Hazard"):find("Tyres level 1") ~= nil,
+		"the warning says what helps: " .. A:GetAttribute("Hazard")
+	)
+	atShop(A, "Workshop")
+	Remotes.UpgradeVehicle:FireServer("Motorbike", "grip")
+	M.advance(0.05)
+	goTo(A, zoneSpot("MangoBagh", "mud"))
+	M.advance(0.5)
+	check(pa.surfaceSpeed == 1 and A:GetAttribute("Grip") == 1, "tyres level 1 drive through mud")
+	goTo(A, zoneSpot("TharDesert", "sand"))
+	M.advance(0.5)
+	check(pa.surfaceSpeed == Config.DRIVE_SURFACE_SPEED.sand, "sand needs tyres level 2")
+	-- paint jobs (Robux, looks only)
+	local panel = bike and nil
+	panel = charA.Vehicle:FindFirstChild("Paint")
+	local factoryColor = panel.Color
+	Garage.onPaintBought(pa, "Sona")
+	M.advance(0.1)
+	check(pa.data.paints.Sona and pa.data.paint == "Sona" and A:GetAttribute("Paint") == "Sona", "Sona paint job")
+	check(panel.Material == M.Enum.Material.Foil, "the panels turn gold")
+	Remotes.SetPaint:FireServer("Factory")
+	M.advance(0.1)
+	check(panel.Color == factoryColor and pa.data.paint == "Factory", "back to the factory paint")
+	Remotes.SetPaint:FireServer("Chamak")
+	M.advance(0.1)
+	check(pa.data.paint == "Factory", "paint jobs you don't own can't be used")
+	check(
+		math.abs(charA.Humanoid.WalkSpeed - Vehicles.byId.Motorbike.speed * 1.1 * Config.DRIVE_SURFACE_SPEED.sand)
+			< 1e-6,
+		"paint never changes speed"
+	)
+	-- getting out away from home: one egg in your hands, the rest fall out
+	goTo(A, Biomes.point(mango, Biomes.innerRadius(mango) + 30, -20))
+	M.advance(0.5)
+	for _ = 1, 2 do
+		local egg = eggIn("MangoBagh", false)
+		driveTo(A, egg:GetPivot().Position)
+		trigger(egg, "EggPrompt", A)
+		M.advance(0.1)
+	end
+	check(#pa.boot == 2, "two eggs in the boot")
+	markLog()
+	hud.Dashboard.Park.Activated:Fire()
+	M.advance(0.2)
+	check(pa.driving == nil and pa.egg ~= nil and #pa.boot == 0, "got out: one egg in Ali's hands")
+	check(notified("Ali", "fell out of the boot"), "the other fell out")
+	check(charA.Humanoid.HipHeight == 2, "standing again")
+	EggSystem.drop(A)
+	-- no stealing from a vehicle, and no driving with a stolen brainrot
+	Remotes.Drive:FireServer("Motorbike")
+	M.advance(0.2)
+	check(pa.driving ~= nil, "driving again")
+	charA.Humanoid.Died:Fire()
+	M.advance(0.1)
+	check(pa.driving == nil, "dying parks your vehicle")
+	charA = spawnCharacter(A)
+	M.advance(0.3)
+	check(
+		charA.Humanoid.WalkSpeed == Havelis.walkSpeed(pa) and charA:FindFirstChild("Vehicle") == nil,
+		"a fresh start on foot"
+	)
+	pa.data.rupees = 100_000
+	State.syncStats(pa)
+end
 
 ---------------------------------------------------------------------------
 section("Treasure")
 ---------------------------------------------------------------------------
 local digChest, climbChest
 for _, chest in Treasure.all() do
-	if chest.biome.id == "Jungle" and chest.kind == "dig" then
+	if chest.biome.id == "RailwayJunction" and chest.kind == "dig" then
 		digChest = chest
-	elseif chest.biome.id == "Khet" and chest.kind == "climb" then
+	elseif chest.biome.id == "MangoBagh" and chest.kind == "climb" then
 		climbChest = chest
 	end
 end
-check(digChest and climbChest, "a buried chest in the Jungle and a high one in Khet")
+check(digChest and climbChest, "a buried chest in Railway Junction and a high one in Mango Bagh")
 setQuests(pa, { { id = "treasure", target = 1, progress = 0, claimed = false } })
 goTo(A, digChest.model.PrimaryPart.Position + Vector3.new(3, 0, 0))
 markLog()
@@ -1328,7 +1808,7 @@ local beforeTreasure = pa.data.rupees
 markLog()
 trigger(digChest.model, "TreasurePrompt", A)
 local jungleTreasure = math.floor(Config.TREASURE_RUPEES * 2 * 2)
-check(pa.data.rupees == beforeTreasure + jungleTreasure, "Jungle treasure: Rs " .. jungleTreasure)
+check(pa.data.rupees == beforeTreasure + jungleTreasure, "Railway Junction treasure: Rs " .. jungleTreasure)
 check(notified("Ali", "Treasure!") and soundsFor("Ali", "Treasure") == 1, "treasure message and sound")
 check(pa.data.quests.list[1].progress == 1, "treasure quest")
 markLog()
@@ -1349,7 +1829,7 @@ M.advance(0.05)
 check(charA:GetPivot().Y > climbChest.top.Y, "climbed up")
 beforeTreasure = pa.data.rupees
 trigger(climbChest.model, "TreasurePrompt", A)
-check(pa.data.rupees == beforeTreasure + Config.TREASURE_RUPEES, "Khet treasure")
+check(pa.data.rupees == beforeTreasure + Config.TREASURE_RUPEES, "Mango Bagh treasure")
 goTo(A, pa.haveli.spawn.Position)
 
 ---------------------------------------------------------------------------
@@ -1413,7 +1893,7 @@ for _, e in pa.owned do
 end
 check(upstairs == 2, "two brainrots went upstairs")
 -- two eggs hatching at once
-local eggA, eggB = eggIn("Khet", false), eggIn("Jungle", false)
+local eggA, eggB = eggIn("MangoBagh", false), eggIn("RailwayJunction", false)
 pickUp(A, eggA)
 goTo(A, pa.haveli.spawn.Position)
 M.advance(0.5)
@@ -1421,7 +1901,7 @@ pickUp(A, eggB)
 goTo(A, pa.haveli.spawn.Position)
 M.advance(0.5)
 check(pa.incubating[1] and pa.incubating[2] and pa.egg == nil, "two eggs in two incubators")
-M.advance(Biomes.byId.Jungle.hatchTime + 1)
+M.advance(Biomes.byId.RailwayJunction.hatchTime + 1)
 check(pa.incubating[2] ~= nil, "no free plot: the egg waits in its nest")
 check(
 	pa.haveli.incubatorLabels[2].Text:find("free plot") ~= nil,
@@ -1667,7 +2147,7 @@ do
 	trigger(locker.model, "StealPrompt", B)
 	check(locker.carrier == nil and notified("Bilal", "Locker"), "lockers cannot be robbed")
 	-- you cannot steal with an egg in your hands
-	local bilalEgg = eggIn("Khet", false)
+	local bilalEgg = eggIn("MangoBagh", false)
 	pickUp(B, bilalEgg)
 	check(pb.egg ~= nil, "Bilal picked up an egg")
 	markLog()
@@ -1776,7 +2256,7 @@ do
 	M.advance(10)
 	check(target.arrived, "walked home")
 	-- bonking someone with an egg makes them drop it, and anyone can grab it
-	local contested = eggIn("Jungle", false)
+	local contested = eggIn("MangoBagh", false)
 	pickUp(B, contested)
 	M.advance(3)
 	charB:PivotTo(CFrame.new(10, 5, 0))
@@ -1787,9 +2267,9 @@ do
 	A.Backpack:FindFirstChild("Chappal").Activated:Fire()
 	M.advance(0.1)
 	check(pb.egg == nil and contested.PrimaryPart.EggPrompt.Enabled, "Bilal dropped the egg")
-	check(notified("Bilal", "dropped your egg"), "drop message")
+	check(notified("Bilal", "dropped an egg"), "drop message")
 	pickUp(A, contested)
-	check(pa.egg and pa.egg.biome.id == "Jungle", "Ali grabbed Bilal's egg")
+	check(pa.egg and pa.egg.biome.id == "MangoBagh", "Ali grabbed Bilal's egg")
 	check(math.abs(pa.egg.timeLeft - bilalLeft) < 0.6, "with the time it had left")
 	goTo(A, pa.haveli.spawn.Position)
 	M.advance(0.5)
@@ -1804,6 +2284,72 @@ do
 	charB.Humanoid.Died:Fire()
 	M.advance(0.1)
 	check(target.carrier == nil, "dying drops it")
+
+	---------------------------------------------------------------------------
+	section("Vehicles with friends, and no stealing from a vehicle")
+	---------------------------------------------------------------------------
+	charB = spawnCharacter(B)
+	M.advance(0.3)
+	pa.data.vehicles.Rickshaw = { fuel = 2000, speed = 0, tank = 0, eggs = 0, grip = 0 }
+	Garage.sync(pa)
+	goTo(A, pa.haveli.doorOutside.Position + Vector3.new(0, 0, 20))
+	M.advance(0.1)
+	Remotes.Drive:FireServer("Rickshaw")
+	M.advance(0.3)
+	local rickshaw = charA:FindFirstChild("Vehicle")
+	check(rickshaw and pa.driving.def.id == "Rickshaw", "Ali drives the rickshaw")
+	local seats = {}
+	for _, d in rickshaw:GetChildren() do
+		if d.Name == "PassengerSeat" then
+			table.insert(seats, d)
+		end
+	end
+	check(#seats == 2 and seats[1]:FindFirstChild("RideAlong") ~= nil, "two seats for friends")
+	charB:PivotTo(CFrame.new(seats[1].Position + Vector3.new(2, 0, 0)))
+	PPS.PromptTriggered:Fire(seats[1].RideAlong, B)
+	M.advance(0.1)
+	check(seats[1].Occupant == charB.Humanoid and charB.Humanoid.SeatPart == seats[1], "Bilal rides along")
+	check(charB.Head.Massless, "a friend doesn't slow the rickshaw down")
+	PPS.PromptTriggered:Fire(seats[2].RideAlong, A)
+	M.advance(0.1)
+	check(seats[2].Occupant == nil, "the driver can't sit in the back")
+	-- no stealing from a vehicle
+	local bilalRot = pb.owned[1]
+	if bilalRot then
+		markLog()
+		serverModule("Stealing").start(A, bilalRot.model)
+		M.advance(0.1)
+		check(bilalRot.carrier == nil and notified("Ali", "Get out of your vehicle"), "no stealing from a vehicle")
+	end
+	Remotes.Drive:FireServer(nil)
+	M.advance(0.2)
+	check(pa.driving == nil and rickshaw.Parent == nil, "parked")
+	check(charB.Humanoid.Sit == false and not charB.Head.Massless, "Bilal hopped off")
+	-- Robux paint jobs (looks only): bought with a Developer Product
+	local Shop = serverModule("Shop")
+	local packs = Shop.KINDS.paint.packs
+	local rangeela = nil
+	for _, pack in packs do
+		if pack.paint == "Rangeela" then
+			rangeela = pack
+		end
+	end
+	check(rangeela ~= nil and #packs == 4, "4 Robux paint jobs")
+	rangeela.id = 4242
+	table.clear(M.prompts)
+	Remotes.BuyProduct:FireServer("paint", "Rangeela")
+	M.advance(0.1)
+	check(#M.prompts == 1 and M.prompts[1].id == 4242, "paint purchase prompt")
+	local paintResult = receipt(1, 4242, "paint-1")
+	check(paintResult == M.Enum.ProductPurchaseDecision.PurchaseGranted, "paint job granted")
+	check(pa.data.paints.Rangeela and pa.data.paint == "Rangeela", "Ali has the Rangeela paint job")
+	check(receipt(1, 4242, "paint-1") == M.Enum.ProductPurchaseDecision.PurchaseGranted, "never granted twice")
+	Remotes.BuyProduct:FireServer("paint", "Rangeela")
+	M.advance(0.1)
+	check(notified("Ali", "already have that paint"), "can't buy a paint job twice")
+	rangeela.id = 0
+	Remotes.SetPaint:FireServer("Factory")
+	M.advance(0.1)
 end
 
 do
@@ -1843,7 +2389,10 @@ do
 
 	EventRunner.start("Baarish")
 	M.advance(Config.EGG_RESPAWN * 10)
-	check(groundEggs("Jheel") > Config.EGGS_PER_BIOME, "Baarish: more eggs everywhere: " .. groundEggs("Jheel"))
+	check(
+		groundEggs("SarsonFields") > Config.EGGS_PER_BIOME,
+		"Baarish: more eggs everywhere: " .. groundEggs("SarsonFields")
+	)
 	check(effects:FindFirstChild("Weather") ~= nil, "rain on screen")
 	EventRunner.stop()
 	EventRunner.start("Sardi")
@@ -1859,7 +2408,7 @@ do
 		Havelis.remove(pa, e)
 		e.model:Destroy()
 	end
-	pickUp(A, eggIn("Khet", false))
+	pickUp(A, eggIn("MangoBagh", false))
 	goTo(A, pa.haveli.spawn.Position)
 	M.advance(0.5)
 	local melaRecord = pa.incubating[1] or pa.incubating[2]
@@ -2001,13 +2550,11 @@ do
 	pa.data.gear = { Joggers = true, Tokri = true, Shovel = true }
 	State.syncStats(pa)
 	State.syncGear(pa)
-	pickUp(A, eggIn("Khet", false))
+	pickUp(A, eggIn("MangoBagh", false))
 	goTo(A, pa.haveli.spawn.Position)
 	M.advance(0.5)
 	check(next(pa.incubating) ~= nil, "an egg is hatching")
-	Riding.set(A, pa.owned[1].uid)
-	M.advance(0.2)
-	check(pa.ride ~= nil, "and Ali is riding")
+	check(not State.isZoneOpen(pa, Biomes.byId.LahoreQila), "Lahore Qila is closed before the first rebirth")
 	markLog()
 	Remotes.Rebirth:FireServer()
 	M.advance(0.1)
@@ -2017,6 +2564,7 @@ do
 	check(rp.Visible, "the Naya Safar gate opens its window")
 	check(rp.Content.Cost.Text:find("Rs 1,000,000") ~= nil, "cost shown: " .. rp.Content.Cost.Text)
 	check(rp.Content.Theme.Text:find("Truck Art") ~= nil, "shows the theme it unlocks")
+	check(rp.Content.Theme.Text:find("Lahore Qila") ~= nil, "and the zone it opens")
 	check(rp.Content.Rebirth.Text == "Start Naya Safar!", "ready")
 	markLog()
 	rp.Content.Rebirth.Activated:Fire()
@@ -2027,7 +2575,14 @@ do
 	check(pa.data.rebirths == 1 and pa.data.level == 1 and pa.data.rupees == Config.START_RUPEES, "rebirth resets")
 	check(pa.data.trackerLevel == 1 and A:GetAttribute("TrackerLevel") == 1, "radar back to level 1")
 	check(#pa.owned == 0 and next(pa.incubating) == nil and #pa.data.incubators == 0, "brainrots and eggs reset")
-	check(pa.ride == nil and A:GetAttribute("Ride") == "" and charA:FindFirstChild("Ride") == nil, "ride reset")
+	check(pa.data.vehicles.Motorbike and pa.data.vehicles.Motorbike.speed == 1, "vehicles and upgrades kept")
+	check(pa.data.zones.RailwayJunction and pa.data.zones.NamakCaves, "unlocked zones kept")
+	check(
+		State.isZoneOpen(pa, Biomes.byId.LahoreQila) and A:GetAttribute("OpenZones"):find("LahoreQila") ~= nil,
+		"the first rebirth opens Lahore Qila"
+	)
+	check(not State.isZoneOpen(pa, Biomes.byId.KarachiPort), "Karachi Port needs 2 rebirths")
+	check(notified("Ali", "Lahore Qila's gate is open"), "Lahore Qila message")
 	check(pa.data.gear.Joggers and pa.data.gear.Shovel and pa.data.rollTokens == 3, "gear and rolls kept")
 	check(pa.data.theme == "BaghGarden", "theme kept")
 	check(notified("Ali", "New haveli theme unlocked: Truck Art"), "new theme unlocked")
@@ -2055,18 +2610,19 @@ do
 	Havelis.adopt(pa, Brainrots.byId.PyaazPehelwan, "Diamond", nil, true)
 	Havelis.adopt(pa, Brainrots.byId.TongaTornado, nil, nil, true)
 	M.advance(12)
-	Riding.set(A, entryOf(pa, "TongaTornado").uid)
-	pickUp(A, eggIn("Khet", false))
+	pa.data.vehicles.Motorbike.fuel = 777
+	pickUp(A, eggIn("MangoBagh", false))
 	goTo(A, pa.haveli.spawn.Position)
 	M.advance(0.5)
 	local savedHatch = pa.incubating[1].hatchAt
 	local savedHatchId = pa.incubating[1].id
 	removePlayer(A)
 	local savedA = M.store["player_1"]
-	check(savedA.version == 3 and savedA.rebirths == 1 and savedA.theme == "TruckArt", "v3 save")
+	check(savedA.version == 4 and savedA.rebirths == 1 and savedA.theme == "TruckArt", "v4 save")
 	check(table.find(savedA.owned, "PyaazPehelwan:Diamond") ~= nil, "mutations saved")
 	check(table.find(savedA.owned, "MithaiMamu") ~= nil, "quest brainrots saved")
-	check(savedA.ride == "TongaTornado" and table.find(savedA.owned, "TongaTornado") == nil, "the ride is saved")
+	check(savedA.vehicles.Motorbike and savedA.vehicles.Motorbike.speed == 1, "vehicles and upgrades are saved")
+	check(savedA.zones.RailwayJunction == true and savedA.zones.MangoBagh == nil, "unlocked zones are saved")
 	check(savedA.trackerLevel == 3 and savedA.gear.Shovel == true, "tracker and gear saved")
 	check(#savedA.incubators == 1 and savedA.incubators[1].hatchAt == savedHatch, "the hatching egg is saved")
 	check(#workspace.ChaiChaosEggs:GetChildren() > 0 and pa.haveli == nil, "Ali's haveli is free again")
@@ -2079,10 +2635,14 @@ do
 	check(pa2.incubating[1] and pa2.incubating[1].hatchAt == savedHatch, "the egg is back in its nest")
 	check(pa2.incubating[1].id == savedHatchId, "and will hatch the same brainrot")
 	check(A2:GetAttribute("TrackerLevel") == 3 and A2:GetAttribute("Gear"):find("Shovel"), "tracker and gear back")
-	check(pa2.ride and pa2.ride.def.id == "TongaTornado" and A2:GetAttribute("Ride") == "Tonga Tornado", "ride back")
+	check(
+		pa2.data.vehicles.Motorbike and A2:GetAttribute("Vehicles"):find("^Motorbike:1:1:3:1:") ~= nil,
+		"vehicles back"
+	)
+	check(A2:GetAttribute("OpenZones"):find("LahoreQila") ~= nil, "open zones back")
 	local charA2 = spawnCharacter(A2)
 	M.advance(0.3)
-	check(charA2:FindFirstChild("Ride") ~= nil, "riding again after rejoining")
+	check(charA2:FindFirstChild("Vehicle") == nil and pa2.driving == nil, "you rejoin on foot")
 	check(not notified("Ali", "Daily chai"), "daily chai only once a day")
 	M.advance(khet.hatchTime + 1)
 	check(pa2.incubating[1] == nil and entryOf(pa2, savedHatchId) ~= nil, "the saved egg hatched")
@@ -2108,7 +2668,10 @@ do
 	local pp = State.profiles[P]
 	check(pp.data.level == 2 and pp.data.rupees >= 5000, "old saves move to haveli levels")
 	check(Gear.encode(pp.data.gear) == "Joggers", "unknown gear dropped")
-	check(pp.data.trackerLevel == #Config.TRACKER_LEVELS and pp.data.ride == nil, "tracker clamped, bad ride dropped")
+	check(
+		pp.data.trackerLevel == #Config.TRACKER_LEVELS and pp.data.ride == nil,
+		"tracker clamped, old ride field gone"
+	)
 	check(#pp.data.incubators == 1, "only the good incubator egg is kept")
 	M.advance(1)
 	check(#pp.owned == 2 and next(pp.incubating) == nil, "and it hatched straight away")
@@ -2211,7 +2774,7 @@ coroutine.resume(co)
 M.advance(1)
 check(coroutine.status(co) == "dead", "BindToClose finished")
 check(M.store["player_1"] and M.store["player_1"].rebirths == 1, "Ali saved on shutdown")
-check(M.store["player_1"].ride == "TongaTornado", "with his ride")
+check(M.store["player_1"].vehicles.Motorbike ~= nil, "with his motorbike")
 
 ---------------------------------------------------------------------------
 print(("\n%d checks passed, %d failed, %d script errors, %d warnings"):format(passed, failed, #M.errors, #M.warnings))
