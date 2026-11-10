@@ -365,6 +365,7 @@ function EggSystem.pickUp(player: Player, model: Model?)
 		table.insert(profile.boot, record)
 		intoBoot(profile, record, #profile.boot)
 		syncAttributes(profile)
+		State.track(profile, "eggPickup")
 		State.sound(player, "EggPickup")
 		State.notify(
 			player,
@@ -402,6 +403,7 @@ function EggSystem.pickUp(player: Player, model: Model?)
 		},
 	}
 	syncAttributes(profile)
+	State.track(profile, "eggPickup")
 	State.sound(player, "EggPickup")
 	State.notify(
 		player,
@@ -483,7 +485,7 @@ function EggSystem.hit(player: Player, seconds: number, message: string): boolea
 end
 
 -- The egg in your hands cracks, or (with `bootIndex`) one in the boot.
-local function crack(profile, bootIndex: number?)
+local function crack(profile, bootIndex: number?, quiet: boolean?)
 	local carry = if bootIndex then takeFromBoot(profile, bootIndex) else endCarry(profile)
 	if not carry then
 		return
@@ -491,11 +493,13 @@ local function crack(profile, bootIndex: number?)
 	local position = carry.model:GetPivot().Position
 	carry.model:Destroy()
 	State.sound(profile.player, "EggCrack", position)
-	State.notify(
-		profile.player,
-		"bad",
-		"Oh no, your egg cracked! Faster vehicles and egg gear (Tokri, Thermos) help with far zones."
-	)
+	if not quiet then
+		State.notify(
+			profile.player,
+			"bad",
+			"Oh no, your egg cracked! Faster vehicles and egg gear (Tokri, Thermos) help with far zones."
+		)
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -594,8 +598,12 @@ local function hatch(profile, slot: number)
 		if RARE_OR_BETTER[def.rarity] or record.mutation then "rare" else "good",
 		("Your egg hatched: %s (%s)!%s"):format(name, def.rarity, if isNew then " NEW!" else "")
 	)
+	State.track(profile, "hatch")
 	if RARE_OR_BETTER[def.rarity] then
 		State.track(profile, "hatchRare")
+	end
+	if def.rarity == "Secret" then
+		State.track(profile, "hatchSecret")
 	end
 	if record.mutation then
 		State.track(profile, "mutation")
@@ -783,6 +791,32 @@ end
 ---------------------------------------------------------------------------
 function EggSystem.tick(dt: number)
 	for player, profile in State.profiles do
+		-- eggs that move faster than any vehicle crack (see Config.EGG_MAX_SPEED)
+		local speedRoot = State.rootPart(player)
+		local slack = Config.EGG_MAX_SPEED * Config.EGG_SPEED_BURST
+		if speedRoot and (profile.egg or #profile.boot > 0) then
+			if profile.eggAt then
+				local moved = ((speedRoot.Position - profile.eggAt) * Vector3.new(1, 0, 1)).Magnitude
+				profile.eggSlack = math.min((profile.eggSlack or slack) + Config.EGG_MAX_SPEED * dt, slack) - moved
+				if profile.eggSlack < 0 then
+					while #profile.boot > 0 do
+						crack(profile, #profile.boot, true)
+					end
+					if profile.egg then
+						crack(profile, nil, true)
+					end
+					State.notify(
+						player,
+						"bad",
+						"Whoa, too fast! Eggs crack when they travel faster than a vehicle can."
+					)
+				end
+			end
+			profile.eggAt = speedRoot.Position
+		else
+			profile.eggAt = nil
+			profile.eggSlack = slack
+		end
 		local carry = profile.egg
 		if carry then
 			local root = State.rootPart(player)

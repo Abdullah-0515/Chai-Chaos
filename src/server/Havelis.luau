@@ -39,7 +39,7 @@ function Havelis.isLocker(plot: number): boolean
 end
 
 function Havelis.plotCount(profile): number
-	return Config.HAVELI_LEVELS[profile.data.level].plots
+	return Config.plotCount(profile.data.level, profile.data.passes.ExtraPlots)
 end
 
 function Havelis.entryValue(entry): number
@@ -54,6 +54,9 @@ end
 function Havelis.incomeMultiplier(profile): number
 	local theme = profile.data.theme
 	local mult = (1 + Config.REBIRTH_BONUS * profile.data.rebirths) * (Themes.perk(theme, "income") or 1)
+	if profile.data.passes.DoubleCash then
+		mult *= 2
+	end
 	local event = Events.current()
 	if event then
 		mult *= (event.cashMult or 1) * (Themes.perk(theme, "eventIncome") or 1)

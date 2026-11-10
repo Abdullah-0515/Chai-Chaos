@@ -1256,6 +1256,8 @@ local function buildTown(map: Model)
 	local showroomCF = facingIn(at(210, 270))
 	Props.place("Showroom", showroomCF, town)
 	Props.text(town, showroomCF, Props.anchor("Showroom", "Sign", showroomCF), 17, 2.4, "GAARI SHOWROOM")
+	-- for the new-player guide's arrow (the showroom itself may not be loaded yet)
+	workspace:SetAttribute("ShowroomPosition", (showroomCF * CFrame.new(0, 0, -12)).Position)
 	Props.place("VehiclePiliTaxi", showroomCF * CFrame.new(0, 0.9, 1.5), town)
 	for k, angle in { 220, 224, 228 } do
 		Props.place("Rickshaw", facingIn(at(angle, 262)) * CFrame.Angles(0, math.rad(90 + k * 4), 0), town)

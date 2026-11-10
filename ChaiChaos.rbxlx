@@ -754,6 +754,8 @@ Config.UPPER_FLOOR_LEVEL = 5
 Config.GUARD_LEVEL = 6
 Config.ROOFTOP_LEVEL = 8
 Config.LOCKER_PLOTS = 2 -- plots 1 and 2 can never be stolen from
+Config.EXTRA_PLOTS = 2 -- more plots with the Extra Plots game pass (as far as your haveli has room)
+Config.PLOTS_PER_FLOOR = 10
 Config.MAX_INCUBATORS = 4
 
 -- Tracker (radar): shows eggs in every zone you have unlocked. Each level
@@ -782,6 +784,10 @@ Config.EGG_RUSH_EVERY = 240 -- an egg rush in a random zone every 4 minutes
 Config.EGG_RUSH_DURATION = 60
 Config.EGG_RUSH_EGGS = 14
 Config.PICKUP_DISTANCE = 12
+-- Fair play: eggs crack if they travel faster than any vehicle can (teleport
+-- cheats). The fastest vehicle with every upgrade does 69 studs per second.
+Config.EGG_MAX_SPEED = 90 -- studs per second, on average...
+Config.EGG_SPEED_BURST = 2 -- ...with this many seconds of slack for lag
 
 -- Wild brainrots (Wild.luau): rare brainrots that roam the zones. Walk up
 -- quietly and catch one (it needs a free plot). Vehicles and horns scare them.
@@ -882,6 +888,22 @@ Config.REBIRTH_COST = 2_500_000
 Config.REBIRTH_COST_GROWTH = 4 -- every Naya Safar costs this many times more than the last
 Config.REBIRTH_BONUS = 0.5 -- +50% income for every rebirth
 
+-- How many plots a haveli has. The Extra Plots pass adds more, but only on
+-- floors that are open (the second floor opens at Config.UPPER_FLOOR_LEVEL).
+function Config.plotCount(level: number, extraPlots: boolean?): number
+	local plots = Config.HAVELI_LEVELS[level].plots
+	if extraPlots then
+		local room = if level >= Config.UPPER_FLOOR_LEVEL then Config.PLOTS_PER_FLOOR * 2 else Config.PLOTS_PER_FLOOR
+		plots = math.max(plots, math.min(plots + Config.EXTRA_PLOTS, room))
+	end
+	return plots
+end
+
+function Config.streakRolls(streak: number): number
+	local list = Config.STREAK_BONUS_ROLLS
+	return list[math.clamp(streak, 1, #list)] or 0
+end
+
 function Config.rebirthCost(rebirths: number): number
 	return math.floor(Config.REBIRTH_COST * Config.REBIRTH_COST_GROWTH ^ rebirths)
 end
@@ -903,6 +925,47 @@ Config.ROLL_ODDS = { -- shown to players in the Kismat panel, keep it honest
 }
 Config.ROLL_PITY = 30 -- an Epic or better is guaranteed at least once every 30 rolls
 Config.ROLL_COOLDOWN = 2.5 -- seconds between rolls (the reveal takes about 2 seconds)
+
+-- Game passes (bought once, kept forever). Create them on the Creator Dashboard
+-- (your experience > Monetization > Passes) and paste their ids here.
+-- A pass with id = 0 is hidden.
+Config.GAME_PASSES = {
+	DoubleCash = 0, -- brainrots earn twice as much
+	ExtraPlots = 0, -- Config.EXTRA_PLOTS more plots
+}
+Config.PASS_INFO = {
+	{ id = "DoubleCash", name = "2x Cash", text = "Your brainrots earn twice as many rupees, forever." },
+	{ id = "ExtraPlots", name = "Extra Plots", text = "2 more plots in your haveli, forever." },
+}
+
+-- Offline earnings: brainrots keep earning a little while you are away.
+Config.OFFLINE_RATE = 0.1 -- of their normal income...
+Config.OFFLINE_MAX = 4 * 3600 -- ...for at most this many seconds
+Config.OFFLINE_MIN = 300 -- nothing for breaks shorter than this
+
+-- Daily chai streak: extra Kismat Rolls for coming back day after day.
+-- The number is the bonus on that day in a row; the last one repeats.
+Config.STREAK_BONUS_ROLLS = { 0, 0, 1, 1, 1, 1, 2 }
+
+-- Promo codes (Menu > Codes). Each player can use a code once. Add your own,
+-- or remove a code to end it.
+Config.CODES = {
+	CHAICHAOS = { rupees = 2_500, rolls = 1 },
+	PONPON = { rupees = 1_000 },
+}
+
+-- Badges. Create them on the Creator Dashboard (your experience > Engagement >
+-- Badges) and paste their ids here. A badge with id = 0 is skipped.
+Config.BADGES = {
+	Welcome = 0, -- joined the game
+	FirstEgg = 0, -- brought an egg home
+	FirstRare = 0, -- hatched a Rare or better brainrot
+	Driver = 0, -- bought a vehicle
+	WildCatcher = 0, -- caught a wild brainrot
+	Explorer = 0, -- unlocked every ring 1 zone
+	NayaSafar = 0, -- started a Naya Safar
+	SecretKeeper = 0, -- hatched a Secret brainrot
+}
 
 -- Robux packs. Create Developer Products on the Creator Dashboard
 -- (your experience > Monetization > Developer Products), set their prices
@@ -1485,6 +1548,9 @@ local NAMES = {
 	"Drive", -- client -> server: (vehicle id) get in and drive, or (nil) park and get out
 	"SetPaint", -- client -> server: (paint id) pick the paint job for your vehicles
 	"Honk", -- client -> server: sound your vehicle's horn
+	"Guide", -- client -> server: ("skip" or "restart") the new-player guide
+	"RedeemCode", -- client -> server: (code) use a promo code
+	"SetSetting", -- client -> server: (name, on) the Settings switches
 	"PlaySound", -- server -> client: (sound name, position or nil, pitch or nil)
 }
 
@@ -1523,6 +1589,9 @@ return {
 	Drive = folder:WaitForChild("Drive") :: RemoteEvent,
 	SetPaint = folder:WaitForChild("SetPaint") :: RemoteEvent,
 	Honk = folder:WaitForChild("Honk") :: RemoteEvent,
+	Guide = folder:WaitForChild("Guide") :: RemoteEvent,
+	RedeemCode = folder:WaitForChild("RedeemCode") :: RemoteEvent,
+	SetSetting = folder:WaitForChild("SetSetting") :: RemoteEvent,
 	PlaySound = folder:WaitForChild("PlaySound") :: RemoteEvent,
 }
 ]]></string>
@@ -1807,6 +1876,85 @@ return Themes
       </Item>
       <Item class="ModuleScript" referent="14">
         <Properties>
+          <string name="Name">Tutorial</string>
+          <string name="Source"><![CDATA[-- The guide for new players: one small step at a time, with an arrow to
+-- follow. The server keeps your step (Tutorial.luau in the server folder) and
+-- your screen shows it (Tutorial.client.luau).
+--
+-- target : where the arrow points
+--          "zone:<id>" a zone's gate, "egg" the nearest egg in an open zone,
+--          "home" your haveli door, "showroom" the Gaari Showroom, nil no arrow
+-- done   : what you have to do (the same names quests use, see State.track)
+
+local Config = require(script.Parent.Config)
+local Biomes = require(script.Parent.Biomes)
+local Format = require(script.Parent.Format)
+local Vehicles = require(script.Parent.Vehicles)
+
+local Tutorial = {}
+
+export type Step = { id: string, text: string, target: string?, done: string }
+
+local firstVehicle = Vehicles.list[1]
+local firstZone = Biomes.byId.RailwayJunction
+
+Tutorial.steps = {
+	{
+		id = "leave",
+		text = "Follow the arrow out of the town gate to Mango Bagh",
+		target = "zone:MangoBagh",
+		done = "enterZone",
+	},
+	{
+		id = "egg",
+		text = "Find an egg (the dots on your radar) and hold E to pick it up",
+		target = "egg",
+		done = "eggPickup",
+	},
+	{ id = "home", text = "Carry the egg home before its timer runs out!", target = "home", done = "eggHome" },
+	{ id = "hatch", text = "Your egg is hatching. Wait for your brainrot!", target = "home", done = "hatch" },
+	{
+		id = "collect",
+		text = "Brainrots earn rupees every second. Walk into your galla to collect them",
+		target = "home",
+		done = "collect",
+	},
+	{
+		id = "vehicle",
+		text = ("Keep hunting eggs. With %s, buy a %s at the Gaari Showroom"):format(
+			Format.rupees(firstVehicle.cost),
+			firstVehicle.name
+		),
+		target = "showroom",
+		done = "vehicle",
+	},
+	{ id = "drive", text = "Step outside, press Gaari, then Drive. Press H to honk!", target = nil, done = "drive" },
+	{
+		id = "zone",
+		text = ("Save %s and unlock %s at its gate for rarer brainrots"):format(
+			Format.rupees(firstZone.price),
+			firstZone.name
+		),
+		target = "zone:" .. firstZone.id,
+		done = "zone",
+	},
+} :: { Step }
+
+Tutorial.byId = {} :: { [string]: Step }
+for _, step in Tutorial.steps do
+	Tutorial.byId[step.id] = step
+end
+
+Tutorial.REWARD_ROLLS = 2 -- Kismat Rolls for finishing the guide (once)
+Tutorial.DONE = #Tutorial.steps + 1
+
+local _ = Config
+return Tutorial
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="15">
+        <Properties>
           <string name="Name">Vehicles</string>
           <string name="Source"><![CDATA[-- Vehicles: how you get out to the zones and back with your eggs.
 --
@@ -2001,15 +2149,95 @@ return Vehicles
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="15">
+  <Item class="ServerScriptService" referent="16">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Folder" referent="16">
+    <Item class="Folder" referent="17">
       <Properties>
         <string name="Name">ChaiChaosServer</string>
       </Properties>
-      <Item class="ModuleScript" referent="17">
+      <Item class="ModuleScript" referent="18">
+        <Properties>
+          <string name="Name">Badges</string>
+          <string name="Source"><![CDATA[-- Badges for first-time moments. Their ids are in Config.BADGES; a badge with
+-- id 0 is skipped. Each badge is remembered in the player's save once Roblox
+-- has awarded it, so Roblox is only asked once.
+
+local BadgeService = game:GetService("BadgeService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Config = require(Shared.Config)
+local Biomes = require(Shared.Biomes)
+
+local State = require(script.Parent.State)
+
+local Badges = {}
+
+-- What a player does (see State.track) and the badge it earns.
+local FOR = {
+	eggHome = "FirstEgg",
+	hatchRare = "FirstRare",
+	vehicle = "Driver",
+	catchWild = "WildCatcher",
+	rebirth = "NayaSafar",
+	hatchSecret = "SecretKeeper",
+}
+
+function Badges.award(profile, name: string)
+	local badgeId = Config.BADGES[name]
+	if not badgeId or badgeId == 0 or profile.data.badges[name] or profile.badgePending == name then
+		return
+	end
+	profile.badgePending = name
+	task.spawn(function()
+		local ok, awarded = pcall(function()
+			return BadgeService:AwardBadge(profile.player.UserId, badgeId)
+		end)
+		-- AwardBadge is false when they already have it: remember that too
+		if ok and awarded ~= nil then
+			profile.data.badges[name] = true
+		end
+		if profile.badgePending == name then
+			profile.badgePending = nil
+		end
+	end)
+end
+
+local function ringOneDone(profile): boolean
+	for _, biome in Biomes.list do
+		if biome.ring == 1 and not State.isZoneOpen(profile, biome) then
+			return false
+		end
+	end
+	return true
+end
+
+function Badges.init()
+	State.onTrack(function(profile, kind: string)
+		local name = FOR[kind]
+		if name then
+			Badges.award(profile, name)
+		end
+		if kind == "zone" and ringOneDone(profile) then
+			Badges.award(profile, "Explorer")
+		end
+	end)
+	local any = false
+	for _, badgeId in Config.BADGES do
+		any = any or badgeId ~= 0
+	end
+	if not any then
+		print("[ChaiChaos] Badges are off until you add their ids to Config.BADGES.")
+	end
+end
+
+return Badges
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="19">
         <Properties>
           <string name="Name">BiomeBuilder</string>
           <string name="Source"><![CDATA[-- Builds the 12 zones out of Roblox Terrain (grass, sand, salt, snow, water...)
@@ -2991,7 +3219,7 @@ return BiomeBuilder
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="18">
+      <Item class="ModuleScript" referent="20">
         <Properties>
           <string name="Name">Defenses</string>
           <string name="Source"><![CDATA[-- The Laser Darwaza: while a haveli with Level 3 or more is locked with the
@@ -3073,7 +3301,7 @@ return Defenses
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="19">
+      <Item class="ModuleScript" referent="21">
         <Properties>
           <string name="Name">EggSystem</string>
           <string name="Source"><![CDATA[-- Eggs: they appear in the zones, players carry them home, and they hatch
@@ -3443,6 +3671,7 @@ function EggSystem.pickUp(player: Player, model: Model?)
 		table.insert(profile.boot, record)
 		intoBoot(profile, record, #profile.boot)
 		syncAttributes(profile)
+		State.track(profile, "eggPickup")
 		State.sound(player, "EggPickup")
 		State.notify(
 			player,
@@ -3480,6 +3709,7 @@ function EggSystem.pickUp(player: Player, model: Model?)
 		},
 	}
 	syncAttributes(profile)
+	State.track(profile, "eggPickup")
 	State.sound(player, "EggPickup")
 	State.notify(
 		player,
@@ -3561,7 +3791,7 @@ function EggSystem.hit(player: Player, seconds: number, message: string): boolea
 end
 
 -- The egg in your hands cracks, or (with `bootIndex`) one in the boot.
-local function crack(profile, bootIndex: number?)
+local function crack(profile, bootIndex: number?, quiet: boolean?)
 	local carry = if bootIndex then takeFromBoot(profile, bootIndex) else endCarry(profile)
 	if not carry then
 		return
@@ -3569,11 +3799,13 @@ local function crack(profile, bootIndex: number?)
 	local position = carry.model:GetPivot().Position
 	carry.model:Destroy()
 	State.sound(profile.player, "EggCrack", position)
-	State.notify(
-		profile.player,
-		"bad",
-		"Oh no, your egg cracked! Faster vehicles and egg gear (Tokri, Thermos) help with far zones."
-	)
+	if not quiet then
+		State.notify(
+			profile.player,
+			"bad",
+			"Oh no, your egg cracked! Faster vehicles and egg gear (Tokri, Thermos) help with far zones."
+		)
+	end
 end
 
 ---------------------------------------------------------------------------
@@ -3672,8 +3904,12 @@ local function hatch(profile, slot: number)
 		if RARE_OR_BETTER[def.rarity] or record.mutation then "rare" else "good",
 		("Your egg hatched: %s (%s)!%s"):format(name, def.rarity, if isNew then " NEW!" else "")
 	)
+	State.track(profile, "hatch")
 	if RARE_OR_BETTER[def.rarity] then
 		State.track(profile, "hatchRare")
+	end
+	if def.rarity == "Secret" then
+		State.track(profile, "hatchSecret")
 	end
 	if record.mutation then
 		State.track(profile, "mutation")
@@ -3861,6 +4097,32 @@ end
 ---------------------------------------------------------------------------
 function EggSystem.tick(dt: number)
 	for player, profile in State.profiles do
+		-- eggs that move faster than any vehicle crack (see Config.EGG_MAX_SPEED)
+		local speedRoot = State.rootPart(player)
+		local slack = Config.EGG_MAX_SPEED * Config.EGG_SPEED_BURST
+		if speedRoot and (profile.egg or #profile.boot > 0) then
+			if profile.eggAt then
+				local moved = ((speedRoot.Position - profile.eggAt) * Vector3.new(1, 0, 1)).Magnitude
+				profile.eggSlack = math.min((profile.eggSlack or slack) + Config.EGG_MAX_SPEED * dt, slack) - moved
+				if profile.eggSlack < 0 then
+					while #profile.boot > 0 do
+						crack(profile, #profile.boot, true)
+					end
+					if profile.egg then
+						crack(profile, nil, true)
+					end
+					State.notify(
+						player,
+						"bad",
+						"Whoa, too fast! Eggs crack when they travel faster than a vehicle can."
+					)
+				end
+			end
+			profile.eggAt = speedRoot.Position
+		else
+			profile.eggAt = nil
+			profile.eggSlack = slack
+		end
 		local carry = profile.egg
 		if carry then
 			local root = State.rootPart(player)
@@ -3970,7 +4232,7 @@ return EggSystem
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="20">
+      <Item class="ModuleScript" referent="22">
         <Properties>
           <string name="Name">EventRunner</string>
           <string name="Source"><![CDATA[-- Runs the server events from Events.luau: the first one a few minutes after
@@ -4047,7 +4309,7 @@ return EventRunner
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="21">
+      <Item class="ModuleScript" referent="23">
         <Properties>
           <string name="Name">Garage</string>
           <string name="Source"><![CDATA[-- Vehicles: buy them at the Gaari Showroom, upgrade them at Ustad's Workshop,
@@ -4391,6 +4653,11 @@ function Garage.drive(player: Player, id: any)
 		Garage.park(profile)
 		return
 	end
+	-- building a vehicle is work for the server: not more than 4 a second
+	local t = os.clock()
+	if t - (profile.driveAt or -1) < 0.25 then
+		return
+	end
 	local def = type(id) == "string" and Vehicles.byId[id]
 	local entry = def and profile.data.vehicles[def.id]
 	if not def or not entry then
@@ -4426,6 +4693,7 @@ function Garage.drive(player: Player, id: any)
 		Garage.park(profile)
 	end
 
+	profile.driveAt = t
 	-- build the vehicle (always from parts, so paint jobs work) around its seat
 	local name = modelName(def)
 	local model = Props.place(name, CFrame.new(), nil, 1, { parts = true, noColliders = true })
@@ -4540,6 +4808,7 @@ function Garage.drive(player: Player, id: any)
 		return Garage.bootSpot(drive, slot)
 	end
 	profile.data.vehicle = def.id
+	State.track(profile, "drive")
 	refreshStats(profile)
 	EggSystem.toBoot(profile)
 	Garage.syncDrive(profile)
@@ -4735,7 +5004,7 @@ return Garage
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="22">
+      <Item class="ModuleScript" referent="24">
         <Properties>
           <string name="Name">HaveliStyle</string>
           <string name="Source"><![CDATA[-- Paints a haveli in its owner's theme and adds decorations for its level.
@@ -5483,7 +5752,7 @@ return HaveliStyle
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="23">
+      <Item class="ModuleScript" referent="25">
         <Properties>
           <string name="Name">Havelis</string>
           <string name="Source"><![CDATA[-- Havelis: who lives where, haveli levels and themes, which brainrot stands on
@@ -5527,7 +5796,7 @@ function Havelis.isLocker(plot: number): boolean
 end
 
 function Havelis.plotCount(profile): number
-	return Config.HAVELI_LEVELS[profile.data.level].plots
+	return Config.plotCount(profile.data.level, profile.data.passes.ExtraPlots)
 end
 
 function Havelis.entryValue(entry): number
@@ -5542,6 +5811,9 @@ end
 function Havelis.incomeMultiplier(profile): number
 	local theme = profile.data.theme
 	local mult = (1 + Config.REBIRTH_BONUS * profile.data.rebirths) * (Themes.perk(theme, "income") or 1)
+	if profile.data.passes.DoubleCash then
+		mult *= 2
+	end
 	local event = Events.current()
 	if event then
 		mult *= (event.cashMult or 1) * (Themes.perk(theme, "eventIncome") or 1)
@@ -6147,7 +6419,7 @@ return Havelis
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="24">
+      <Item class="ModuleScript" referent="26">
         <Properties>
           <string name="Name">Hazards</string>
           <string name="Source"><![CDATA[-- Zone hazards. They slow you down, knock you back and knock time off your
@@ -6497,7 +6769,7 @@ return Hazards
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="25">
+      <Item class="ModuleScript" referent="27">
         <Properties>
           <string name="Name">Kismat</string>
           <string name="Source"><![CDATA[-- Kismat Roll: an RNG roll for a random brainrot.
@@ -6625,7 +6897,7 @@ return Kismat
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="26">
+      <Item class="ModuleScript" referent="28">
         <Properties>
           <string name="Name">Leaderboard</string>
           <string name="Source"><![CDATA[-- The big board at the Chowk: the top players by Naya Safar, then rupees.
@@ -6710,7 +6982,7 @@ return Leaderboard
 ]]></string>
         </Properties>
       </Item>
-      <Item class="Script" referent="27">
+      <Item class="Script" referent="29">
         <Properties>
           <string name="Name">Main</string>
           <token name="RunContext">0</token>
@@ -6753,6 +7025,10 @@ local Garage = require(script.Parent.Garage)
 local Zones = require(script.Parent.Zones)
 local Wild = require(script.Parent.Wild)
 local Mandi = require(script.Parent.Mandi)
+local Tutorial = require(script.Parent.Tutorial)
+local Passes = require(script.Parent.Passes)
+local Badges = require(script.Parent.Badges)
+local Menu = require(script.Parent.Menu)
 
 World.init()
 local map = MapBuilder.ensure()
@@ -6767,6 +7043,10 @@ Garage.init(map)
 Garage.onHonk = Wild.scare
 Wild.init(map)
 Mandi.init()
+Tutorial.init()
+Passes.init()
+Badges.init()
+Menu.init()
 Shop.init()
 Shop.paintHook = Garage.onPaintBought
 Kismat.init()
@@ -6853,12 +7133,15 @@ local function dailyChai(profile)
 	if data.lastDaily >= today() then
 		return
 	end
+	-- coming back day after day earns extra rolls
+	local streak, streakRolls = Menu.streak(profile, today())
 	data.lastDaily = today()
 
 	local extras = {}
-	if Config.DAILY_FREE_ROLLS > 0 then
-		data.rollTokens += Config.DAILY_FREE_ROLLS
-		table.insert(extras, plural(Config.DAILY_FREE_ROLLS, "free Kismat Roll", "free Kismat Rolls"))
+	local rolls = Config.DAILY_FREE_ROLLS + streakRolls
+	if rolls > 0 then
+		data.rollTokens += rolls
+		table.insert(extras, plural(rolls, "free Kismat Roll", "free Kismat Rolls"))
 	end
 	if Config.DAILY_FREE_STEALS > 0 then
 		data.stealTokens += Config.DAILY_FREE_STEALS
@@ -6866,6 +7149,9 @@ local function dailyChai(profile)
 	end
 	State.syncTokens(profile)
 	local bonus = if #extras > 0 then " Plus " .. table.concat(extras, " and ") .. "!" else ""
+	if streak > 1 then
+		bonus ..= (" Day %d in a row!"):format(streak)
+	end
 
 	if math.random() < 0.5 and Havelis.hasFreePlot(profile) then
 		local pool = {}
@@ -6928,10 +7214,21 @@ local function onPlayerAdded(player: Player)
 
 	local data, canSave = PlayerData.load(player.UserId)
 	if not player.Parent then
-		return -- left while loading
+		-- left while loading: let go of the save so their next server need not wait
+		if canSave then
+			PlayerData.save(player.UserId, data, true)
+		end
+		return
 	end
 
 	local profile = State.newProfile(player, data, canSave)
+	Passes.check(profile) -- asks Roblox, so it waits a moment
+	if not player.Parent then
+		if canSave then
+			PlayerData.save(player.UserId, data, true) -- let go of the save
+		end
+		return
+	end
 	State.profiles[player] = profile
 	State.syncStats(profile)
 	State.syncDiscovered(profile)
@@ -6946,6 +7243,7 @@ local function onPlayerAdded(player: Player)
 		player:SetAttribute("HaveliIndex", profile.haveli.index)
 		player:SetAttribute("HomePosition", profile.haveli.doorOutside.Position)
 		EggSystem.restore(profile)
+		Menu.offlineEarnings(profile)
 	else
 		State.notify(
 			player,
@@ -6968,6 +7266,10 @@ local function onPlayerAdded(player: Player)
 	QuestBook.ensure(profile)
 	State.syncQuests(profile)
 	dailyChai(profile)
+	Menu.sync(profile)
+	Tutorial.sync(profile)
+	Tutorial.onTrack(profile, "")
+	Badges.award(profile, "Welcome")
 	State.notify(
 		player,
 		"info",
@@ -6987,11 +7289,11 @@ local function onPlayerAdded(player: Player)
 	end
 end
 
-local function saveProfile(profile)
+local function saveProfile(profile, final: boolean?)
 	if profile.canSave then
 		Havelis.syncData(profile)
 		EggSystem.syncData(profile)
-		PlayerData.save(profile.player.UserId, profile.data)
+		PlayerData.save(profile.player.UserId, profile.data, final)
 	end
 end
 
@@ -7009,7 +7311,7 @@ local function onPlayerRemoving(player: Player)
 	EggSystem.release(profile)
 	Havelis.release(profile)
 	State.profiles[player] = nil
-	saveProfile(profile)
+	saveProfile(profile, true)
 end
 
 Players.PlayerAdded:Connect(onPlayerAdded)
@@ -7023,7 +7325,7 @@ game:BindToClose(function()
 	for _, profile in State.profiles do
 		pending += 1
 		task.spawn(function()
-			saveProfile(profile)
+			saveProfile(profile, true)
 			pending -= 1
 		end)
 	end
@@ -7129,6 +7431,7 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 	State.syncStats(profile)
 	State.syncGear(profile)
 	Zones.refresh(profile)
+	State.track(profile, "rebirth")
 	State.sound(player, "Rebirth")
 	State.syncQuests(profile)
 	Havelis.restyle(profile)
@@ -7163,7 +7466,7 @@ print(
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="28">
+      <Item class="ModuleScript" referent="30">
         <Properties>
           <string name="Name">Mandi</string>
           <string name="Source"><![CDATA[-- The Mandi lane: brainrots walk out of the Brainrot Mandi arch (on the Punjab
@@ -7349,7 +7652,7 @@ return Mandi
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="29">
+      <Item class="ModuleScript" referent="31">
         <Properties>
           <string name="Name">MapBuilder</string>
           <string name="Source"><![CDATA[-- Builds the world if the place does not have one yet, then finds all the
@@ -8610,6 +8913,8 @@ local function buildTown(map: Model)
 	local showroomCF = facingIn(at(210, 270))
 	Props.place("Showroom", showroomCF, town)
 	Props.text(town, showroomCF, Props.anchor("Showroom", "Sign", showroomCF), 17, 2.4, "GAARI SHOWROOM")
+	-- for the new-player guide's arrow (the showroom itself may not be loaded yet)
+	workspace:SetAttribute("ShowroomPosition", (showroomCF * CFrame.new(0, 0, -12)).Position)
 	Props.place("VehiclePiliTaxi", showroomCF * CFrame.new(0, 0.9, 1.5), town)
 	for k, angle in { 220, 224, 228 } do
 		Props.place("Rickshaw", facingIn(at(angle, 262)) * CFrame.Angles(0, math.rad(90 + k * 4), 0), town)
@@ -8807,7 +9112,123 @@ return MapBuilder
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="30">
+      <Item class="ModuleScript" referent="32">
+        <Properties>
+          <string name="Name">Menu</string>
+          <string name="Source"><![CDATA[-- The server side of the Menu window: promo codes, the Settings switches,
+-- offline earnings and the daily chai streak.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Config = require(Shared.Config)
+local Format = require(Shared.Format)
+local Remotes = require(Shared.Remotes)
+
+local State = require(script.Parent.State)
+local Havelis = require(script.Parent.Havelis)
+
+local Menu = {}
+
+local SETTINGS = { music = true, sounds = true }
+local CODE_COOLDOWN = 1.5
+
+function Menu.sync(profile)
+	local on = {}
+	for name in SETTINGS do
+		if profile.data.settings[name] ~= false then
+			table.insert(on, name)
+		end
+	end
+	table.sort(on)
+	profile.player:SetAttribute("Settings", table.concat(on, ","))
+	profile.player:SetAttribute("Streak", profile.data.streak)
+end
+
+function Menu.setSetting(player: Player, name: any, on: any)
+	local profile = State.profiles[player]
+	if not profile or type(name) ~= "string" or not SETTINGS[name] or type(on) ~= "boolean" then
+		return
+	end
+	profile.data.settings[name] = on
+	Menu.sync(profile)
+end
+
+function Menu.redeem(player: Player, text: any)
+	local profile = State.profiles[player]
+	if not profile or type(text) ~= "string" or #text > 40 then
+		return
+	end
+	local t = os.clock()
+	if t - (profile.codeAt or -10) < CODE_COOLDOWN then
+		return
+	end
+	profile.codeAt = t
+	local code = string.upper((string.gsub(text, "%s", "")))
+	local reward = Config.CODES[code]
+	if not reward then
+		State.sound(player, "Error")
+		State.notify(player, "bad", "That code doesn't work. Check the spelling!")
+		return
+	end
+	if profile.data.codes[code] then
+		State.notify(player, "info", "You have already used that code.")
+		return
+	end
+	profile.data.codes[code] = true
+	local parts = {}
+	if reward.rupees then
+		State.addRupees(profile, reward.rupees)
+		table.insert(parts, Format.rupees(reward.rupees))
+	end
+	if reward.rolls then
+		profile.data.rollTokens += reward.rolls
+		State.syncTokens(profile)
+		table.insert(parts, ("%d Kismat Roll%s"):format(reward.rolls, if reward.rolls == 1 then "" else "s"))
+	end
+	State.sound(player, "Purchase")
+	State.notify(player, "good", ("Code %s: you got %s!"):format(code, table.concat(parts, " and ")))
+end
+
+-- Brainrots keep earning a little while you are away. Call it when a player
+-- joins, after their brainrots are back on their plots.
+function Menu.offlineEarnings(profile)
+	local data = profile.data
+	local away = os.time() - data.lastSeen
+	if data.lastSeen <= 0 or away < Config.OFFLINE_MIN then
+		return
+	end
+	local seconds = math.min(away, Config.OFFLINE_MAX)
+	local earned = math.floor(Havelis.incomePerSecond(profile) * seconds * Config.OFFLINE_RATE)
+	if earned <= 0 then
+		return
+	end
+	data.galla += earned
+	Havelis.updateGalla(profile)
+	State.notify(
+		profile.player,
+		"good",
+		("While you were away your brainrots earned %s. It is waiting in your galla!"):format(Format.rupees(earned))
+	)
+end
+
+-- Counts days in a row. Returns the streak and the bonus Kismat Rolls for it.
+function Menu.streak(profile, today: number): (number, number)
+	local data = profile.data
+	data.streak = if data.lastDaily == today - 1 then data.streak + 1 else 1
+	return data.streak, Config.streakRolls(data.streak)
+end
+
+function Menu.init()
+	Remotes.RedeemCode.OnServerEvent:Connect(Menu.redeem)
+	Remotes.SetSetting.OnServerEvent:Connect(Menu.setSetting)
+end
+
+return Menu
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="33">
         <Properties>
           <string name="Name">Models</string>
           <string name="Source"><![CDATA[-- Makes the 3D model for a brainrot. It picks the first of these that exists:
@@ -9473,7 +9894,7 @@ return Models
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="31">
+      <Item class="ModuleScript" referent="34">
         <Properties>
           <string name="Name">Mover</string>
           <string name="Source"><![CDATA[-- Moves brainrot models: walking home from the door or walking to a plot.
@@ -9605,7 +10026,126 @@ return Mover
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="32">
+      <Item class="ModuleScript" referent="35">
+        <Properties>
+          <string name="Name">Passes</string>
+          <string name="Source"><![CDATA[-- Game passes: bought once with Robux and kept forever.
+--   2x Cash     : your brainrots earn twice as much
+--   Extra Plots : Config.EXTRA_PLOTS more plots
+-- Their ids are in Config.GAME_PASSES; a pass with id 0 is hidden.
+--
+-- Roblox is asked which passes a player owns when they join. What it says is
+-- also kept in their save, so a hiccup at Roblox never takes plots away.
+
+local MarketplaceService = game:GetService("MarketplaceService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Config = require(Shared.Config)
+local Remotes = require(Shared.Remotes)
+
+local State = require(script.Parent.State)
+local Havelis = require(script.Parent.Havelis)
+
+local Passes = {}
+
+function Passes.sync(profile)
+	local list = {}
+	for id in profile.data.passes do
+		table.insert(list, id)
+	end
+	table.sort(list)
+	profile.player:SetAttribute("Passes", table.concat(list, ","))
+end
+
+local function infoOf(id: string)
+	for _, info in Config.PASS_INFO do
+		if info.id == id then
+			return info
+		end
+	end
+	return nil
+end
+
+-- Gives a pass (used when Roblox says the player owns it).
+function Passes.grant(profile, id: string, announce: boolean?)
+	if profile.data.passes[id] then
+		return
+	end
+	profile.data.passes[id] = true
+	Passes.sync(profile)
+	if profile.haveli then
+		Havelis.restyle(profile)
+		Havelis.arrange(profile)
+		Havelis.refreshPrompts(profile)
+	end
+	local info = infoOf(id)
+	if announce and info then
+		State.sound(profile.player, "Purchase")
+		State.notify(profile.player, "rare", ("Shukriya! %s is yours forever. %s"):format(info.name, info.text))
+	end
+end
+
+-- Asks Roblox which passes the player owns. It waits, so call it before the
+-- player's brainrots are put on their plots.
+function Passes.check(profile)
+	for id, passId in Config.GAME_PASSES do
+		if passId ~= 0 and not profile.data.passes[id] then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(profile.player.UserId, passId)
+			end)
+			if ok and owns == true then
+				profile.data.passes[id] = true
+			end
+		end
+	end
+	Passes.sync(profile)
+end
+
+function Passes.prompt(player: Player, id: any)
+	local profile = State.profiles[player]
+	local passId = type(id) == "string" and Config.GAME_PASSES[id]
+	if not profile or not passId or passId == 0 then
+		return
+	end
+	if profile.data.passes[id] then
+		State.notify(player, "info", "You already have that pass!")
+		return
+	end
+	MarketplaceService:PromptGamePassPurchase(player, passId)
+end
+
+function Passes.init()
+	Remotes.BuyProduct.OnServerEvent:Connect(function(player: Player, kind: any, id: any)
+		if kind == "pass" then
+			Passes.prompt(player, id)
+		end
+	end)
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player: Player, passId: number, bought: boolean)
+		local profile = State.profiles[player]
+		if not bought or not profile then
+			return
+		end
+		for id, configured in Config.GAME_PASSES do
+			if configured ~= 0 and configured == passId then
+				Passes.grant(profile, id, true)
+			end
+		end
+	end)
+	local any = false
+	for _, passId in Config.GAME_PASSES do
+		any = any or passId ~= 0
+	end
+	if not any then
+		print("[ChaiChaos] Game passes are hidden until you add their ids to Config.GAME_PASSES.")
+	end
+end
+
+return Passes
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="36">
         <Properties>
           <string name="Name">Picker</string>
           <string name="Source"><![CDATA[-- Picks a brainrot: first a rarity using weights, then a brainrot of that
@@ -9662,10 +10202,16 @@ return Picker
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="33">
+      <Item class="ModuleScript" referent="37">
         <Properties>
           <string name="Name">PlayerData</string>
           <string name="Source"><![CDATA[-- Saving and loading with DataStoreService.
+--
+-- * A save belongs to one server at a time (a "session lock"). If you hop to
+--   another server before the old one has saved, the new server waits for it,
+--   so the last minutes of your progress are never overwritten by old data.
+-- * If loading fails, the player plays without saving, so a hiccup can never
+--   wipe their progress. Saves are tried again when they fail.
 --
 -- In Studio, saving only works when the place is published and
 -- Game Settings > Security > "Enable Studio Access to API Services" is on.
@@ -9702,9 +10248,22 @@ local function storeKey(userId: number): string
 	return "player_" .. userId
 end
 
+-- This server's name on the saves it has open.
+local JOB = if game.JobId ~= nil and game.JobId ~= "" then tostring(game.JobId) else "studio"
+local LOCK_EXPIRES = 600 -- a server that crashed keeps its lock no longer than this
+PlayerData.tries = if RunService:IsStudio() then 1 else 4 -- how often loading and saving are tried
+
+local function lockedElsewhere(old: any): boolean
+	local session = type(old) == "table" and old.session
+	return type(session) == "table"
+		and session.job ~= JOB
+		and type(session.at) == "number"
+		and os.time() - session.at < LOCK_EXPIRES
+end
+
 function PlayerData.default()
 	return {
-		version = 4,
+		version = 5,
 		rupees = Config.START_RUPEES,
 		galla = 0,
 		rebirths = 0,
@@ -9728,6 +10287,14 @@ function PlayerData.default()
 		vehicle = nil, -- the vehicle you drove last
 		paints = {}, -- [paint id] = true for Robux paint jobs
 		paint = "Factory", -- the paint job on your vehicles
+		lastSeen = 0, -- os.time() of the last save, for offline earnings
+		streak = 0, -- days in a row you came for your daily chai
+		tutorial = 1, -- the guide's step (see Tutorial.luau); past the last step = finished
+		codes = {}, -- [code] = true for promo codes you have used
+		settings = { music = true, sounds = true }, -- the Settings window
+		badges = {}, -- [badge name] = true once Roblox has awarded it
+		guideRewarded = false, -- the guide's reward is only given once
+		passes = {}, -- [pass id] = true for game passes Roblox says you own
 	}
 end
 
@@ -9823,7 +10390,14 @@ local function reconcile(saved: any)
 			end
 		end
 	end
-	local plots = Config.HAVELI_LEVELS[data.level].plots
+	if type(saved.passes) == "table" then
+		for id, value in saved.passes do
+			if value == true and Config.GAME_PASSES[id] ~= nil then
+				data.passes[id] = true
+			end
+		end
+	end
+	local plots = Config.plotCount(data.level, data.passes.ExtraPlots)
 	if type(saved.zones) == "table" then
 		for id, value in saved.zones do
 			local biome = Biomes.byId[id]
@@ -9934,6 +10508,29 @@ local function reconcile(saved: any)
 		end
 		data.quests = quests
 	end
+	data.lastSeen = whole(saved.lastSeen, 0) or 0
+	data.streak = whole(saved.streak, 0) or 0
+	-- saves from before the guide: anyone who has found a brainrot has finished it
+	data.tutorial = math.min(whole(saved.tutorial, 1) or (if next(data.discovered) ~= nil then 1000 else 1), 1000)
+	if type(saved.codes) == "table" then
+		for code, value in saved.codes do
+			if value == true and type(code) == "string" then
+				data.codes[code] = true
+			end
+		end
+	end
+	if type(saved.settings) == "table" then
+		data.settings.music = saved.settings.music ~= false
+		data.settings.sounds = saved.settings.sounds ~= false
+	end
+	if type(saved.badges) == "table" then
+		for name, value in saved.badges do
+			if value == true and type(name) == "string" then
+				data.badges[name] = true
+			end
+		end
+	end
+	data.guideRewarded = saved.guideRewarded == true
 	if type(saved.collection) == "table" then
 		for rarity, entry in saved.collection do
 			if Config.COLLECTION_REWARDS[rarity] and type(entry) == "table" then
@@ -9954,42 +10551,78 @@ function PlayerData.load(userId: number): (any, boolean)
 	if not store then
 		return PlayerData.default(), false
 	end
-	local attempts = if RunService:IsStudio() then 1 else 3
-	for attempt = 1, attempts do
-		local ok, result = pcall(function()
-			return store:GetAsync(storeKey(userId))
+	local tries = PlayerData.tries
+	for attempt = 1, tries do
+		local busy = false
+		local loaded = nil
+		local ok, err = pcall(function()
+			store:UpdateAsync(storeKey(userId), function(old)
+				-- another server still has this save open: wait for it (the
+				-- last try takes over, in case that server crashed)
+				busy = lockedElsewhere(old) and attempt < tries
+				if busy then
+					return nil
+				end
+				loaded = old
+				local value = if type(old) == "table" then old else {}
+				value.session = { job = JOB, at = os.time() }
+				return value
+			end)
 		end)
-		if ok then
-			return reconcile(result), true
+		if ok and not busy then
+			return reconcile(loaded), true
 		end
-		warn(("[ChaiChaos] Could not load data for %d (try %d): %s"):format(userId, attempt, tostring(result)))
-		if attempt < attempts then
+		if not ok then
+			warn(("[ChaiChaos] Could not load data for %d (try %d): %s"):format(userId, attempt, tostring(err)))
+		end
+		if attempt < tries then
 			task.wait(attempt * 2)
 		end
 	end
 	return PlayerData.default(), false
 end
 
-function PlayerData.save(userId: number, data: any): boolean
+-- Saves the data. `final` (the player is leaving) lets go of the save so the
+-- next server can open it straight away. Returns false if it could not be
+-- saved, or if another server has taken the save over.
+function PlayerData.save(userId: number, data: any, final: boolean?): boolean
 	if not store then
 		return false
 	end
-	local ok, err = pcall(function()
-		store:UpdateAsync(storeKey(userId), function()
-			return data
+	local tries = PlayerData.tries
+	for attempt = 1, tries do
+		local taken = false
+		local ok, err = pcall(function()
+			store:UpdateAsync(storeKey(userId), function(old)
+				local session = type(old) == "table" and old.session
+				if type(session) == "table" and session.job ~= JOB then
+					taken = true
+					return nil
+				end
+				data.lastSeen = os.time()
+				data.session = if final then nil else { job = JOB, at = os.time() }
+				return data
+			end)
 		end)
-	end)
-	if not ok then
-		warn(("[ChaiChaos] Could not save data for %d: %s"):format(userId, tostring(err)))
+		if ok then
+			if taken then
+				warn(("[ChaiChaos] Another server has the save for %d now, not saving over it."):format(userId))
+			end
+			return not taken
+		end
+		warn(("[ChaiChaos] Could not save data for %d (try %d): %s"):format(userId, attempt, tostring(err)))
+		if attempt < tries then
+			task.wait(attempt)
+		end
 	end
-	return ok
+	return false
 end
 
 return PlayerData
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="34">
+      <Item class="ModuleScript" referent="38">
         <Properties>
           <string name="Name">PropData</string>
           <string name="Source"><![CDATA[-- Every prop modelled in Blender, as Roblox parts. Props.luau builds them.
@@ -15305,7 +15938,7 @@ return PropData
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="35">
+      <Item class="ModuleScript" referent="39">
         <Properties>
           <string name="Name">Props</string>
           <string name="Source"><![CDATA[-- Props modelled in Blender: landmarks, trees, dhabas, trucks and the rest.
@@ -15571,7 +16204,7 @@ return Props
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="36">
+      <Item class="ModuleScript" referent="40">
         <Properties>
           <string name="Name">QuestBook</string>
           <string name="Source"><![CDATA[-- Daily quests and Collection Book rewards.
@@ -15809,7 +16442,7 @@ return QuestBook
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="37">
+      <Item class="ModuleScript" referent="41">
         <Properties>
           <string name="Name">Shop</string>
           <string name="Source"><![CDATA[-- Robux purchases (Developer Products) for Kismat Rolls, Chor Passes and
@@ -16031,7 +16664,7 @@ return Shop
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="38">
+      <Item class="ModuleScript" referent="42">
         <Properties>
           <string name="Name">State</string>
           <string name="Source"><![CDATA[-- Shared server state: one profile per player and one entry per owned brainrot.
@@ -16076,9 +16709,17 @@ end
 -- Quest progress: any module can report what a player did; QuestBook listens.
 State.tracker = nil :: ((any, string, number) -> ())?
 State.biomeTracker = nil :: ((any, string) -> ())?
+local listeners: { (any, string, number) -> () } = {}
+-- Other modules (the guide, badges) can listen in too.
+function State.onTrack(listener: (any, string, number) -> ())
+	table.insert(listeners, listener)
+end
 function State.track(profile, kind: string, amount: number?)
 	if State.tracker then
 		State.tracker(profile, kind, amount or 1)
+	end
+	for _, listener in listeners do
+		listener(profile, kind, amount or 1)
 	end
 end
 function State.trackBiome(profile, biomeId: string)
@@ -16222,7 +16863,7 @@ return State
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="39">
+      <Item class="ModuleScript" referent="43">
         <Properties>
           <string name="Name">Stealing</string>
           <string name="Source"><![CDATA[-- Stealing brainrots from other havelis.
@@ -16639,7 +17280,7 @@ return Stealing
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="40">
+      <Item class="ModuleScript" referent="44">
         <Properties>
           <string name="Name">Treasure</string>
           <string name="Source"><![CDATA[-- Treasure chests hidden in every zone.
@@ -16849,7 +17490,139 @@ return Treasure
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="41">
+      <Item class="ModuleScript" referent="45">
+        <Properties>
+          <string name="Name">Tutorial</string>
+          <string name="Source"><![CDATA[-- The new-player guide (the steps are in the shared Tutorial module).
+--
+-- Every player has a step saved in their data. When they do what the step
+-- asks, they move on to the next one; steps they have already done are
+-- skipped. Finishing the guide pays a few Kismat Rolls, once.
+-- The Menu window can skip the guide or start it again.
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Biomes = require(Shared.Biomes)
+local Remotes = require(Shared.Remotes)
+local Steps = require(Shared.Tutorial)
+
+local State = require(script.Parent.State)
+
+local Tutorial = {}
+
+function Tutorial.sync(profile)
+	local step = Steps.steps[profile.data.tutorial]
+	profile.player:SetAttribute("Tutorial", if step then step.id else "")
+	profile.player:SetAttribute("TutorialStep", profile.data.tutorial)
+end
+
+-- Has the player already done this step some other way?
+local function alreadyDone(profile, step): boolean
+	local data = profile.data
+	if step.id == "vehicle" then
+		return next(data.vehicles) ~= nil
+	elseif step.id == "drive" then
+		return profile.driving ~= nil
+	elseif step.id == "zone" then
+		return next(data.zones) ~= nil
+	end
+	return false
+end
+
+local function finish(profile)
+	local data = profile.data
+	if data.guideRewarded then
+		State.notify(profile.player, "good", "Guide finished! You know your way around now.")
+		return
+	end
+	data.guideRewarded = true
+	data.rollTokens += Steps.REWARD_ROLLS
+	State.syncTokens(profile)
+	State.sound(profile.player, "Upgrade")
+	State.notify(
+		profile.player,
+		"rare",
+		("Guide finished! Here are %d Kismat Rolls. Try them at the Kismat Kettle in the Chowk."):format(
+			Steps.REWARD_ROLLS
+		)
+	)
+end
+
+-- Something happened (see State.track): move on if it is what the step asks.
+function Tutorial.onTrack(profile, kind: string)
+	local data = profile.data
+	local moved = false
+	while true do
+		local step = Steps.steps[data.tutorial]
+		if not step then
+			break
+		end
+		-- picking up an egg also means you found the zone
+		local done = step.done == kind or (step.id == "leave" and kind == "eggPickup") or alreadyDone(profile, step)
+		if not done then
+			break
+		end
+		data.tutorial += 1
+		moved = true
+		if step.done == kind then
+			kind = "" -- one action finishes one step
+		end
+	end
+	if moved then
+		Tutorial.sync(profile)
+		if data.tutorial >= Steps.DONE then
+			finish(profile)
+		else
+			State.sound(profile.player, "Click")
+		end
+	end
+end
+
+function Tutorial.command(player: Player, what: any)
+	local profile = State.profiles[player]
+	if not profile then
+		return
+	end
+	if what == "skip" then
+		if profile.data.tutorial < Steps.DONE then
+			profile.data.tutorial = Steps.DONE
+			Tutorial.sync(profile)
+			State.notify(player, "info", "Guide hidden. You can start it again in the Menu.")
+		end
+	elseif what == "restart" then
+		profile.data.tutorial = 1
+		Tutorial.sync(profile)
+		Tutorial.onTrack(profile, "")
+	end
+end
+
+function Tutorial.init()
+	State.onTrack(Tutorial.onTrack)
+	Remotes.Guide.OnServerEvent:Connect(Tutorial.command)
+	-- the first step is done by walking into Mango Bagh
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for player, profile in State.profiles do
+				local step = Steps.steps[profile.data.tutorial]
+				local root = step and step.done == "enterZone" and State.rootPart(player)
+				if root then
+					local biome = Biomes.at(root.Position)
+					if biome and step.target == "zone:" .. biome.id then
+						Tutorial.onTrack(profile, "enterZone")
+					end
+				end
+			end
+		end
+	end)
+end
+
+return Tutorial
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="46">
         <Properties>
           <string name="Name">Upgrades</string>
           <string name="Source"><![CDATA[-- The Chowk's shops: Gear, the Tracker (radar) and the Sell stall.
@@ -16974,7 +17747,7 @@ return Upgrades
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="42">
+      <Item class="ModuleScript" referent="47">
         <Properties>
           <string name="Name">Wild</string>
           <string name="Source"><![CDATA[-- Wild brainrots: rare brainrots that roam the zones.
@@ -17291,7 +18064,7 @@ return Wild
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="43">
+      <Item class="ModuleScript" referent="48">
         <Properties>
           <string name="Name">World</string>
           <string name="Source"><![CDATA[-- Bright, warm, kid-friendly lighting and the day and night cycle.
@@ -17377,7 +18150,7 @@ return World
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="44">
+      <Item class="ModuleScript" referent="49">
         <Properties>
           <string name="Name">Zones</string>
           <string name="Source"><![CDATA[-- Zone gates. Ring 1 and ring 2 zones are unlocked with rupees at their gate
@@ -17489,19 +18262,19 @@ return Zones
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="45">
+  <Item class="StarterPlayer" referent="50">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="46">
+    <Item class="StarterPlayerScripts" referent="51">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="Folder" referent="47">
+      <Item class="Folder" referent="52">
         <Properties>
           <string name="Name">ChaiChaosClient</string>
         </Properties>
-        <Item class="LocalScript" referent="48">
+        <Item class="LocalScript" referent="53">
           <Properties>
             <string name="Name">Driving</string>
             <string name="Source"><![CDATA[-- Driving on this player's screen.
@@ -17797,7 +18570,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="49">
+        <Item class="LocalScript" referent="54">
           <Properties>
             <string name="Name">Events</string>
             <string name="Source"><![CDATA[-- The event banner (with the event's boosts) and each event's look: Basant
@@ -18116,7 +18889,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="50">
+        <Item class="LocalScript" referent="55">
           <Properties>
             <string name="Name">Garage</string>
             <string name="Source"><![CDATA[-- Vehicle windows:
@@ -18444,7 +19217,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="51">
+        <Item class="LocalScript" referent="56">
           <Properties>
             <string name="Name">Haveli</string>
             <string name="Source"><![CDATA[-- The Haveli window: upgrade your haveli and pick its theme.
@@ -18598,7 +19371,7 @@ refresh()
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="52">
+        <Item class="LocalScript" referent="57">
           <Properties>
             <string name="Name">Hud</string>
             <string name="Source"><![CDATA[-- The on-screen HUD: rupees, income, the Taala button, the Collection Book
@@ -19010,7 +19783,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="53">
+        <Item class="LocalScript" referent="58">
           <Properties>
             <string name="Name">Kismat</string>
             <string name="Source"><![CDATA[-- Kismat Roll and Chor Pass windows, and the roll reveal animation.
@@ -19444,7 +20217,243 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="54">
+        <Item class="LocalScript" referent="59">
+          <Properties>
+            <string name="Name">Menu</string>
+            <string name="Source"><![CDATA[-- The Menu window: game passes, promo codes, your daily chai streak, the
+-- Settings switches (music and sounds) and the new-player guide.
+-- The server checks and saves everything.
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Config = require(Shared:WaitForChild("Config"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
+local Steps = require(Shared:WaitForChild("Tutorial"))
+local Ui = require(script.Parent:WaitForChild("Ui"))
+
+local rgb, create, label = Ui.rgb, Ui.create, Ui.label
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui"):WaitForChild("ChaiChaosHud")
+local buttons = gui:WaitForChild("Buttons")
+
+local ROW = rgb(60, 45, 35)
+local GREEN = rgb(30, 140, 80)
+local GREY = rgb(110, 105, 100)
+local ROBUX = rgb(40, 170, 90)
+local BROWN = rgb(90, 55, 30)
+
+local menuButton = Ui.sideButton(buttons, "Menu", "Menu", rgb(90, 90, 110), 8)
+local panel, content = Ui.panel(gui, "MenuPanel", "Menu", Vector2.new(480, 600))
+
+local function has(attribute: string, name: string): boolean
+	for item in string.gmatch(player:GetAttribute(attribute) or "", "[^,]+") do
+		if item == name then
+			return true
+		end
+	end
+	return false
+end
+
+local function heading(name: string, order: number, text: string): TextLabel
+	return label({
+		Name = name,
+		Size = UDim2.new(1, -8, 0, 28),
+		TextColor3 = BROWN,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = text,
+		LayoutOrder = order,
+		Parent = content,
+	})
+end
+
+local function row(name: string, order: number, title: string, text: string, height: number?)
+	local frame = create("Frame", {
+		Name = name,
+		Size = UDim2.new(1, -8, 0, height or 62),
+		BackgroundColor3 = ROW,
+		LayoutOrder = order,
+		Parent = content,
+	}, { Ui.corner(10) })
+	label({
+		Name = "Title",
+		Position = UDim2.fromOffset(10, 4),
+		Size = UDim2.new(1, -150, 0, 24),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = title,
+		Parent = frame,
+	})
+	label({
+		Name = "Text",
+		Position = UDim2.fromOffset(10, 28),
+		Size = UDim2.new(1, -150, 0, (height or 62) - 32),
+		TextColor3 = rgb(255, 230, 170),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextWrapped = true,
+		Text = text,
+		Parent = frame,
+	})
+	local button = Ui.textButton({
+		Name = "Button",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(130, 40),
+		BackgroundColor3 = GREEN,
+		Parent = frame,
+	})
+	return frame, button
+end
+
+---------------------------------------------------------------------------
+-- Codes (built once, so what you are typing is never wiped)
+---------------------------------------------------------------------------
+heading("CodesTitle", 30, "Codes")
+local codeRow = create("Frame", {
+	Name = "Code",
+	Size = UDim2.new(1, -8, 0, 52),
+	BackgroundColor3 = ROW,
+	LayoutOrder = 31,
+	Parent = content,
+}, { Ui.corner(10) })
+local codeBox = create("TextBox", {
+	Name = "Box",
+	Position = UDim2.fromOffset(10, 8),
+	Size = UDim2.new(1, -160, 0, 36),
+	BackgroundColor3 = rgb(250, 240, 220),
+	Font = Ui.FONT,
+	TextScaled = true,
+	TextColor3 = rgb(40, 30, 25),
+	PlaceholderText = "Type a code",
+	Text = "",
+	ClearTextOnFocus = false,
+	Parent = codeRow,
+}, { Ui.corner(8) })
+local redeem = Ui.textButton({
+	Name = "Redeem",
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, -8, 0.5, 0),
+	Size = UDim2.fromOffset(130, 40),
+	BackgroundColor3 = GREEN,
+	Text = "Redeem",
+	Parent = codeRow,
+})
+redeem.Activated:Connect(function()
+	if codeBox.Text ~= "" then
+		Remotes.RedeemCode:FireServer(codeBox.Text)
+		codeBox.Text = ""
+	end
+end)
+
+---------------------------------------------------------------------------
+-- Everything else is rebuilt when something changes
+---------------------------------------------------------------------------
+local built: { Instance } = {}
+
+local function refresh()
+	for _, item in built do
+		item:Destroy()
+	end
+	built = {}
+	local function keep(item: Instance)
+		table.insert(built, item)
+	end
+
+	-- daily chai streak
+	local streak = player:GetAttribute("Streak") or 0
+	local nextBonus = Config.streakRolls(streak + 1)
+	local streakRow, streakButton = row(
+		"Streak",
+		1,
+		("Daily chai: day %d in a row"):format(math.max(1, streak)),
+		if nextBonus > 0
+			then ("Come back tomorrow for %d extra Kismat Roll%s!"):format(
+				nextBonus,
+				if nextBonus == 1 then "" else "s"
+			)
+			else "Come back every day. From day 3 you get extra Kismat Rolls!"
+	)
+	streakButton.Visible = false
+	keep(streakRow)
+
+	-- game passes (hidden until their ids are in Config)
+	local anyPass = false
+	for i, info in Config.PASS_INFO do
+		local passId = Config.GAME_PASSES[info.id]
+		if passId and passId ~= 0 then
+			if not anyPass then
+				anyPass = true
+				keep(heading("PassesTitle", 10, "Game passes"))
+			end
+			local frame, button = row("Pass" .. info.id, 10 + i, info.name, info.text, 70)
+			if has("Passes", info.id) then
+				button.Text = "Owned"
+				button.BackgroundColor3 = GREY
+			else
+				button.Text = "Robux"
+				button.BackgroundColor3 = ROBUX
+				button.Activated:Connect(function()
+					Remotes.BuyProduct:FireServer("pass", info.id)
+				end)
+			end
+			keep(frame)
+		end
+	end
+
+	-- settings
+	keep(heading("SettingsTitle", 40, "Settings"))
+	for i, setting in { { "music", "Music" }, { "sounds", "Sounds" } } do
+		local on = player:GetAttribute("Settings") == nil or has("Settings", setting[1])
+		local frame, button = row("Setting" .. setting[2], 40 + i, setting[2], if on then "On" else "Off", 52)
+		button.Text = if on then "Turn off" else "Turn on"
+		button.BackgroundColor3 = if on then GREY else GREEN
+		button.Activated:Connect(function()
+			Remotes.SetSetting:FireServer(setting[1], not on)
+		end)
+		keep(frame)
+	end
+
+	-- the guide
+	keep(heading("GuideTitle", 50, "Guide"))
+	local running = (player:GetAttribute("Tutorial") or "") ~= ""
+	local guideRow, guideButton = row(
+		"GuideRow",
+		51,
+		"New-player guide",
+		if running
+			then ("Step %d of %d. Follow the yellow line!"):format(
+				player:GetAttribute("TutorialStep") or 1,
+				#Steps.steps
+			)
+			else "Shows what to do next, one step at a time.",
+		60
+	)
+	guideButton.Text = if running then "Hide it" else "Show it"
+	guideButton.BackgroundColor3 = if running then GREY else GREEN
+	guideButton.Activated:Connect(function()
+		Remotes.Guide:FireServer(if running then "skip" else "restart")
+	end)
+	keep(guideRow)
+end
+
+menuButton.Activated:Connect(function()
+	if not panel.Visible then
+		refresh()
+	end
+	Ui.toggle(panel)
+end)
+for _, name in { "Passes", "Settings", "Streak", "Tutorial", "TutorialStep" } do
+	player:GetAttributeChangedSignal(name):Connect(function()
+		if panel.Visible then
+			refresh()
+		end
+	end)
+end
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="LocalScript" referent="60">
           <Properties>
             <string name="Name">Prompts</string>
             <string name="Source"><![CDATA[-- Shows each ProximityPrompt only to the right players: "Steal" is only for
@@ -19486,7 +20495,7 @@ end
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="55">
+        <Item class="LocalScript" referent="61">
           <Properties>
             <string name="Name">Quests</string>
             <string name="Source"><![CDATA[-- The Quests window: today's quests and the Collection Book rewards.
@@ -19735,7 +20744,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="56">
+        <Item class="LocalScript" referent="62">
           <Properties>
             <string name="Name">Radar</string>
             <string name="Source"><![CDATA[-- The radar in the bottom right corner.
@@ -20190,7 +21199,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="57">
+        <Item class="LocalScript" referent="63">
           <Properties>
             <string name="Name">Shops</string>
             <string name="Source"><![CDATA[-- The Chowk's shops and the Brainrots window.
@@ -20665,7 +21674,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="58">
+        <Item class="LocalScript" referent="64">
           <Properties>
             <string name="Name">Smooth</string>
             <string name="Source"><![CDATA[-- Makes brainrots move smoothly on this player's screen.
@@ -20757,7 +21766,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="59">
+        <Item class="ModuleScript" referent="65">
           <Properties>
             <string name="Name">SoundPlayer</string>
             <string name="Source"><![CDATA[-- Plays the sounds from Sounds.luau on this player's screen.
@@ -20816,10 +21825,21 @@ local function distanceVolume(position: Vector3?): number
 	return math.clamp(1 - distance / HEARING_RANGE, 0, 1)
 end
 
+-- The Settings switches (Menu window): "music" and "sounds". The server keeps
+-- them in the Settings attribute; until it arrives everything is on.
+function SoundPlayer.allowed(name: string): boolean
+	local settings = Players.LocalPlayer:GetAttribute("Settings")
+	if type(settings) ~= "string" then
+		return true
+	end
+	local kind = if string.sub(name, 1, 5) == "Music" then "music" else "sounds"
+	return string.find(settings, kind, 1, true) ~= nil
+end
+
 -- `pitch` multiplies the sound's own pitch (every vehicle's horn sounds different).
 function SoundPlayer.play(name: string, position: Vector3?, pitch: number?)
 	local sound = SoundPlayer.get(name)
-	if not sound then
+	if not sound or not SoundPlayer.allowed(name) then
 		return
 	end
 	local fade = distanceVolume(position)
@@ -20838,6 +21858,7 @@ function SoundPlayer.loop(name: string, on: boolean)
 	if not sound then
 		return
 	end
+	on = on and SoundPlayer.allowed(name)
 	if on and not sound.IsPlaying then
 		sound:Play()
 	elseif not on and sound.IsPlaying then
@@ -20849,7 +21870,7 @@ return SoundPlayer
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="60">
+        <Item class="LocalScript" referent="66">
           <Properties>
             <string name="Name">Sounds</string>
             <string name="Source"><![CDATA[-- Sounds on this player's screen:
@@ -20919,7 +21940,199 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="61">
+        <Item class="LocalScript" referent="67">
+          <Properties>
+            <string name="Name">Tutorial</string>
+            <string name="Source"><![CDATA[-- The new-player guide on this player's screen: a card at the top that says
+-- what to do next, and a glowing beacon with a line on the ground to follow.
+-- The server decides which step you are on (the Tutorial attribute).
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
+local Biomes = require(Shared:WaitForChild("Biomes"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
+local Steps = require(Shared:WaitForChild("Tutorial"))
+local Ui = require(script.Parent:WaitForChild("Ui"))
+
+local rgb, create, label = Ui.rgb, Ui.create, Ui.label
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui"):WaitForChild("ChaiChaosHud")
+
+local YELLOW = rgb(255, 215, 70)
+
+---------------------------------------------------------------------------
+-- The card
+---------------------------------------------------------------------------
+local card = create("Frame", {
+	Name = "Guide",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 90),
+	Size = UDim2.new(0.9, 0, 0, 58),
+	BackgroundColor3 = rgb(40, 90, 150),
+	BackgroundTransparency = 0.1,
+	Visible = false,
+	Parent = gui,
+}, {
+	Ui.corner(12),
+	create("UISizeConstraint", { MaxSize = Vector2.new(520, 58) }),
+	create("UIStroke", { Thickness = 2, Color = YELLOW, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
+})
+local stepLabel = label({
+	Name = "Step",
+	Position = UDim2.fromOffset(10, 2),
+	Size = UDim2.new(1, -90, 0, 18),
+	TextColor3 = YELLOW,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Parent = card,
+})
+local textLabel = label({
+	Name = "Text",
+	Position = UDim2.fromOffset(10, 20),
+	Size = UDim2.new(1, -90, 0, 34),
+	TextXAlignment = Enum.TextXAlignment.Left,
+	TextWrapped = true,
+	Parent = card,
+})
+local skip = Ui.textButton({
+	Name = "Skip",
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, -8, 0.5, 0),
+	Size = UDim2.fromOffset(66, 34),
+	BackgroundColor3 = rgb(110, 105, 100),
+	Text = "Skip",
+	Parent = card,
+})
+skip.Activated:Connect(function()
+	Remotes.Guide:FireServer("skip")
+end)
+
+---------------------------------------------------------------------------
+-- The beacon and the line to it
+---------------------------------------------------------------------------
+local beacon = create("Part", {
+	Name = "GuideBeacon",
+	Anchored = true,
+	CanCollide = false,
+	CanTouch = false,
+	CanQuery = false,
+	CastShadow = false,
+	Shape = Enum.PartType.Cylinder,
+	Size = Vector3.new(70, 3, 3),
+	Color = YELLOW,
+	Material = Enum.Material.Neon,
+	Transparency = 0.45,
+})
+local beaconEnd = create("Attachment", { Name = "End", Parent = beacon })
+local billboard = create("BillboardGui", {
+	Name = "Label",
+	Size = UDim2.fromOffset(220, 44),
+	StudsOffsetWorldSpace = Vector3.new(0, 10, 0),
+	AlwaysOnTop = true,
+	MaxDistance = 2000,
+	Parent = beacon,
+})
+local distanceLabel =
+	label({ Name = "Distance", Size = UDim2.fromScale(1, 1), TextColor3 = YELLOW, Parent = billboard })
+local line = create("Beam", {
+	Name = "GuideLine",
+	Attachment1 = beaconEnd,
+	Width0 = 1.6,
+	Width1 = 1.6,
+	FaceCamera = true,
+	Color = ColorSequence.new(YELLOW),
+	Transparency = NumberSequence.new(0.35),
+	LightEmission = 0.6,
+	Segments = 1,
+	Parent = beacon,
+})
+local rootAttachment: Attachment? = nil
+
+local function rootPart(): BasePart?
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return if root and root:IsA("BasePart") then root else nil
+end
+
+-- Where the arrow points for a step's target (nil = nowhere).
+local function targetPosition(target: string?, from: Vector3): Vector3?
+	if not target then
+		return nil
+	end
+	local zoneId = target:match("^zone:(%w+)$")
+	if zoneId then
+		local biome = Biomes.byId[zoneId]
+		if biome then
+			local angle, radius = Biomes.gate(biome)
+			return Biomes.polar(angle, radius + 8)
+		end
+	elseif target == "home" then
+		local home = player:GetAttribute("HomePosition")
+		return if typeof(home) == "Vector3" then home else nil
+	elseif target == "showroom" then
+		local spot = workspace:GetAttribute("ShowroomPosition")
+		return if typeof(spot) == "Vector3" then spot else nil
+	elseif target == "egg" then
+		local open = Biomes.decode(player:GetAttribute("OpenZones") or "")
+		local eggs = workspace:FindFirstChild("ChaiChaosEggs")
+		local best, bestDistance = nil, math.huge
+		if eggs then
+			for _, model in eggs:GetChildren() do
+				if model:IsA("Model") and open[model:GetAttribute("Biome") or ""] and model.PrimaryPart then
+					local prompt = model.PrimaryPart:FindFirstChild("EggPrompt")
+					if prompt and prompt:IsA("ProximityPrompt") and prompt.Enabled then
+						local position = model:GetPivot().Position
+						local distance = (position - from).Magnitude
+						if distance < bestDistance then
+							best, bestDistance = position, distance
+						end
+					end
+				end
+			end
+		end
+		return best
+	end
+	return nil
+end
+
+local function refresh()
+	local step = Steps.byId[player:GetAttribute("Tutorial") or ""]
+	card.Visible = step ~= nil
+	local root = rootPart()
+	if not step or not root then
+		beacon.Parent = nil
+		return
+	end
+	stepLabel.Text = ("Guide · step %d of %d"):format(player:GetAttribute("TutorialStep") or 1, #Steps.steps)
+	textLabel.Text = step.text
+	local target = targetPosition(step.target, root.Position)
+	if not target then
+		beacon.Parent = nil
+		return
+	end
+	local flat = Vector3.new(target.X, Biomes.GROUND_Y, target.Z)
+	beacon.CFrame = CFrame.new(flat + Vector3.new(0, 35, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	beaconEnd.WorldPosition = flat + Vector3.new(0, 1.5, 0)
+	distanceLabel.Text = ("%d studs"):format(math.floor((flat - root.Position).Magnitude))
+	if not rootAttachment or rootAttachment.Parent ~= root then
+		rootAttachment = create("Attachment", { Name = "GuideStart", Parent = root })
+	end
+	line.Attachment0 = rootAttachment
+	beacon.Parent = workspace
+end
+
+player:GetAttributeChangedSignal("Tutorial"):Connect(refresh)
+task.spawn(function()
+	while gui.Parent do
+		refresh()
+		task.wait(0.5)
+	end
+end)
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="68">
           <Properties>
             <string name="Name">Ui</string>
             <string name="Source"><![CDATA[-- Small helpers for building the HUD out of code.
@@ -21092,7 +22305,7 @@ return Ui
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="62">
+        <Item class="LocalScript" referent="69">
           <Properties>
             <string name="Name">Weather</string>
             <string name="Source"><![CDATA[-- How the zones look and feel on this player's screen:
@@ -21262,7 +22475,7 @@ end)
 ]]></string>
           </Properties>
         </Item>
-        <Item class="LocalScript" referent="63">
+        <Item class="LocalScript" referent="70">
           <Properties>
             <string name="Name">Zones</string>
             <string name="Source"><![CDATA[-- The zone gates, shortcut doors and the train, on this player's screen.
@@ -21383,7 +22596,7 @@ end)
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="64">
+  <Item class="Workspace" referent="71">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>

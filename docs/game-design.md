@@ -165,7 +165,10 @@ The map is one big bazaar with a lane down the middle and eight havelis (player 
 - **Haveli levels:** 9 levels from 4 plots up to 20 (Rs 4,000 up to Rs 2,000,000), with incubators, a Laser Darwaza, a garden, a second floor, a Chowkidar and a rooftop along the way.
 - **Zones:** unlock ring 1 and ring 2 zones with rupees at their gates.
 - **Rebirth ("Naya Safar"):** starts at Rs 2,500,000 (4 times more each time). You reset your rupees, haveli level, radar and brainrots for a permanent +50% income multiplier and a new haveli theme, and each of the first four rebirths opens one ring 3 zone. You keep gear, vehicles and unlocked zones.
-- **Daily chai:** log in each day for a free brainrot or a rupee boost.
+- **A guide for new players:** 8 small steps with a line on the ground to follow, from the first egg to the first zone gate.
+- **Daily chai:** log in each day for a free brainrot or a rupee boost, with extra Kismat Rolls for a streak of days in a row.
+- **Offline earnings:** brainrots earn 10% of their income for up to 4 hours while you are away.
+- **Codes and badges:** promo codes for rupees and rolls, and badges for first-time moments.
 - **Events:** every 15-20 minutes: Basant Kite Festival, Baarish, Cricket Mania, Load Shedding, Mela Night and Sardi, each with its own boosts. Event content stays friendly to everyone.
 - **Collection book:** a Pokédex-style page that fills in as you discover each brainrot.
 
@@ -177,8 +180,8 @@ A simulation (`tests/run.sh pacing`) plays the game hundreds of times with fast,
 
 Keep it fair, because most players are kids.
 
-- **2x Cash** game pass.
-- **Extra plots** game pass.
+- **2x Cash** game pass (built).
+- **Extra plots** game pass (built: 2 more plots).
 - **Lucky spawn** developer product: raises rare spawn odds for 10 minutes.
 - **Cosmetics:** haveli skins, trails and hats, with no pay-to-win advantage. Vehicle paint jobs are sold for Robux and change looks only.
 - Zones, vehicles, upgrades and petrol are rupees only.

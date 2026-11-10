@@ -1,5 +1,11 @@
 -- Saving and loading with DataStoreService.
 --
+-- * A save belongs to one server at a time (a "session lock"). If you hop to
+--   another server before the old one has saved, the new server waits for it,
+--   so the last minutes of your progress are never overwritten by old data.
+-- * If loading fails, the player plays without saving, so a hiccup can never
+--   wipe their progress. Saves are tried again when they fail.
+--
 -- In Studio, saving only works when the place is published and
 -- Game Settings > Security > "Enable Studio Access to API Services" is on.
 -- Without it the game still runs, it just starts fresh every time.
@@ -35,9 +41,22 @@ local function storeKey(userId: number): string
 	return "player_" .. userId
 end
 
+-- This server's name on the saves it has open.
+local JOB = if game.JobId ~= nil and game.JobId ~= "" then tostring(game.JobId) else "studio"
+local LOCK_EXPIRES = 600 -- a server that crashed keeps its lock no longer than this
+PlayerData.tries = if RunService:IsStudio() then 1 else 4 -- how often loading and saving are tried
+
+local function lockedElsewhere(old: any): boolean
+	local session = type(old) == "table" and old.session
+	return type(session) == "table"
+		and session.job ~= JOB
+		and type(session.at) == "number"
+		and os.time() - session.at < LOCK_EXPIRES
+end
+
 function PlayerData.default()
 	return {
-		version = 4,
+		version = 5,
 		rupees = Config.START_RUPEES,
 		galla = 0,
 		rebirths = 0,
@@ -61,6 +80,14 @@ function PlayerData.default()
 		vehicle = nil, -- the vehicle you drove last
 		paints = {}, -- [paint id] = true for Robux paint jobs
 		paint = "Factory", -- the paint job on your vehicles
+		lastSeen = 0, -- os.time() of the last save, for offline earnings
+		streak = 0, -- days in a row you came for your daily chai
+		tutorial = 1, -- the guide's step (see Tutorial.luau); past the last step = finished
+		codes = {}, -- [code] = true for promo codes you have used
+		settings = { music = true, sounds = true }, -- the Settings window
+		badges = {}, -- [badge name] = true once Roblox has awarded it
+		guideRewarded = false, -- the guide's reward is only given once
+		passes = {}, -- [pass id] = true for game passes Roblox says you own
 	}
 end
 
@@ -156,7 +183,14 @@ local function reconcile(saved: any)
 			end
 		end
 	end
-	local plots = Config.HAVELI_LEVELS[data.level].plots
+	if type(saved.passes) == "table" then
+		for id, value in saved.passes do
+			if value == true and Config.GAME_PASSES[id] ~= nil then
+				data.passes[id] = true
+			end
+		end
+	end
+	local plots = Config.plotCount(data.level, data.passes.ExtraPlots)
 	if type(saved.zones) == "table" then
 		for id, value in saved.zones do
 			local biome = Biomes.byId[id]
@@ -267,6 +301,29 @@ local function reconcile(saved: any)
 		end
 		data.quests = quests
 	end
+	data.lastSeen = whole(saved.lastSeen, 0) or 0
+	data.streak = whole(saved.streak, 0) or 0
+	-- saves from before the guide: anyone who has found a brainrot has finished it
+	data.tutorial = math.min(whole(saved.tutorial, 1) or (if next(data.discovered) ~= nil then 1000 else 1), 1000)
+	if type(saved.codes) == "table" then
+		for code, value in saved.codes do
+			if value == true and type(code) == "string" then
+				data.codes[code] = true
+			end
+		end
+	end
+	if type(saved.settings) == "table" then
+		data.settings.music = saved.settings.music ~= false
+		data.settings.sounds = saved.settings.sounds ~= false
+	end
+	if type(saved.badges) == "table" then
+		for name, value in saved.badges do
+			if value == true and type(name) == "string" then
+				data.badges[name] = true
+			end
+		end
+	end
+	data.guideRewarded = saved.guideRewarded == true
 	if type(saved.collection) == "table" then
 		for rarity, entry in saved.collection do
 			if Config.COLLECTION_REWARDS[rarity] and type(entry) == "table" then
@@ -287,35 +344,71 @@ function PlayerData.load(userId: number): (any, boolean)
 	if not store then
 		return PlayerData.default(), false
 	end
-	local attempts = if RunService:IsStudio() then 1 else 3
-	for attempt = 1, attempts do
-		local ok, result = pcall(function()
-			return store:GetAsync(storeKey(userId))
+	local tries = PlayerData.tries
+	for attempt = 1, tries do
+		local busy = false
+		local loaded = nil
+		local ok, err = pcall(function()
+			store:UpdateAsync(storeKey(userId), function(old)
+				-- another server still has this save open: wait for it (the
+				-- last try takes over, in case that server crashed)
+				busy = lockedElsewhere(old) and attempt < tries
+				if busy then
+					return nil
+				end
+				loaded = old
+				local value = if type(old) == "table" then old else {}
+				value.session = { job = JOB, at = os.time() }
+				return value
+			end)
 		end)
-		if ok then
-			return reconcile(result), true
+		if ok and not busy then
+			return reconcile(loaded), true
 		end
-		warn(("[ChaiChaos] Could not load data for %d (try %d): %s"):format(userId, attempt, tostring(result)))
-		if attempt < attempts then
+		if not ok then
+			warn(("[ChaiChaos] Could not load data for %d (try %d): %s"):format(userId, attempt, tostring(err)))
+		end
+		if attempt < tries then
 			task.wait(attempt * 2)
 		end
 	end
 	return PlayerData.default(), false
 end
 
-function PlayerData.save(userId: number, data: any): boolean
+-- Saves the data. `final` (the player is leaving) lets go of the save so the
+-- next server can open it straight away. Returns false if it could not be
+-- saved, or if another server has taken the save over.
+function PlayerData.save(userId: number, data: any, final: boolean?): boolean
 	if not store then
 		return false
 	end
-	local ok, err = pcall(function()
-		store:UpdateAsync(storeKey(userId), function()
-			return data
+	local tries = PlayerData.tries
+	for attempt = 1, tries do
+		local taken = false
+		local ok, err = pcall(function()
+			store:UpdateAsync(storeKey(userId), function(old)
+				local session = type(old) == "table" and old.session
+				if type(session) == "table" and session.job ~= JOB then
+					taken = true
+					return nil
+				end
+				data.lastSeen = os.time()
+				data.session = if final then nil else { job = JOB, at = os.time() }
+				return data
+			end)
 		end)
-	end)
-	if not ok then
-		warn(("[ChaiChaos] Could not save data for %d: %s"):format(userId, tostring(err)))
+		if ok then
+			if taken then
+				warn(("[ChaiChaos] Another server has the save for %d now, not saving over it."):format(userId))
+			end
+			return not taken
+		end
+		warn(("[ChaiChaos] Could not save data for %d (try %d): %s"):format(userId, attempt, tostring(err)))
+		if attempt < tries then
+			task.wait(attempt)
+		end
 	end
-	return ok
+	return false
 end
 
 return PlayerData

@@ -24,6 +24,9 @@ local NAMES = {
 	"Drive", -- client -> server: (vehicle id) get in and drive, or (nil) park and get out
 	"SetPaint", -- client -> server: (paint id) pick the paint job for your vehicles
 	"Honk", -- client -> server: sound your vehicle's horn
+	"Guide", -- client -> server: ("skip" or "restart") the new-player guide
+	"RedeemCode", -- client -> server: (code) use a promo code
+	"SetSetting", -- client -> server: (name, on) the Settings switches
 	"PlaySound", -- server -> client: (sound name, position or nil, pitch or nil)
 }
 
@@ -62,5 +65,8 @@ return {
 	Drive = folder:WaitForChild("Drive") :: RemoteEvent,
 	SetPaint = folder:WaitForChild("SetPaint") :: RemoteEvent,
 	Honk = folder:WaitForChild("Honk") :: RemoteEvent,
+	Guide = folder:WaitForChild("Guide") :: RemoteEvent,
+	RedeemCode = folder:WaitForChild("RedeemCode") :: RemoteEvent,
+	SetSetting = folder:WaitForChild("SetSetting") :: RemoteEvent,
 	PlaySound = folder:WaitForChild("PlaySound") :: RemoteEvent,
 }

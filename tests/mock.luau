@@ -1371,6 +1371,34 @@ function Methods.PromptProductPurchase(_, player, productId)
 	assert(type(productId) == "number" and productId > 0, "PromptProductPurchase needs a product id")
 	table.insert(M.prompts, { player = data[player].props.Name, id = productId })
 end
+-- Game passes and badges
+M.passesOwned = {} -- ["userId:passId"] = true
+M.passPrompts = {}
+M.failPassChecks = false
+function Methods.UserOwnsGamePassAsync(_, userId, passId)
+	assert(type(userId) == "number" and type(passId) == "number", "UserOwnsGamePassAsync(userId, passId)")
+	task.wait(0.05)
+	if M.failPassChecks then
+		error("mock MarketplaceService failure")
+	end
+	return M.passesOwned[userId .. ":" .. passId] == true
+end
+function Methods.PromptGamePassPurchase(_, player, passId)
+	assert(isInstance(player) and data[player].ClassName == "Player", "PromptGamePassPurchase needs a Player")
+	assert(type(passId) == "number" and passId > 0, "PromptGamePassPurchase needs a pass id")
+	table.insert(M.passPrompts, { player = data[player].props.Name, id = passId })
+end
+M.badges = {} -- ["userId:badgeId"] = true
+function Methods.AwardBadge(_, userId, badgeId)
+	assert(type(userId) == "number" and type(badgeId) == "number" and badgeId > 0, "AwardBadge(userId, badgeId)")
+	task.wait(0.05)
+	local key = userId .. ":" .. badgeId
+	if M.badges[key] then
+		return false
+	end
+	M.badges[key] = true
+	return true
+end
 M.prices = {}
 function Methods.GetProductInfo(_, id, infoType)
 	assert(infoType and infoType.EnumType == "InfoType", "GetProductInfo needs an Enum.InfoType")

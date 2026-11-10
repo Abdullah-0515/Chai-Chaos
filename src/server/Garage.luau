@@ -339,6 +339,11 @@ function Garage.drive(player: Player, id: any)
 		Garage.park(profile)
 		return
 	end
+	-- building a vehicle is work for the server: not more than 4 a second
+	local t = os.clock()
+	if t - (profile.driveAt or -1) < 0.25 then
+		return
+	end
 	local def = type(id) == "string" and Vehicles.byId[id]
 	local entry = def and profile.data.vehicles[def.id]
 	if not def or not entry then
@@ -374,6 +379,7 @@ function Garage.drive(player: Player, id: any)
 		Garage.park(profile)
 	end
 
+	profile.driveAt = t
 	-- build the vehicle (always from parts, so paint jobs work) around its seat
 	local name = modelName(def)
 	local model = Props.place(name, CFrame.new(), nil, 1, { parts = true, noColliders = true })
@@ -488,6 +494,7 @@ function Garage.drive(player: Player, id: any)
 		return Garage.bootSpot(drive, slot)
 	end
 	profile.data.vehicle = def.id
+	State.track(profile, "drive")
 	refreshStats(profile)
 	EggSystem.toBoot(profile)
 	Garage.syncDrive(profile)

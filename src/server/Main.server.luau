@@ -37,6 +37,10 @@ local Garage = require(script.Parent.Garage)
 local Zones = require(script.Parent.Zones)
 local Wild = require(script.Parent.Wild)
 local Mandi = require(script.Parent.Mandi)
+local Tutorial = require(script.Parent.Tutorial)
+local Passes = require(script.Parent.Passes)
+local Badges = require(script.Parent.Badges)
+local Menu = require(script.Parent.Menu)
 
 World.init()
 local map = MapBuilder.ensure()
@@ -51,6 +55,10 @@ Garage.init(map)
 Garage.onHonk = Wild.scare
 Wild.init(map)
 Mandi.init()
+Tutorial.init()
+Passes.init()
+Badges.init()
+Menu.init()
 Shop.init()
 Shop.paintHook = Garage.onPaintBought
 Kismat.init()
@@ -137,12 +145,15 @@ local function dailyChai(profile)
 	if data.lastDaily >= today() then
 		return
 	end
+	-- coming back day after day earns extra rolls
+	local streak, streakRolls = Menu.streak(profile, today())
 	data.lastDaily = today()
 
 	local extras = {}
-	if Config.DAILY_FREE_ROLLS > 0 then
-		data.rollTokens += Config.DAILY_FREE_ROLLS
-		table.insert(extras, plural(Config.DAILY_FREE_ROLLS, "free Kismat Roll", "free Kismat Rolls"))
+	local rolls = Config.DAILY_FREE_ROLLS + streakRolls
+	if rolls > 0 then
+		data.rollTokens += rolls
+		table.insert(extras, plural(rolls, "free Kismat Roll", "free Kismat Rolls"))
 	end
 	if Config.DAILY_FREE_STEALS > 0 then
 		data.stealTokens += Config.DAILY_FREE_STEALS
@@ -150,6 +161,9 @@ local function dailyChai(profile)
 	end
 	State.syncTokens(profile)
 	local bonus = if #extras > 0 then " Plus " .. table.concat(extras, " and ") .. "!" else ""
+	if streak > 1 then
+		bonus ..= (" Day %d in a row!"):format(streak)
+	end
 
 	if math.random() < 0.5 and Havelis.hasFreePlot(profile) then
 		local pool = {}
@@ -212,10 +226,21 @@ local function onPlayerAdded(player: Player)
 
 	local data, canSave = PlayerData.load(player.UserId)
 	if not player.Parent then
-		return -- left while loading
+		-- left while loading: let go of the save so their next server need not wait
+		if canSave then
+			PlayerData.save(player.UserId, data, true)
+		end
+		return
 	end
 
 	local profile = State.newProfile(player, data, canSave)
+	Passes.check(profile) -- asks Roblox, so it waits a moment
+	if not player.Parent then
+		if canSave then
+			PlayerData.save(player.UserId, data, true) -- let go of the save
+		end
+		return
+	end
 	State.profiles[player] = profile
 	State.syncStats(profile)
 	State.syncDiscovered(profile)
@@ -230,6 +255,7 @@ local function onPlayerAdded(player: Player)
 		player:SetAttribute("HaveliIndex", profile.haveli.index)
 		player:SetAttribute("HomePosition", profile.haveli.doorOutside.Position)
 		EggSystem.restore(profile)
+		Menu.offlineEarnings(profile)
 	else
 		State.notify(
 			player,
@@ -252,6 +278,10 @@ local function onPlayerAdded(player: Player)
 	QuestBook.ensure(profile)
 	State.syncQuests(profile)
 	dailyChai(profile)
+	Menu.sync(profile)
+	Tutorial.sync(profile)
+	Tutorial.onTrack(profile, "")
+	Badges.award(profile, "Welcome")
 	State.notify(
 		player,
 		"info",
@@ -271,11 +301,11 @@ local function onPlayerAdded(player: Player)
 	end
 end
 
-local function saveProfile(profile)
+local function saveProfile(profile, final: boolean?)
 	if profile.canSave then
 		Havelis.syncData(profile)
 		EggSystem.syncData(profile)
-		PlayerData.save(profile.player.UserId, profile.data)
+		PlayerData.save(profile.player.UserId, profile.data, final)
 	end
 end
 
@@ -293,7 +323,7 @@ local function onPlayerRemoving(player: Player)
 	EggSystem.release(profile)
 	Havelis.release(profile)
 	State.profiles[player] = nil
-	saveProfile(profile)
+	saveProfile(profile, true)
 end
 
 Players.PlayerAdded:Connect(onPlayerAdded)
@@ -307,7 +337,7 @@ game:BindToClose(function()
 	for _, profile in State.profiles do
 		pending += 1
 		task.spawn(function()
-			saveProfile(profile)
+			saveProfile(profile, true)
 			pending -= 1
 		end)
 	end
@@ -413,6 +443,7 @@ Remotes.Rebirth.OnServerEvent:Connect(function(player: Player)
 	State.syncStats(profile)
 	State.syncGear(profile)
 	Zones.refresh(profile)
+	State.track(profile, "rebirth")
 	State.sound(player, "Rebirth")
 	State.syncQuests(profile)
 	Havelis.restyle(profile)

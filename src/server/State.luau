@@ -40,9 +40,17 @@ end
 -- Quest progress: any module can report what a player did; QuestBook listens.
 State.tracker = nil :: ((any, string, number) -> ())?
 State.biomeTracker = nil :: ((any, string) -> ())?
+local listeners: { (any, string, number) -> () } = {}
+-- Other modules (the guide, badges) can listen in too.
+function State.onTrack(listener: (any, string, number) -> ())
+	table.insert(listeners, listener)
+end
 function State.track(profile, kind: string, amount: number?)
 	if State.tracker then
 		State.tracker(profile, kind, amount or 1)
+	end
+	for _, listener in listeners do
+		listener(profile, kind, amount or 1)
 	end
 end
 function State.trackBiome(profile, biomeId: string)

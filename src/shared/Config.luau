@@ -54,6 +54,8 @@ Config.UPPER_FLOOR_LEVEL = 5
 Config.GUARD_LEVEL = 6
 Config.ROOFTOP_LEVEL = 8
 Config.LOCKER_PLOTS = 2 -- plots 1 and 2 can never be stolen from
+Config.EXTRA_PLOTS = 2 -- more plots with the Extra Plots game pass (as far as your haveli has room)
+Config.PLOTS_PER_FLOOR = 10
 Config.MAX_INCUBATORS = 4
 
 -- Tracker (radar): shows eggs in every zone you have unlocked. Each level
@@ -82,6 +84,10 @@ Config.EGG_RUSH_EVERY = 240 -- an egg rush in a random zone every 4 minutes
 Config.EGG_RUSH_DURATION = 60
 Config.EGG_RUSH_EGGS = 14
 Config.PICKUP_DISTANCE = 12
+-- Fair play: eggs crack if they travel faster than any vehicle can (teleport
+-- cheats). The fastest vehicle with every upgrade does 69 studs per second.
+Config.EGG_MAX_SPEED = 90 -- studs per second, on average...
+Config.EGG_SPEED_BURST = 2 -- ...with this many seconds of slack for lag
 
 -- Wild brainrots (Wild.luau): rare brainrots that roam the zones. Walk up
 -- quietly and catch one (it needs a free plot). Vehicles and horns scare them.
@@ -182,6 +188,22 @@ Config.REBIRTH_COST = 2_500_000
 Config.REBIRTH_COST_GROWTH = 4 -- every Naya Safar costs this many times more than the last
 Config.REBIRTH_BONUS = 0.5 -- +50% income for every rebirth
 
+-- How many plots a haveli has. The Extra Plots pass adds more, but only on
+-- floors that are open (the second floor opens at Config.UPPER_FLOOR_LEVEL).
+function Config.plotCount(level: number, extraPlots: boolean?): number
+	local plots = Config.HAVELI_LEVELS[level].plots
+	if extraPlots then
+		local room = if level >= Config.UPPER_FLOOR_LEVEL then Config.PLOTS_PER_FLOOR * 2 else Config.PLOTS_PER_FLOOR
+		plots = math.max(plots, math.min(plots + Config.EXTRA_PLOTS, room))
+	end
+	return plots
+end
+
+function Config.streakRolls(streak: number): number
+	local list = Config.STREAK_BONUS_ROLLS
+	return list[math.clamp(streak, 1, #list)] or 0
+end
+
 function Config.rebirthCost(rebirths: number): number
 	return math.floor(Config.REBIRTH_COST * Config.REBIRTH_COST_GROWTH ^ rebirths)
 end
@@ -203,6 +225,47 @@ Config.ROLL_ODDS = { -- shown to players in the Kismat panel, keep it honest
 }
 Config.ROLL_PITY = 30 -- an Epic or better is guaranteed at least once every 30 rolls
 Config.ROLL_COOLDOWN = 2.5 -- seconds between rolls (the reveal takes about 2 seconds)
+
+-- Game passes (bought once, kept forever). Create them on the Creator Dashboard
+-- (your experience > Monetization > Passes) and paste their ids here.
+-- A pass with id = 0 is hidden.
+Config.GAME_PASSES = {
+	DoubleCash = 0, -- brainrots earn twice as much
+	ExtraPlots = 0, -- Config.EXTRA_PLOTS more plots
+}
+Config.PASS_INFO = {
+	{ id = "DoubleCash", name = "2x Cash", text = "Your brainrots earn twice as many rupees, forever." },
+	{ id = "ExtraPlots", name = "Extra Plots", text = "2 more plots in your haveli, forever." },
+}
+
+-- Offline earnings: brainrots keep earning a little while you are away.
+Config.OFFLINE_RATE = 0.1 -- of their normal income...
+Config.OFFLINE_MAX = 4 * 3600 -- ...for at most this many seconds
+Config.OFFLINE_MIN = 300 -- nothing for breaks shorter than this
+
+-- Daily chai streak: extra Kismat Rolls for coming back day after day.
+-- The number is the bonus on that day in a row; the last one repeats.
+Config.STREAK_BONUS_ROLLS = { 0, 0, 1, 1, 1, 1, 2 }
+
+-- Promo codes (Menu > Codes). Each player can use a code once. Add your own,
+-- or remove a code to end it.
+Config.CODES = {
+	CHAICHAOS = { rupees = 2_500, rolls = 1 },
+	PONPON = { rupees = 1_000 },
+}
+
+-- Badges. Create them on the Creator Dashboard (your experience > Engagement >
+-- Badges) and paste their ids here. A badge with id = 0 is skipped.
+Config.BADGES = {
+	Welcome = 0, -- joined the game
+	FirstEgg = 0, -- brought an egg home
+	FirstRare = 0, -- hatched a Rare or better brainrot
+	Driver = 0, -- bought a vehicle
+	WildCatcher = 0, -- caught a wild brainrot
+	Explorer = 0, -- unlocked every ring 1 zone
+	NayaSafar = 0, -- started a Naya Safar
+	SecretKeeper = 0, -- hatched a Secret brainrot
+}
 
 -- Robux packs. Create Developer Products on the Creator Dashboard
 -- (your experience > Monetization > Developer Products), set their prices

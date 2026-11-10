@@ -229,6 +229,9 @@ section("Server boot")
 ---------------------------------------------------------------------------
 -- events, egg rushes and timed hazards would start by themselves; the tests start them by hand
 local Config = sharedModule("Config")
+-- the tests teleport players around with eggs; the speed check has its own test
+local EGG_MAX_SPEED = Config.EGG_MAX_SPEED
+Config.EGG_MAX_SPEED = math.huge
 Config.FIRST_EVENT_DELAY = 1e9
 Config.EGG_RUSH_EVERY = 1e9
 Config.SANDSTORM_EVERY = 1e9
@@ -904,7 +907,7 @@ check(pa and pa.haveli and pa.haveli.index == 1, "Ali got haveli 1")
 check(pa.haveli.signLabel.Text == "Ali ki Haveli · Lv 1", "sign: " .. pa.haveli.signLabel.Text)
 check(pa.data.theme == "MughalMarble" and pa.data.level == 1, "starts in a level 1 Mughal Marble haveli")
 check(pa.data.rupees >= Config.START_RUPEES, "starts with at least Rs 1,000: " .. pa.data.rupees)
-check(pa.data.version == 4 and pa.data.trackerLevel == 1 and next(pa.data.gear) == nil, "v4 data: tracker 1, no gear")
+check(pa.data.version == 5 and pa.data.trackerLevel == 1 and next(pa.data.gear) == nil, "v5 data: tracker 1, no gear")
 check(A:GetAttribute("OpenZones") == "MangoBagh", "only Mango Bagh is open at the start")
 check(A:GetAttribute("Vehicles") == "" and A:GetAttribute("Driving") == "", "no vehicles yet")
 check(A:GetAttribute("TrackerLevel") == 1 and A:GetAttribute("Gear") == "", "tracker and gear sent to the HUD")
@@ -2691,6 +2694,382 @@ end -- in a function of its own: the main chunk is close to Luau's 200 locals
 	Havelis.arrange(pa)
 	pa.data.rupees = 100_000
 	State.syncStats(pa)
+end)();
+(function()
+	---------------------------------------------------------------------------
+	section("The new-player guide")
+	---------------------------------------------------------------------------
+	local Steps = sharedModule("Tutorial")
+	local Menu = serverModule("Menu")
+	local PlayerData = serverModule("PlayerData")
+	local Marketplace = M.services.MarketplaceService
+	local mango = Biomes.byId.MangoBagh
+	check(#Steps.steps == 8 and Steps.steps[1].id == "leave" and Steps.DONE == 9, "8 guide steps")
+	check(
+		Steps.byId.vehicle.text:find("Rs 3,000") ~= nil,
+		"the guide uses the real prices: " .. Steps.byId.vehicle.text
+	)
+	check(
+		M.typeof(workspace:GetAttribute("ShowroomPosition")) == "Vector3",
+		"the guide knows where the showroom is, even before it loads"
+	)
+
+	-- a brand new player walks through the whole guide
+	Config.BADGES.Welcome = 900
+	Config.BADGES.FirstEgg = 901
+	local G = addPlayer("Guddu", 21)
+	M.advance(0.8)
+	local pg = State.profiles[G]
+	local charG = spawnCharacter(G)
+	M.advance(0.4)
+	check(pg.data.tutorial == 1 and G:GetAttribute("Tutorial") == "leave", "a new player starts at step 1")
+	check(M.badges["21:900"] and pg.data.badges.Welcome, "the Welcome badge")
+	local rollsBefore = pg.data.rollTokens
+	goTo(G, Biomes.point(mango, Biomes.innerRadius(mango) + 40, 0))
+	M.advance(1.3)
+	check(G:GetAttribute("Tutorial") == "egg", "walking into Mango Bagh: step 2")
+	pickUp(G, eggIn("MangoBagh", false))
+	M.advance(0.1)
+	check(pg.egg ~= nil and G:GetAttribute("Tutorial") == "home", "picked up an egg: step 3")
+	goTo(G, pg.haveli.spawn.Position)
+	M.advance(0.6)
+	check(G:GetAttribute("Tutorial") == "hatch", "egg home: step 4")
+	check(M.badges["21:901"] and pg.data.badges.FirstEgg, "the First Egg badge")
+	M.advance(mango.hatchTime + 3)
+	check(#pg.owned >= 1 and G:GetAttribute("Tutorial") == "collect", "it hatched: step 5")
+	M.advance(2)
+	pg.haveli.galla.Touched:Fire(charG.HumanoidRootPart)
+	M.advance(0.1)
+	check(G:GetAttribute("Tutorial") == "vehicle", "collected the galla: step 6")
+	pg.data.rupees = 30_000
+	State.syncStats(pg)
+	atShop(G, "Showroom")
+	M.advance(0.1)
+	Garage.buy(G, "Motorbike")
+	M.advance(0.1)
+	check(pg.data.vehicles.Motorbike ~= nil and G:GetAttribute("Tutorial") == "drive", "bought a motorbike: step 7")
+	Garage.drive(G, "Motorbike")
+	M.advance(0.3)
+	check(pg.driving ~= nil and G:GetAttribute("Tutorial") == "zone", "driving: step 8")
+	Garage.drive(G, nil)
+	M.advance(0.2)
+	atGate(G, "RailwayJunction")
+	markLog()
+	Zones.unlock(G, gateOf("RailwayJunction"))
+	M.advance(0.1)
+	check(pg.data.zones.RailwayJunction and G:GetAttribute("Tutorial") == "", "unlocked a zone: the guide is finished")
+	check(pg.data.tutorial == Steps.DONE and pg.data.guideRewarded, "finished for good")
+	check(
+		pg.data.rollTokens == rollsBefore + Steps.REWARD_ROLLS and notified("Guddu", "Guide finished"),
+		"the guide pays Kismat Rolls"
+	)
+	-- starting again skips what you have already done, and pays nothing twice
+	serverModule("Tutorial").command(G, "restart")
+	M.advance(0.1)
+	check(G:GetAttribute("Tutorial") == "leave", "the guide can be started again")
+	local rollsAfter = pg.data.rollTokens
+	goTo(G, Biomes.point(mango, Biomes.innerRadius(mango) + 40, 0))
+	M.advance(1.3)
+	pickUp(G, eggIn("MangoBagh", false))
+	goTo(G, pg.haveli.spawn.Position)
+	M.advance(mango.hatchTime + 4)
+	pg.haveli.galla.Touched:Fire(charG.HumanoidRootPart)
+	M.advance(0.1)
+	check(G:GetAttribute("Tutorial") == "drive", "it skips the steps you have done (vehicle), up to driving")
+	goTo(G, Biomes.polar(45, 60))
+	M.advance(0.1)
+	Garage.drive(G, "Motorbike")
+	M.advance(0.3)
+	Garage.drive(G, nil)
+	M.advance(0.2)
+	check(G:GetAttribute("Tutorial") == "" and pg.data.rollTokens == rollsAfter, "finished again, no second reward")
+
+	-- on Ali's screen: the card, the beacon and the Skip button
+	Remotes.Guide:FireServer("restart")
+	goTo(A, pa.haveli.doorOutside.Position)
+	M.advance(0.7)
+	check(A:GetAttribute("Tutorial") == "leave", "Ali starts the guide again")
+	check(
+		hud.Guide.Visible and hud.Guide.Text.Text:find("Mango Bagh") ~= nil,
+		"the guide card: " .. hud.Guide.Text.Text
+	)
+	check(hud.Guide.Step.Text == "Guide · step 1 of 8", "the step number: " .. hud.Guide.Step.Text)
+	local beacon = workspace:FindFirstChild("GuideBeacon")
+	local gate = Biomes.polar(Biomes.gate(mango))
+	check(
+		beacon ~= nil and ((beacon.Position - gate) * FLAT).Magnitude < 12,
+		"a glowing beacon stands at the Mango Bagh gate"
+	)
+	check(beacon and beacon.GuideLine.Attachment0 ~= nil and beacon.CanCollide == false, "with a line to follow")
+	check(beacon and beacon.Label.Distance.Text:find("studs") ~= nil, "and the distance")
+	hud.Guide.Skip.Activated:Fire()
+	M.advance(0.7)
+	check(A:GetAttribute("Tutorial") == "" and not hud.Guide.Visible, "Skip hides the guide")
+	check(workspace:FindFirstChild("GuideBeacon") == nil, "and the beacon")
+
+	---------------------------------------------------------------------------
+	section("Menu: settings, codes, game passes and the streak")
+	---------------------------------------------------------------------------
+	hud.Buttons.Menu.Activated:Fire()
+	M.advance(0.1)
+	local menu = hud.MenuPanel
+	check(menu.Visible and menu.Content:FindFirstChild("Streak") ~= nil, "the Menu window opens")
+	check(menu.Content:FindFirstChild("PassDoubleCash") == nil, "game passes are hidden until they have ids")
+	check(A:GetAttribute("Settings") == "music,sounds", "music and sounds start on")
+	menu.Content.SettingSounds.Button.Activated:Fire()
+	M.advance(0.1)
+	check(A:GetAttribute("Settings") == "music" and pa.data.settings.sounds == false, "sounds switched off")
+	check(menu.Content.SettingSounds.Text.Text == "Off", "the window shows it")
+	local soundsAt = #M.soundsPlayed
+	hud.Buttons.Collection.Activated:Fire()
+	hud.Buttons.Collection.Activated:Fire()
+	M.advance(0.1)
+	check(#M.soundsPlayed == soundsAt, "no click sounds while sounds are off")
+	menu.Content.SettingSounds.Button.Activated:Fire()
+	M.advance(0.1)
+	check(A:GetAttribute("Settings") == "music,sounds", "and back on")
+	Remotes.SetSetting:FireServer("gravity", false)
+	Remotes.SetSetting:FireServer("music", "no")
+	M.advance(0.1)
+	check(A:GetAttribute("Settings") == "music,sounds", "bad settings are ignored")
+
+	-- promo codes
+	local rupees0, rolls0 = pa.data.rupees, pa.data.rollTokens
+	markLog()
+	menu.Content.Code.Box.Text = " chaichaos "
+	menu.Content.Code.Redeem.Activated:Fire()
+	M.advance(0.1)
+	check(
+		pa.data.rupees == rupees0 + Config.CODES.CHAICHAOS.rupees and pa.data.rollTokens == rolls0 + 1,
+		"a code pays rupees and a roll"
+	)
+	check(notified("Ali", "Code CHAICHAOS") and menu.Content.Code.Box.Text == "", "code message")
+	Remotes.RedeemCode:FireServer("CHAICHAOS")
+	M.advance(0.1)
+	check(pa.data.rupees == rupees0 + Config.CODES.CHAICHAOS.rupees, "no spamming codes")
+	M.advance(2)
+	markLog()
+	Remotes.RedeemCode:FireServer("CHAICHAOS")
+	M.advance(0.1)
+	check(
+		pa.data.rupees == rupees0 + Config.CODES.CHAICHAOS.rupees and notified("Ali", "already used"),
+		"each code works once"
+	)
+	M.advance(2)
+	markLog()
+	Remotes.RedeemCode:FireServer("FREEMONEY")
+	M.advance(0.1)
+	check(notified("Ali", "doesn't work"), "wrong codes say so")
+
+	-- game passes
+	check(
+		Config.plotCount(1, true) == 6 and Config.plotCount(4, true) == 10,
+		"Extra Plots: +2, but only where there is room"
+	)
+	check(Config.plotCount(5, true) == 14 and Config.plotCount(9, true) == 20, "upstairs once the second floor is open")
+	Config.GAME_PASSES.DoubleCash = 501
+	Config.GAME_PASSES.ExtraPlots = 502
+	local clientConfig = requireModule(shared:FindFirstChild("Config"), "client")
+	clientConfig.GAME_PASSES.DoubleCash = 501
+	clientConfig.GAME_PASSES.ExtraPlots = 502
+	menu.Visible = false
+	hud.Buttons.Menu.Activated:Fire()
+	M.advance(0.1)
+	check(menu.Content.PassDoubleCash.Button.Text == "Robux", "the passes show once they have ids")
+	menu.Content.PassDoubleCash.Button.Activated:Fire()
+	M.advance(0.1)
+	check(
+		#M.passPrompts == 1 and M.passPrompts[1].id == 501 and M.passPrompts[1].player == "Ali",
+		"buying a pass opens Roblox's purchase window"
+	)
+	local incomeBefore = Havelis.incomeMultiplier(pa)
+	local plotsBefore = Havelis.plotCount(pa)
+	markLog()
+	M.signalOf(Marketplace, "PromptGamePassPurchaseFinished"):Fire(A, 501, false)
+	M.advance(0.1)
+	check(not pa.data.passes.DoubleCash, "closing the window gives nothing")
+	M.signalOf(Marketplace, "PromptGamePassPurchaseFinished"):Fire(A, 501, true)
+	M.advance(0.1)
+	check(pa.data.passes.DoubleCash and A:GetAttribute("Passes") == "DoubleCash", "2x Cash bought")
+	check(math.abs(Havelis.incomeMultiplier(pa) - incomeBefore * 2) < 1e-6, "brainrots earn twice as much")
+	check(notified("Ali", "2x Cash is yours forever"), "thank-you message")
+	check(menu.Content.PassDoubleCash.Button.Text == "Owned", "the Menu shows it is owned")
+	Remotes.BuyProduct:FireServer("pass", "DoubleCash")
+	M.advance(0.1)
+	check(#M.passPrompts == 1, "a pass can't be bought twice")
+	M.signalOf(Marketplace, "PromptGamePassPurchaseFinished"):Fire(A, 502, true)
+	M.advance(0.1)
+	check(
+		Havelis.plotCount(pa) == Config.plotCount(pa.data.level, true) and Havelis.plotCount(pa) >= plotsBefore,
+		"Extra Plots: " .. plotsBefore .. " -> " .. Havelis.plotCount(pa)
+	)
+	-- Roblox is asked when you join; what it said is kept in the save
+	M.passesOwned["21:502"] = true
+	removePlayer(G)
+	M.advance(0.5)
+	check(M.store.player_21.session == nil, "leaving lets go of the save")
+	G = addPlayer("Guddu", 21)
+	M.advance(0.8)
+	pg = State.profiles[G]
+	check(pg.data.passes.ExtraPlots and Havelis.plotCount(pg) == 6, "a pass bought on the website works when you join")
+	check(pg.data.tutorial == Steps.DONE and G:GetAttribute("Tutorial") == "", "the guide stays finished")
+	check(M.store.player_21.session ~= nil, "this server holds the save while you play")
+	removePlayer(G)
+	M.advance(0.5)
+	M.failPassChecks = true
+	G = addPlayer("Guddu", 21)
+	M.advance(0.8)
+	pg = State.profiles[G]
+	M.failPassChecks = false
+	check(pg.data.passes.ExtraPlots == true, "if Roblox can't say, the save remembers your passes")
+	removePlayer(G)
+	M.advance(0.5)
+	pa.data.passes = {}
+	serverModule("Passes").sync(pa)
+	Havelis.arrange(pa)
+	Config.GAME_PASSES.DoubleCash = 0
+	Config.GAME_PASSES.ExtraPlots = 0
+	clientConfig.GAME_PASSES.DoubleCash = 0
+	clientConfig.GAME_PASSES.ExtraPlots = 0
+	menu.Visible = false
+
+	-- offline earnings and the daily chai streak
+	local today = math.floor(M.os.time() / 86400)
+	local away = PlayerData.default()
+	away.owned = { "BiryaniBadshah" }
+	away.lastSeen = M.os.time() - 3600
+	away.lastDaily = today - 1
+	away.streak = 2
+	away.rollTokens = 0
+	away.tutorial = 1000
+	M.store.player_22 = away
+	markLog()
+	local Z = addPlayer("Zoya", 22)
+	M.advance(0.8)
+	local pz = State.profiles[Z]
+	-- what the saved brainrot earns (daily chai may have added another one since)
+	local awayIncome = Brainrots.byId.BiryaniBadshah.income * Havelis.incomeMultiplier(pz)
+	local perSecond = Havelis.incomePerSecond(pz)
+	local expected = math.floor(awayIncome * 3600 * Config.OFFLINE_RATE)
+	check(
+		pz.data.galla >= expected and pz.data.galla < expected + perSecond * 5,
+		("an hour away: %d in the galla (10%% of %d/s)"):format(pz.data.galla, perSecond)
+	)
+	check(notified("Zoya", "While you were away"), "offline earnings message")
+	check(pz.data.streak == 3 and Z:GetAttribute("Streak") == 3, "third day in a row")
+	check(
+		pz.data.rollTokens == Config.DAILY_FREE_ROLLS + Config.streakRolls(3) and notified("Zoya", "Day 3 in a row"),
+		"the streak pays an extra Kismat Roll: " .. pz.data.rollTokens
+	)
+	check(Config.streakRolls(1) == 0 and Config.streakRolls(7) == 2 and Config.streakRolls(40) == 2, "streak bonuses")
+	pz.data.galla = 0
+	pz.data.lastSeen = M.os.time() - 36000
+	Menu.offlineEarnings(pz)
+	check(pz.data.galla == math.floor(perSecond * Config.OFFLINE_MAX * Config.OFFLINE_RATE), "at most 4 hours count")
+	pz.data.galla = 0
+	pz.data.lastSeen = M.os.time() - 60
+	Menu.offlineEarnings(pz)
+	check(pz.data.galla == 0, "a short break pays nothing")
+	pz.data.lastDaily = today - 3
+	check(select(1, Menu.streak(pz, today)) == 1, "miss a day and the streak starts again")
+	removePlayer(Z)
+	M.advance(0.5)
+
+	---------------------------------------------------------------------------
+	section("Safe saving and fair play")
+	---------------------------------------------------------------------------
+	check(
+		M.store.player_1.session ~= nil and M.store.player_1.session.job == "studio",
+		"Ali's save is held by this server"
+	)
+	-- another server still has the save open: wait for it instead of loading old data
+	PlayerData.tries = 3
+	M.store.player_30 = { rupees = 777, session = { job = "other-server", at = M.os.time() } }
+	local loaded, canSave = nil, nil
+	M.task.spawn(function()
+		loaded, canSave = PlayerData.load(30)
+	end)
+	M.advance(1)
+	check(loaded == nil, "loading waits while another server holds the save")
+	M.store.player_30 = { rupees = 888 } -- the other server saved and let go
+	M.advance(3)
+	check(loaded ~= nil and loaded.rupees == 888 and canSave == true, "then it loads the newest data")
+	check(M.store.player_30.session.job == "studio", "and holds the save")
+	-- a server that lost the save never writes over it
+	M.store.player_30.session = { job = "other-server", at = M.os.time() }
+	M.store.player_30.rupees = 999
+	local saved = nil
+	M.task.spawn(function()
+		saved = PlayerData.save(30, loaded)
+	end)
+	M.advance(0.3)
+	check(saved == false and M.store.player_30.rupees == 999, "a save that another server took over is left alone")
+	-- a crashed server's lock runs out
+	M.store.player_31 = { rupees = 555, session = { job = "crashed", at = M.os.time() - 700 } }
+	local late = nil
+	M.task.spawn(function()
+		late = PlayerData.load(31)
+	end)
+	M.advance(0.3)
+	check(late ~= nil and late.rupees == 555, "an old lock from a crashed server is ignored")
+	-- the last try takes over rather than locking a player out for ever
+	M.store.player_32 = { rupees = 444, session = { job = "stuck", at = M.os.time() } }
+	local stuck, stuckSave = nil, nil
+	M.task.spawn(function()
+		stuck, stuckSave = PlayerData.load(32)
+	end)
+	M.advance(7)
+	check(stuck ~= nil and stuck.rupees == 444 and stuckSave == true, "after a few tries the new server takes over")
+	PlayerData.tries = 1
+	M.store.player_30, M.store.player_31, M.store.player_32 = nil, nil, nil
+
+	-- eggs that travel faster than any vehicle crack
+	Config.EGG_MAX_SPEED = EGG_MAX_SPEED
+	if pa.driving then
+		Remotes.Drive:FireServer(nil)
+		M.advance(0.2)
+	end
+	if pa.egg then
+		EggSystem.drop(A)
+	end
+	local spot = Biomes.point(mango, Biomes.innerRadius(mango) + 60, 0)
+	goTo(A, spot)
+	M.advance(0.5)
+	pickUp(A, eggIn("MangoBagh", false))
+	M.advance(0.3)
+	check(pa.egg ~= nil, "Ali carries an egg")
+	local from = charA:GetPivot().Position
+	for i = 1, 12 do
+		-- 60 studs a second: as fast as a good vehicle
+		charA:PivotTo(CFrame.new(from + Vector3.new(15 * i, 0, 0)))
+		M.advance(0.25)
+	end
+	check(pa.egg ~= nil, "at vehicle speed the egg is fine")
+	markLog()
+	charA:PivotTo(CFrame.new(charA:GetPivot().Position + Vector3.new(0, 0, 400)))
+	M.advance(0.6)
+	check(pa.egg == nil and notified("Ali", "too fast"), "teleporting with an egg cracks it")
+	Config.EGG_MAX_SPEED = math.huge
+
+	-- vehicles can't be swapped faster than the server can build them
+	pa.data.vehicles.Rickshaw = pa.data.vehicles.Rickshaw or { fuel = 2000, speed = 0, tank = 0, eggs = 0, grip = 0 }
+	Garage.sync(pa)
+	goTo(A, pa.haveli.doorOutside.Position + Vector3.new(0, 0, 30))
+	M.advance(0.5)
+	Remotes.Drive:FireServer("Motorbike")
+	M.advance(0.05)
+	Remotes.Drive:FireServer("Rickshaw")
+	M.advance(0.05)
+	check(pa.driving and pa.driving.def.id == "Motorbike", "swapping vehicles too fast is ignored")
+	M.advance(0.4)
+	Remotes.Drive:FireServer("Rickshaw")
+	M.advance(0.2)
+	check(pa.driving and pa.driving.def.id == "Rickshaw", "a moment later it works")
+	Remotes.Drive:FireServer(nil)
+	M.advance(0.3)
+	check(pa.driving == nil, "parked")
+	Config.BADGES.Welcome = 0
+	Config.BADGES.FirstEgg = 0
 end)()
 
 do
@@ -2960,7 +3339,7 @@ do
 	local savedHatchId = pa.incubating[1].id
 	removePlayer(A)
 	local savedA = M.store["player_1"]
-	check(savedA.version == 4 and savedA.rebirths == 1 and savedA.theme == "TruckArt", "v4 save")
+	check(savedA.version == 5 and savedA.rebirths == 1 and savedA.theme == "TruckArt", "v5 save")
 	check(table.find(savedA.owned, "PyaazPehelwan:Diamond") ~= nil, "mutations saved")
 	check(table.find(savedA.owned, "MithaiMamu") ~= nil, "quest brainrots saved")
 	check(savedA.vehicles.Motorbike and savedA.vehicles.Motorbike.speed == 1, "vehicles and upgrades are saved")

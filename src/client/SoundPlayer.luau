@@ -54,10 +54,21 @@ local function distanceVolume(position: Vector3?): number
 	return math.clamp(1 - distance / HEARING_RANGE, 0, 1)
 end
 
+-- The Settings switches (Menu window): "music" and "sounds". The server keeps
+-- them in the Settings attribute; until it arrives everything is on.
+function SoundPlayer.allowed(name: string): boolean
+	local settings = Players.LocalPlayer:GetAttribute("Settings")
+	if type(settings) ~= "string" then
+		return true
+	end
+	local kind = if string.sub(name, 1, 5) == "Music" then "music" else "sounds"
+	return string.find(settings, kind, 1, true) ~= nil
+end
+
 -- `pitch` multiplies the sound's own pitch (every vehicle's horn sounds different).
 function SoundPlayer.play(name: string, position: Vector3?, pitch: number?)
 	local sound = SoundPlayer.get(name)
-	if not sound then
+	if not sound or not SoundPlayer.allowed(name) then
 		return
 	end
 	local fade = distanceVolume(position)
@@ -76,6 +87,7 @@ function SoundPlayer.loop(name: string, on: boolean)
 	if not sound then
 		return
 	end
+	on = on and SoundPlayer.allowed(name)
 	if on and not sound.IsPlaying then
 		sound:Play()
 	elseif not on and sound.IsPlaying then
