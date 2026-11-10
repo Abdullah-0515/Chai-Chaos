@@ -11,18 +11,20 @@ The original design is in [docs/game-design.md](docs/game-design.md). All 36 ori
 ## How a round of play goes
 
 1. **Spawn in your haveli.** Everyone starts with **Rs 1,000**, one incubator and the free **Mango Bagh** zone.
-2. **Check the radar** (bottom right). It shows eggs in your open zones, an **H** for home and a **C** for the Chowk. If no egg is in range, a pip on the edge points to the nearest one.
+2. **Check the radar** (bottom right). It shows eggs in your open zones, wild brainrots (**W**), an **H** for home and a **C** for the Chowk. If no egg is in range, a pip on the edge points to the nearest one.
 3. **Head out through a town gate.** Walk at first; soon you can buy a **Motorbike** at the Gaari Showroom in the bazaar. Farther zones cost more to unlock and have rarer brainrots, but their eggs crack sooner.
 4. **Pick up an egg** (hold E). A timer starts. On foot you carry one egg; a vehicle's boot carries more. Hazards knock time off, and other players can bonk you with a chappal to make you drop one.
 5. **Get it home.** Walk into your haveli, or drive up to your door, and the egg goes into a free incubator. A little later it hatches, and the brainrot walks to a plot and starts earning.
 6. **Spend your rupees:** unlock new zones at their gates, buy and upgrade vehicles, fill up with petrol, get gear and a better radar, upgrade your haveli, roll the Kismat Kettle, and finally start a **Naya Safar** (rebirth), which opens the ring 3 zones one by one.
 
-## Four ways to get a brainrot
+## Six ways to get a brainrot
 
 1. **Eggs (the main way):** find them in the zones you have unlocked and carry them home. What hatches depends on the zone.
-2. **Kismat Roll (RNG):** roll at the Kismat Kettle with Rs 5,000 or a Kismat Roll. Rolls come free with daily chai and quests, and players can buy packs with Robux. (Secret brainrots never come from rolls.)
-3. **Stealing:** grab someone else's brainrot and run it through your own door. Every steal uses a **Chor Pass** (bought with Robux; you get it back if the steal fails).
-4. **Collection Book rewards:** finish a rarity to earn one of 6 special quest brainrots.
+2. **Wild brainrots:** now and then a Rare or better brainrot roams a zone (a **W** on everyone's radar). Walk up and hold E to catch it, and it walks into your haveli. It is like a lucky egg from that zone: the zone's own odds, but never below Rare (and never Secret). Vehicles that drive close and horns scare it away, so park and sneak up on foot. One turns up every 90 seconds (at most 4 at a time, inner zones more often), and each wanders off after 5 minutes.
+3. **The Mandi lane:** brainrots walk out of the **Brainrot Mandi** arch and all the way round the brick lane in front of the haveli doors. Press E to buy one with rupees before it walks back into the Mandi. Lane brainrots are mostly Common and Uncommon (never Legendary or better) and cost 2.5 times their value, so they are for filling an empty plot fast, not for getting rich.
+4. **Kismat Roll (RNG):** roll at the Kismat Kettle with Rs 5,000 or a Kismat Roll. Rolls come free with daily chai and quests, and players can buy packs with Robux. (Secret brainrots never come from rolls.)
+5. **Stealing:** grab someone else's brainrot and run it through your own door. Every steal uses a **Chor Pass** (bought with Robux; you get it back if the steal fails).
+6. **Collection Book rewards:** finish a rarity to earn one of 6 special quest brainrots.
 
 ## The world
 
@@ -39,7 +41,7 @@ The world is one big circle, about 1,500 studs across.
 | **NAYA SAFAR** | The rebirth gate. |
 | **QUESTS** board | Daily quests and Collection Book rewards. |
 
-There is also a chai dhaba with a charpai, parked rickshaws, a fruit cart, a leaderboard and string lights. The **8 havelis** stand in a ring around the Chowk, facing the fountain. Four roads lead out between them to the four town gates.
+There is also a chai dhaba with a charpai, parked rickshaws, a fruit cart, a leaderboard and string lights. The **8 havelis** stand in a ring around the Chowk, facing the fountain. Four roads lead out between them to the four town gates. **The Mandi lane**, a brick path with arrows, runs all the way round the Chowk just in front of the haveli doors; brainrots for sale come out of the **Brainrot Mandi** arch beside the Punjab road.
 
 **The Lahore bazaar** is the town ring between the havelis and the town wall: two rows of stalls with bright awnings along a round bazaar street under string lights, and six sectors: **Brainrot Mandi**, **Kite Point** (a kite tower), **Cricket Gali** (a street-cricket pitch), **Mela Ground** (a Ferris wheel and a stage), **Chai Dhaba Bazaar** (with **Ustad's Workshop**, where vehicles are upgraded) and the **Rickshaw Stand** (with the **Gaari Showroom**, where vehicles are sold).
 
@@ -47,10 +49,10 @@ There is also a chai dhaba with a charpai, parked rickshaws, a fruit cart, a lea
 
 | Region | Ring 1 | Ring 2 | Ring 3 |
 | --- | --- | --- | --- |
-| **Punjab** | **Mango Bagh** · free · up to Rare | **Sarson Fields** · Rs 200,000 · up to Legendary | **Lahore Qila** · 1 rebirth · up to Mythic |
-| **Sindh** | **Railway Junction** · Rs 10,000 · up to Epic | **Sahil Beach** · Rs 400,000 · up to Mythic | **Karachi Port** · 2 rebirths · up to Mythic |
-| **Thar** | **Camel Mela** · Rs 30,000 · up to Epic | **Thar Desert** · Rs 750,000 · up to Mythic | **Mohenjo-daro** · 3 rebirths · up to Mythic |
-| **KPK** | **Qissa Khawani** · Rs 75,000 · up to Legendary | **Namak Caves** · Rs 1,500,000 · up to Mythic | **Barfani Pahar** · 4 rebirths · up to **Secret** |
+| **Punjab** | **Mango Bagh** · free · up to Rare | **Sarson Fields** · Rs 500,000 · up to Legendary | **Lahore Qila** · 1 rebirth · up to Mythic |
+| **Sindh** | **Railway Junction** · Rs 15,000 · up to Epic | **Sahil Beach** · Rs 1,200,000 · up to Mythic | **Karachi Port** · 2 rebirths · up to Mythic |
+| **Thar** | **Camel Mela** · Rs 50,000 · up to Epic | **Thar Desert** · Rs 3,000,000 · up to Mythic | **Mohenjo-daro** · 3 rebirths · up to Mythic |
+| **KPK** | **Qissa Khawani** · Rs 150,000 · up to Legendary | **Namak Caves** · Rs 7,000,000 · up to Mythic | **Barfani Pahar** · 4 rebirths · up to **Secret** |
 
 | Zone | Landmarks and details | Egg lasts | Hatches in | Hazards | What helps |
 | --- | --- | --- | --- | --- | --- |
@@ -67,7 +69,7 @@ There is also a chai dhaba with a charpai, parked rickshaws, a fruit cart, a lea
 | **Mohenjo-daro** | Brick ruins in rows, the **Great Bath**, the citadel mound | 38 s | 100 s | sandstorms, sand | Sand Goggles, Tyres 2 |
 | **Barfani Pahar** | Ice caves, frozen lakes, snowmen, a mountain hut, snowy mountains | 36 s | 120 s | ice, snowballs | Snow Boots, Tyres 3 |
 
-**Gates and roads.** The gate into a ring 1 zone is in the town wall in the middle of its region. The gate into ring 2 is turned 30 degrees one way and the gate into ring 3 30 degrees the other way, so you zigzag through every zone. A road runs from the Chowk through every gate to a **rickshaw stand** at the far end of each ring 3 zone (a free ride back to the Chowk). The roads are always safe: no water, mud or ice on a road. Walk up to a gate and hold E to unlock it; you must unlock the zone in front of a gate first.
+**Gates and roads.** The gate into a ring 1 zone is in the town wall in the middle of its region. The gate into ring 2 is turned 30 degrees one way and the gate into ring 3 30 degrees the other way, so you zigzag through every zone. A road runs from the Chowk through every gate to a **rickshaw stand** at the far end of each ring 3 zone (a free ride back to the Chowk; the rickshaw wala only takes people, so park your vehicle and leave your eggs, which must make the trip home the slow way). The roads are always safe: no water, mud or ice on a road. Walk up to a gate and hold E to unlock it; you must unlock the zone in front of a gate first.
 
 **Shortcut doors.** Every fence between two regions has a blue door in each ring. It opens for you once you have unlocked the zones on both sides.
 
@@ -99,7 +101,7 @@ The radar shows eggs in every zone you have unlocked. Each level sees further:
 | 7 | Rs 320,000 | 440 | golden eggs, treasure |
 | 8 | Rs 600,000 | 520 | golden eggs, treasure |
 
-It also shows the timer of the egg that will crack first (and how many more you carry), hazard warnings, egg rushes and which zone or bazaar sector you are in.
+It also shows wild brainrots (a **W** in their rarity's colour), the timer of the egg that will crack first (and how many more you carry), hazard warnings, egg rushes and which zone or bazaar sector you are in.
 
 ## Gear (Gear Shop)
 
@@ -131,6 +133,10 @@ Buy vehicles at the **Gaari Showroom** (Rickshaw Stand, in the bazaar), then pre
 | **Phool Patti Truck** | Rs 1,200,000 | 42 | 4,500 studs | 6 eggs | 2 | 1 |
 
 Walking speed is 20 (more with Joggers or a Peshawari Chappal).
+
+**Crashes.** Every vehicle has a solid bumper the size of the vehicle, raised a little off the road so kerbs don't stop it. It stops at walls, trees, buildings, fences, lasers and other vehicles, but never shoves other players. Hit something at speed and you hear a crunch, bounce back and stop for a moment.
+
+**The horn.** Press **H** or the **Horn** button on the dashboard. Every vehicle sounds different: the motorbike beeps high, the rickshaw goes *pon pon*, the taxi honks once and the truck blares three times. Everyone nearby hears it, and wild brainrots run away from it. (The horn uses a built-in beep until you paste a real horn sound's id into `Sounds.luau`.)
 
 **Upgrades at Ustad's Workshop** (Chai Dhaba Bazaar). Each level costs 1.8 times more than the last; prices grow with the vehicle.
 
@@ -172,8 +178,9 @@ Every zone hides treasure chests. Buried ones (under a red X) need a **Belcha**;
 
 ## Progress
 
-- **Naya Safar (rebirth)** at the gate in the Chowk: starts over your rupees, haveli level, radar, brainrots and eggs, for +50% income forever and a new theme. Rebirths 1 to 4 also open the ring 3 zones: Lahore Qila, Karachi Port, Mohenjo-daro and Barfani Pahar. You keep your gear, vehicles, unlocked zones, themes, Collection Book, Kismat Rolls and Chor Passes. The first costs Rs 1,000,000 and each one after costs 2.5 times more.
-- **Daily quests:** 3 a day, like bringing eggs home from different zones, hatching a Rare, a golden egg, opening treasure, upgrading your haveli or radar, collecting from your galla. They pay rupees and Kismat Rolls, plus 2 bonus rolls for finishing all three.
+- **Naya Safar (rebirth)** at the gate in the Chowk: starts over your rupees, haveli level, radar, brainrots and eggs, for +50% income forever and a new theme. Rebirths 1 to 4 also open the ring 3 zones: Lahore Qila, Karachi Port, Mohenjo-daro and Barfani Pahar. You keep your gear, vehicles, unlocked zones, themes, Collection Book, Kismat Rolls and Chor Passes. The first costs Rs 2,500,000 and each one after costs 4 times more.
+- **Haveli levels** cost Rs 4,000, 15,000, 40,000, 120,000, 300,000, 600,000, 1,100,000 and 2,000,000 (levels 2 to 9).
+- **Daily quests:** 3 a day, like bringing eggs home from different zones, hatching a Rare, a golden egg, catching a wild brainrot, buying on the Mandi lane, opening treasure, upgrading your haveli or radar, collecting from your galla. They pay rupees and Kismat Rolls, plus 2 bonus rolls for finishing all three.
 - **Collection Book:** fills in as you find brainrots and their mutations, and says which zones each one hatches in. Finishing a rarity pays rupees and Kismat Rolls, plus that rarity's special quest brainrot (Secret pays Rs 20,000,000 and 20 rolls).
 - **Events** every 15-20 minutes, 5 minutes each. The banner shows the boosts:
   - **Basant Kite Festival:** kites fill the sky all around you. Cash x2, Luck x2.
@@ -189,7 +196,7 @@ Every zone hides treasure chests. Buried ones (under a red X) need a **Belcha**;
 
 ## Sounds
 
-The game uses sounds that come with Roblox for buttons, coins, eggs (pick up, home, crack, hatch), treasure, bonks, the Chor alert, splashes, wind in the snowy mountains and in sandstorms, upgrades, events and the Kismat Roll. They are all listed in [`src/shared/Sounds.luau`](src/shared/Sounds.luau).
+The game uses sounds that come with Roblox for buttons, coins, eggs (pick up, home, crack, hatch), treasure, bonks, the Chor alert, splashes, wind in the snowy mountains and in sandstorms, vehicle horns and crashes, upgrades, events and the Kismat Roll. They are all listed in [`src/shared/Sounds.luau`](src/shared/Sounds.luau).
 
 There are three music slots, `MusicBazaar`, `MusicBiome` and `MusicEvent`, empty until you add your own: find a track in the Creator Store (Toolbox > Audio, try "dhol", "tabla" or "bazaar"), copy its id and paste it as `"rbxassetid://123456789"`. The right track plays for where you are. You can swap any other sound the same way, for example to add voice lines.
 
@@ -1918,7 +1925,36 @@ To change a sheet, edit its text in [`blender/characters.py`](blender/characters
 
 ## Pacing
 
-Before the zone gates and vehicles, a simulation of the egg loop put the first Naya Safar at about 37, 51 and 67 minutes for fast, typical and casual players. The new map adds zone prices (about Rs 3 million to open every ring 1 and ring 2 zone) and vehicle costs, but vehicles also make trips shorter, so **playtest the pacing** before you publish. The knobs: brainrot prices are the design doc's prices times `PRICE_MULTIPLIER = 2` in `Config.luau`; zone prices, egg times, hatch times and odds are in `Biomes.luau`; vehicle prices, speeds and upgrade costs are in `Vehicles.luau`; fuel prices are in `Config.luau`.
+`tests/run.sh pacing` plays the game 300 times for each of three kinds of player and prints when they reach each milestone. It uses the game's real numbers and map: the walk or drive from your haveli door out through the gates (zigzag and all), hazards, egg timers, boot space, incubators and hatch times, plots filling up, the Mandi lane, wild brainrots, quests, free rolls, petrol, and buying vehicles, haveli levels, zones, gear and Naya Safar in a sensible order. It leaves out events, treasure, paid rolls, stealing and Robux, so real players with events running will be a little quicker. The three kinds of player only differ in skill: fast players take direct routes and rarely stand around, casual players take longer routes, stand around a third of the time and lose more eggs.
+
+Minutes of play, median (and the middle half of players):
+
+| Milestone | Fast | Typical | Casual |
+| --- | --- | --- | --- |
+| Motorbike | 2.8 (2-4) | 3.7 (2-5) | 4.6 (3-6) |
+| Railway Junction | 7.4 (6-9) | 8.3 (6-9) | 9.2 (8-12) |
+| Rs 100/s income | 5.9 (4-8) | 7.6 (5-10) | 11.0 (8-15) |
+| Camel Mela | 13.8 (11-16) | 15.4 (13-18) | 18.1 (16-21) |
+| Rickshaw | 16.7 (14-19) | 18.9 (16-21) | 21.8 (19-26) |
+| Qissa Khawani (all of ring 1) | 20.4 (18-23) | 22.9 (20-26) | 27.8 (23-32) |
+| Sarson Fields (first ring 2 zone) | 33.1 (28-36) | 35.8 (32-41) | 43.7 (36-50) |
+| **1st Naya Safar** | **47.1 (41-52)** | **53.4 (46-59)** | **64.2 (57-73)** |
+| Sahil Beach | 57.2 (52-63) | 65.7 (58-73) | 83.8 (75-94) |
+| 2nd Naya Safar | 65.8 (60-72) | 79.0 (71-85) | 103.8 (92-115) |
+| Thar Desert | 76.0 (70-83) | 91.0 (83-97) | 119.8 (109-131) |
+| 3rd Naya Safar | 91.3 (85-98) | 109.9 (102-117) | 147.0 (134-158) |
+| Namak Caves | 102.6 (96-109) | 123.7 (114-132) | 163.0 (152-177) |
+| 4th Naya Safar (every zone open) | 121.5 (115-129) | 149.5 (141-159) | 202.7 (190-218) |
+
+What the simulation found, and what changed because of it:
+
+- **The game was too fast, not too slow.** With the old prices a typical player reached the first Naya Safar in about 30 minutes. Every zone tier roughly doubles what an egg is worth, so income grows fast once you reach the better zones, and Rs 1,000,000 was only a few minutes of mid-game income. Zones you have opened stay open after a Naya Safar, so you don't need all of ring 2 before your first one.
+- **Wild brainrots were the biggest income** when they could be any Rare to Mythic from the zone's pool. Now they use the zone's own odds (Rare or better), turn up every 90 seconds instead of 40 and at most 4 at a time.
+- **New prices:** zones Rs 15,000 / 50,000 / 150,000 (ring 1) and Rs 500,000 / 1,200,000 / 3,000,000 / 7,000,000 (ring 2); haveli levels Rs 4,000 up to Rs 2,000,000; the first Naya Safar Rs 2,500,000, then 4 times more each time. The lane's brainrots cost 2.5 times their value and are mostly Common and Uncommon.
+- **Fast and casual players end up closer than you might think:** skill matters most early, when trips are what you wait for; later your brainrots' income does most of the work.
+- The script fails if the typical first Naya Safar leaves 50-75 minutes (and a few other targets), so a change that breaks the pacing shows up straight away.
+
+The knobs: zone prices, egg times, hatch times and odds are in `Biomes.luau`; haveli level prices, rebirth prices, wild brainrots, the Mandi lane, fuel prices and egg settings are in `Config.luau`; brainrot prices are the design doc's prices times `PRICE_MULTIPLIER = 2`, and income is in `Brainrots.luau`; vehicle prices, speeds and upgrade costs are in `Vehicles.luau`. The player behaviour and the targets are at the top of [`tests/pacing.luau`](tests/pacing.luau). It is a model, so still playtest with real players before you publish.
 
 ## Getting it into Roblox Studio
 
@@ -1948,7 +1984,7 @@ Create these in Roblox Studio, then paste in each file's code. The name in Studi
 | --- | --- | --- |
 | All 13 `src/shared/*.luau` files (Biomes, Brainrots, Config, Events, Format, Gear, Motion, Mutations, Quests, Remotes, Sounds, Themes, Vehicles) | `ReplicatedStorage > ChaiChaos` (a Folder) | ModuleScript |
 | `src/server/Main.server.luau` | `ServerScriptService > ChaiChaosServer` (a Folder), named `Main` | Script |
-| The other 25 `src/server/*.luau` files | `ServerScriptService > ChaiChaosServer` | ModuleScript |
+| The other 27 `src/server/*.luau` files | `ServerScriptService > ChaiChaosServer` | ModuleScript |
 | The 14 `src/client/*.client.luau` files (Driving, Events, Garage, Haveli, Hud, Kismat, Prompts, Quests, Radar, Shops, Smooth, Sounds, Weather, Zones) | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` (a Folder) | LocalScript |
 | `src/client/Ui.luau` and `src/client/SoundPlayer.luau` | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` | ModuleScript |
 
@@ -1976,7 +2012,7 @@ Other settings in `Config.luau`: `STEAL_COSTS_ROBUX = false` makes stealing free
 
 ## Making it yours
 
-- **Numbers:** prices, timers, haveli levels, incubators, radar levels, hazards and odds are in [`Config.luau`](src/shared/Config.luau). Each zone's gate price or rebirths, egg time, hatch time, odds, brainrot pool and hazards are in [`Biomes.luau`](src/shared/Biomes.luau). Vehicles, upgrades and paint jobs are in [`Vehicles.luau`](src/shared/Vehicles.luau). Gear is in [`Gear.luau`](src/shared/Gear.luau). Brainrot prices, income and catchphrases are in [`Brainrots.luau`](src/shared/Brainrots.luau).
+- **Numbers:** prices, timers, haveli levels, incubators, radar levels, hazards, odds, wild brainrots and the Mandi lane are in [`Config.luau`](src/shared/Config.luau). After changing prices, run `tests/run.sh pacing` to see what it does to the pacing. Each zone's gate price or rebirths, egg time, hatch time, odds, brainrot pool and hazards are in [`Biomes.luau`](src/shared/Biomes.luau). Vehicles, upgrades and paint jobs are in [`Vehicles.luau`](src/shared/Vehicles.luau). Gear is in [`Gear.luau`](src/shared/Gear.luau). Brainrot prices, income and catchphrases are in [`Brainrots.luau`](src/shared/Brainrots.luau).
 - **Themes, events, quests and mutations:** each has its own list you can edit or add to: [`Themes.luau`](src/shared/Themes.luau), [`Events.luau`](src/shared/Events.luau), [`Quests.luau`](src/shared/Quests.luau) and [`Mutations.luau`](src/shared/Mutations.luau). Theme decorations are in [`HaveliStyle.luau`](src/server/HaveliStyle.luau).
 - **The zones** are built from code in [`BiomeBuilder.luau`](src/server/BiomeBuilder.luau): terrain, the Blender props, chests and hazard areas. Each one is planned from a fixed seed, so the world is the same every time. The layout (ring sizes, region angles, where the gates, roads, shortcut doors and petrol pumps go, the train's track) is in `Biomes.luau`.
 - **Brainrot models:** every brainrot has a Blender model (see [The 46 brainrots](#the-46-brainrots)). To use your own model instead, for example one you made from a character sheet's prompt, make a Folder named `Brainrots` in **ServerStorage** and put a Model in it named after the brainrot's `id`, for example `SamosaSupremo`, `RickshawRaptor` or `AmmiKiUdtiChappal`. All the ids are on the character sheets and in `Brainrots.luau`. Make the front of the model face its -Z side (the Studio default). The script anchors it and adds the name pop-up, the rarity glow and the mutation tint for you. Name its eye parts `Eye` and they keep their colour on Golden, Diamond and Rainbow brainrots.
@@ -1984,7 +2020,7 @@ Other settings in `Config.luau`: `STEAL_COSTS_ROBUX = false` makes stealing free
 
 ## Not built yet
 
-The kite-flying minigame became the **Basant Kite Festival** event instead. Brainrots stand still apart from bobbing and hopping (no walk cycles or animations yet). Vehicles are driven by moving your character (with car-like steering), not by Roblox's physics car parts, so they glide through walls and trees instead of crashing. From the biome-slices map plan, the roaming rare brainrots (wander points) and the brainrot conveyor lane are not built. Still to come: the 2x Cash and Extra Plots game passes, horns and other cosmetics, special behaviours for individual brainrots, and real music (the slots are ready).
+The kite-flying minigame became the **Basant Kite Festival** event instead. Brainrots stand still apart from bobbing and hopping (no walk cycles or animations yet), and wild and lane brainrots glide along their paths. Vehicles are still driven by moving your character (with car-like steering and a solid bumper that crashes), not by Roblox's physics car parts, so there is no suspension, drifting or rolling over. Still to come: the 2x Cash and Extra Plots game passes, real horn and engine sounds and other cosmetics, special behaviours for individual brainrots, and real music (the slots are ready).
 
 ## For developers
 
@@ -1992,8 +2028,9 @@ The kite-flying minigame became the **Basant Kite Festival** event instead. Brai
 stylua src            # format
 selene src            # lint (run `selene generate-roblox-std` once first)
 tests/run.sh          # play through the whole game on a mock Roblox engine
+tests/run.sh pacing   # simulate hundreds of players and print the pacing (see Pacing)
 python blender/build.py --no-render   # rebuild the props and brainrots without the preview pictures
 python blender/characters.py          # rewrite the brainrot character sheets in this README
 ```
 
-`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game (1828 checks): the world (havelis facing the Chowk, the stalls and bazaar shops, 12 zones in 4 regions and 3 rings with terrain, eggs, chests, hazard areas and their landmarks, prices that grow outward, zigzag gates, shortcut doors, roads, petrol pumps, the train schedule, the bazaar, every Blender prop as parts and as an imported mesh, and a part budget), every brainrot's Blender model (eyes, size limits, welds, mutation tints, imported meshes, custom models first, the parrot's tail lettering, and old saves with renamed brainrots), joining, picking up eggs, locked zones and unlocking gates, the egg timer and the radar, carrying eggs home, incubators, hatching from each zone's pool, cracking, dropping eggs, every hazard (including the train, waves and salt rocks that push you back) and the gear that stops it, the Gear shop, radar upgrades, golden eggs, egg rushes, hatch odds and luck (including Secret brainrots), selling at the stall, vehicles (the showroom, driving and steering, fuel, the boot, driving home, free refills, running out of petrol, petrol pumps, workshop upgrades, grip on mud and sand, paint jobs, friends riding along, parking, dying), treasure (digging, climbing, cooldowns), haveli levels and incubators, themes, the galla, quests, Collection Book rewards, Kismat Rolls with their odds and pity, stealing with every rule (including eggs), the Chowkidar, the Laser Darwaza, chappal bonks on thieves and egg carriers, events and their boosts (with the Basant kites), Robux receipts (including retries and failed saves), the paid random item restriction, Chor Passes, Naya Safar at the Chowk, saving and loading (including eggs, zones and vehicles, and old saves), sounds and music slots, every theme at every level, the leaderboard and smooth movement. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.
+`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game (1901 checks): the world (havelis facing the Chowk, the stalls and bazaar shops, 12 zones in 4 regions and 3 rings with terrain, eggs, chests, hazard areas and their landmarks, prices that grow outward, zigzag gates, shortcut doors, roads, petrol pumps, the train schedule, the bazaar, the Mandi lane and its arch, every Blender prop as parts and as an imported mesh, and a part budget), every brainrot's Blender model (eyes, size limits, welds, mutation tints, imported meshes, custom models first, the parrot's tail lettering, and old saves with renamed brainrots), joining, picking up eggs, locked zones and unlocking gates, the egg timer and the radar, carrying eggs home, incubators, hatching from each zone's pool, cracking, dropping eggs, every hazard (including the train, waves and salt rocks that push you back) and the gear that stops it, the Gear shop, radar upgrades, golden eggs, egg rushes, hatch odds and luck (including Secret brainrots), selling at the stall, vehicles (the showroom, driving and steering, the solid bumper and crashes, horns, fuel, the boot, driving home, free refills, running out of petrol, petrol pumps, workshop upgrades, grip on mud and sand, paint jobs, friends riding along, parking, dying, and the rickshaw home that only takes people), wild brainrots (wandering, the radar, getting scared by vehicles and horns, catching, locked zones, full havelis, wandering off), the Mandi lane (walking round, prices, buying, walking off), treasure (digging, climbing, cooldowns), haveli levels and incubators, themes, the galla, quests, Collection Book rewards, Kismat Rolls with their odds and pity, stealing with every rule (including eggs), the Chowkidar, the Laser Darwaza, chappal bonks on thieves and egg carriers, events and their boosts (with the Basant kites), Robux receipts (including retries and failed saves), the paid random item restriction, Chor Passes, Naya Safar at the Chowk, saving and loading (including eggs, zones and vehicles, and old saves), sounds and music slots, every theme at every level, the leaderboard and smooth movement. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.

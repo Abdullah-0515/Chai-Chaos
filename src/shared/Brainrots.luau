@@ -17,6 +17,19 @@ local Brainrots = {}
 -- The rarities that hatch from eggs (Secret only from Barfani Pahar's eggs,
 -- never from Kismat Rolls).
 Brainrots.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" }
+
+-- Wild brainrots: a zone's egg odds, keeping only Config.WILD_RARITIES.
+-- A zone with none of them (there is none) falls back to Rare.
+function Brainrots.wildOdds(zoneOdds: { [string]: number }): { [string]: number }
+	local odds, any = {}, false
+	for rarity, weight in zoneOdds do
+		if Config.WILD_RARITIES[rarity] and weight > 0 then
+			odds[rarity] = weight
+			any = true
+		end
+	end
+	return if any then odds else { Rare = 1 }
+end
 -- The Collection Book also shows the special quest brainrots.
 Brainrots.BOOK_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret", "Special" }
 

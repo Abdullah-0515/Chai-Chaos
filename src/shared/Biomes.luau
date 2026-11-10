@@ -39,6 +39,8 @@ Biomes.GROUND_Y = 1
 Biomes.PLAZA_RADIUS = 70
 Biomes.HAVELI_RADIUS = 150
 Biomes.HUB_RADIUS = 200 -- the town ring (Lahore bazaar) starts here
+Biomes.MANDI_RADIUS = 100 -- the Mandi lane runs round the Chowk here, in front of the haveli doors
+Biomes.MANDI_START = -83 -- brainrots come out of the Mandi arch here (just beside the Punjab road)
 Biomes.TOWN_RADIUS = 290 -- the town wall; the zones are outside it
 Biomes.RINGS = { { 290, 450 }, { 450, 610 }, { 610, 740 } }
 Biomes.WORLD_RADIUS = 740
@@ -104,7 +106,7 @@ Biomes.list = {
 	},
 	{
 		id = "RailwayJunction", name = "Railway Junction", title = "Sindh Railway Junction", region = "Sindh", ring = 1, tier = 2,
-		price = 10_000, rebirths = 0,
+		price = 15_000, rebirths = 0,
 		blurb = "A busy station. Watch the crossing light: the train comes through!",
 		color = rgb(150, 140, 130), eggColor = rgb(230, 210, 180), spotColor = rgb(200, 60, 50),
 		eggTime = 58, hatchTime = 20,
@@ -114,7 +116,7 @@ Biomes.list = {
 	},
 	{
 		id = "CamelMela", name = "Camel Mela", title = "Thar Camel Fair", region = "Thar", ring = 1, tier = 3,
-		price = 30_000, rebirths = 0,
+		price = 50_000, rebirths = 0,
 		blurb = "Colourful tents, bunting and dancing camels at the desert fair.",
 		color = rgb(215, 160, 95), eggColor = rgb(255, 200, 150), spotColor = rgb(220, 50, 80),
 		eggTime = 56, hatchTime = 28,
@@ -124,7 +126,7 @@ Biomes.list = {
 	},
 	{
 		id = "QissaKhawani", name = "Qissa Khawani", title = "Peshawar Storytellers' Bazaar", region = "KPK", ring = 1, tier = 4,
-		price = 75_000, rebirths = 0,
+		price = 150_000, rebirths = 0,
 		blurb = "Tall wooden balconies, kahwa stalls and the old clock tower.",
 		color = rgb(205, 160, 110), eggColor = rgb(240, 200, 160), spotColor = rgb(150, 40, 50),
 		eggTime = 54, hatchTime = 35,
@@ -135,7 +137,7 @@ Biomes.list = {
 	-------------------------------------------------------------------- Ring 2
 	{
 		id = "SarsonFields", name = "Sarson Fields", title = "Punjab Mustard Fields", region = "Punjab", ring = 2, tier = 5,
-		price = 200_000, rebirths = 0,
+		price = 500_000, rebirths = 0,
 		blurb = "Rows and rows of yellow sarson, a tractor and muddy paths.",
 		color = rgb(232, 216, 74), eggColor = rgb(255, 240, 150), spotColor = rgb(110, 160, 50),
 		eggTime = 50, hatchTime = 42,
@@ -145,7 +147,7 @@ Biomes.list = {
 	},
 	{
 		id = "SahilBeach", name = "Sahil Beach", title = "Arabian Sea Beach", region = "Sindh", ring = 2, tier = 6,
-		price = 400_000, rebirths = 0,
+		price = 1_200_000, rebirths = 0,
 		blurb = "Sand, camels and beach umbrellas. Big waves roll in every so often!",
 		color = rgb(240, 220, 160), eggColor = rgb(160, 220, 255), spotColor = rgb(60, 150, 220),
 		eggTime = 48, hatchTime = 50,
@@ -155,7 +157,7 @@ Biomes.list = {
 	},
 	{
 		id = "TharDesert", name = "Thar Desert", title = "Thar Sand Dunes", region = "Thar", ring = 2, tier = 7,
-		price = 750_000, rebirths = 0,
+		price = 3_000_000, rebirths = 0,
 		blurb = "Rolling dunes and an old desert fort. Sandstorms blow through!",
 		color = rgb(224, 176, 112), eggColor = rgb(240, 200, 140), spotColor = rgb(200, 100, 50),
 		eggTime = 46, hatchTime = 60,
@@ -165,7 +167,7 @@ Biomes.list = {
 	},
 	{
 		id = "NamakCaves", name = "Namak Caves", title = "Pink Salt Caves", region = "KPK", ring = 2, tier = 8,
-		price = 1_500_000, rebirths = 0,
+		price = 7_000_000, rebirths = 0,
 		blurb = "Glowing pink salt rocks deep in the hills. Dark, with falling salt!",
 		color = rgb(230, 170, 180), eggColor = rgb(255, 190, 215), spotColor = rgb(200, 60, 120),
 		eggTime = 44, hatchTime = 70,
@@ -234,6 +236,16 @@ end
 function Biomes.polar(angle: number, r: number): Vector3
 	local a = math.rad(angle)
 	return Vector3.new(math.cos(a) * r, Biomes.GROUND_Y, math.sin(a) * r)
+end
+
+-- The Mandi lane round the Chowk: points every `step` degrees, starting at the
+-- Mandi arch and going clockwise (seen from above) all the way round.
+function Biomes.mandiLane(step: number): { Vector3 }
+	local points = {}
+	for d = 0, 360, step do
+		table.insert(points, Biomes.polar(Biomes.MANDI_START + d, Biomes.MANDI_RADIUS))
+	end
+	return points
 end
 
 -- The angle (degrees, -180 to 180) and distance of a position from the Chowk.

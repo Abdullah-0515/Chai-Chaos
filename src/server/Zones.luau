@@ -78,6 +78,15 @@ function Zones.rideHome(player: Player, pad: Instance?)
 		State.notify(player, "bad", "The rickshaw wala won't take a stolen brainrot!")
 		return
 	end
+	-- eggs have to make the trip home the slow way, or their timers mean nothing
+	if profile.egg or #profile.boot > 0 then
+		State.notify(player, "bad", "No eggs in the rickshaw! Drive or carry them home.")
+		return
+	end
+	if profile.driving then
+		State.notify(player, "bad", "Park your vehicle first. The rickshaw wala only takes people!")
+		return
+	end
 	local character = player.Character
 	if character then
 		character:PivotTo(CFrame.new(Vector3.new(24, Biomes.GROUND_Y + 4, 0)))

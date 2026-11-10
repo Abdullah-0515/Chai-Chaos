@@ -16,9 +16,13 @@ local SoundPlayer = require(script.Parent:WaitForChild("SoundPlayer"))
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("ChaiChaosHud")
 
-Remotes.PlaySound.OnClientEvent:Connect(function(name: any, position: any)
+Remotes.PlaySound.OnClientEvent:Connect(function(name: any, position: any, pitch: any)
 	if type(name) == "string" then
-		SoundPlayer.play(name, if typeof(position) == "Vector3" then position else nil)
+		SoundPlayer.play(
+			name,
+			if typeof(position) == "Vector3" then position else nil,
+			if type(pitch) == "number" then pitch else nil
+		)
 	end
 end)
 

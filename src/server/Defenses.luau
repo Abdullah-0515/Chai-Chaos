@@ -4,6 +4,9 @@
 -- Each haveli gets two collision groups: one for its laser and one for its
 -- owner's character. They do not collide with each other, so only the owner
 -- can walk through.
+--
+-- Vehicles have a solid bumper in the "ChaiVehicles" group: it crashes into
+-- walls, trees, buildings, lasers and other vehicles, but never shoves players.
 
 local PhysicsService = game:GetService("PhysicsService")
 
@@ -23,23 +26,28 @@ local function register(name: string)
 	end
 end
 
+Defenses.VEHICLE_GROUP = "ChaiVehicles"
+
 local function setGroup(character: Model, group: string)
 	for _, p in character:GetDescendants() do
-		if p:IsA("BasePart") then
+		if p:IsA("BasePart") and p.Name ~= "Bumper" then
 			p.CollisionGroup = group
 		end
 	end
 end
 
 function Defenses.init(map)
+	register(Defenses.VEHICLE_GROUP)
 	for _, h in map.havelis do
 		local laser, owner = laserGroup(h.index), ownerGroup(h.index)
 		register(laser)
 		register(owner)
 		PhysicsService:CollisionGroupSetCollidable(laser, owner, false)
+		PhysicsService:CollisionGroupSetCollidable(Defenses.VEHICLE_GROUP, owner, false)
 		h.barrier.CollisionGroup = laser
 		h.barrier.CanCollide = false
 	end
+	PhysicsService:CollisionGroupSetCollidable(Defenses.VEHICLE_GROUP, "Default", true)
 end
 
 -- Put a player's character in their haveli's owner group (or back to Default).
@@ -55,7 +63,7 @@ function Defenses.applyCharacter(profile)
 		profile.groupConnection:Disconnect()
 	end
 	profile.groupConnection = character.DescendantAdded:Connect(function(descendant)
-		if descendant:IsA("BasePart") then
+		if descendant:IsA("BasePart") and descendant.Name ~= "Bumper" then
 			descendant.CollisionGroup = group
 		end
 	end)

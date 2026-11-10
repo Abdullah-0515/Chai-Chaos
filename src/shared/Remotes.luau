@@ -23,7 +23,8 @@ local NAMES = {
 	"UpgradeVehicle", -- client -> server: (vehicle id, upgrade id) buy an upgrade at Ustad's Workshop
 	"Drive", -- client -> server: (vehicle id) get in and drive, or (nil) park and get out
 	"SetPaint", -- client -> server: (paint id) pick the paint job for your vehicles
-	"PlaySound", -- server -> client: (sound name, position or nil)
+	"Honk", -- client -> server: sound your vehicle's horn
+	"PlaySound", -- server -> client: (sound name, position or nil, pitch or nil)
 }
 
 local folder: Instance
@@ -60,5 +61,6 @@ return {
 	UpgradeVehicle = folder:WaitForChild("UpgradeVehicle") :: RemoteEvent,
 	Drive = folder:WaitForChild("Drive") :: RemoteEvent,
 	SetPaint = folder:WaitForChild("SetPaint") :: RemoteEvent,
+	Honk = folder:WaitForChild("Honk") :: RemoteEvent,
 	PlaySound = folder:WaitForChild("PlaySound") :: RemoteEvent,
 }

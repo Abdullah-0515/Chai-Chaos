@@ -279,6 +279,14 @@ check(Format.short(12500) == "12.5K" and Format.short(2000000) == "2M", "format 
 check(M.services.Lighting:FindFirstChild("ChaiChaosColor") ~= nil, "bright colour correction added")
 check(M.groups.ChaiLaser1 and M.groups.ChaiOwner8 and M.noCollide["ChaiLaser1|ChaiOwner1"], "laser collision groups")
 check(not M.noCollide["ChaiLaser1|ChaiOwner2"], "a laser only lets its own owner through")
+check(
+	M.groups.ChaiVehicles and M.noCollide["ChaiVehicles|ChaiOwner1"] and M.noCollide["ChaiVehicles|ChaiOwner8"],
+	"vehicle bumpers never shove players"
+)
+check(
+	not M.noCollide["ChaiVehicles|Default"] and not M.noCollide["ChaiVehicles|ChaiLaser1"],
+	"but they crash into walls, trees, buildings and lasers"
+)
 check(h1.Barrier.CollisionGroup == "ChaiLaser1", "barrier in its laser group")
 check(map.Leaderboard:FindFirstChild("Row1", true) ~= nil, "leaderboard rows")
 local parsedId, parsedMutation = Mutations.parse("SamosaSupremo:Golden")
@@ -568,6 +576,33 @@ do
 		end
 	end
 	check(onRoads == 0, "no stall sits on a road: " .. onRoads)
+	-- the Mandi lane round the Chowk, in front of every haveli door
+	local lane = map:FindFirstChild("MandiLane")
+	local tiles, offLane = 0, 0
+	for _, p in lane:GetChildren() do
+		if p.Name == "LaneTile" then
+			tiles += 1
+			offLane += if math.abs((p.Position * FLAT).Magnitude - Biomes.MANDI_RADIUS) > 0.5 then 1 else 0
+		end
+	end
+	check(tiles == 72 and offLane == 0, "the Mandi lane runs all the way round the Chowk")
+	check(lane.MandiSign.Gui.Label.Text == "BRAINROT MANDI", "the Brainrot Mandi arch")
+	local pillarsClear = true
+	for _, p in lane:GetChildren() do
+		if p.Name == "MandiPillar" and Biomes.roadDistance(p.Position) < 1 then
+			pillarsClear = false
+		end
+	end
+	check(pillarsClear, "the arch's pillars stand beside the road, not on it")
+	local doorsClear = true
+	for _, h in Havelis.all() do
+		local r = (h.doorOutside.Position * FLAT).Magnitude
+		doorsClear = doorsClear and r > Biomes.MANDI_RADIUS + 10 and r < Biomes.MANDI_RADIUS + 30
+	end
+	check(
+		doorsClear and Biomes.PLAZA_RADIUS < Biomes.MANDI_RADIUS - 20,
+		"the lane runs just in front of the haveli doors"
+	)
 	check(
 		map:FindFirstChild("ChaiDhaba") ~= nil and map:FindFirstChild("FruitStall") ~= nil,
 		"a dhaba and a fruit cart in the Chowk"
@@ -1009,12 +1044,12 @@ atGate(A, "RailwayJunction")
 markLog()
 PPS.PromptTriggered:Fire(gateOf("RailwayJunction").GatePrompt, A)
 M.advance(0.1)
-check(not pa.data.zones.RailwayJunction and notified("Ali", "costs Rs 10,000"), "unlocking costs rupees")
+check(not pa.data.zones.RailwayJunction and notified("Ali", "costs Rs 15,000"), "unlocking costs rupees")
 pa.data.rupees = 2_000_000
 State.syncStats(pa)
 PPS.PromptTriggered:Fire(gateOf("RailwayJunction").GatePrompt, A)
 M.advance(0.1)
-check(pa.data.zones.RailwayJunction and pa.data.rupees == 1_990_000, "Railway Junction unlocked for Rs 10,000")
+check(pa.data.zones.RailwayJunction and pa.data.rupees == 1_985_000, "Railway Junction unlocked for Rs 15,000")
 check(A:GetAttribute("OpenZones") == "MangoBagh,RailwayJunction" and notified("Ali", "unlocked"), "open zones sent")
 check(soundsFor("Ali", "Purchase") >= 1, "unlock sound")
 check(not gateOf("RailwayJunction").GatePrompt.Enabled, "Ali's screen hides the prompt on an open gate")
@@ -1606,7 +1641,78 @@ do
 	look = charA.HumanoidRootPart.CFrame.LookVector
 	check(look.X > 0.95, "and ends up facing the way you push")
 	check(M.lastMove(charA.Humanoid) and M.lastMove(charA.Humanoid).Magnitude > 0.5, "it drives forward")
-	M.rawset(charA.Humanoid, "MoveDirection", Vector3.zero)
+	-- the solid bumper: it crashes into walls and trees but never shoves players
+	do
+		local Props = serverModule("Props")
+		local bumper = bike.Bumper
+		local seatPoint = Props.anchor("VehicleMotorbike", "Seat", CFrame.new())
+		local road = bike.VehicleRoot.Position.Y - seatPoint.Y
+		check(
+			bumper.CanCollide and bumper.Transparency == 1 and bumper.Massless,
+			"every vehicle has a solid, invisible bumper"
+		)
+		check(bumper.CollisionGroup == "ChaiVehicles", "in the vehicle group, even inside Ali's character")
+		check(bumper.Hold.Part0 == bike.VehicleRoot, "welded to the vehicle")
+		check(bumper.Position.Y - bumper.Size.Y / 2 > road + 1.3, "raised off the road, so kerbs don't stop it")
+		check(bumper.Size.Z > 5, "as long as the motorbike: " .. bumper.Size.Z)
+		-- crash: going fast and suddenly stopped means you hit something
+		local rootA = charA.HumanoidRootPart
+		M.rawset(charA.Humanoid, "MoveDirection", look)
+		M.advance(0.6)
+		rootA.AssemblyLinearVelocity = look * 34
+		M.advance(1 / 30)
+		local soundsAt = #M.soundsPlayed
+		rootA.AssemblyLinearVelocity = Vector3.zero
+		M.advance(1 / 30)
+		local function crunches()
+			local n = 0
+			for i = soundsAt + 1, #M.soundsPlayed do
+				n += if M.soundsPlayed[i].name == "Crash" then 1 else 0
+			end
+			return n
+		end
+		check(crunches() == 1, "hitting a wall at speed: crunch!")
+		check(rootA.AssemblyLinearVelocity:Dot(look) < -10, "and the motorbike bounces back")
+		M.advance(0.3)
+		check(M.lastMove(charA.Humanoid).Magnitude < 0.05, "and stops for a moment")
+		M.advance(1)
+		check(M.lastMove(charA.Humanoid).Magnitude > 0.3, "then drives on")
+		-- a gentle bump is not a crash
+		rootA.AssemblyLinearVelocity = look * 8
+		M.advance(1 / 30)
+		soundsAt = #M.soundsPlayed
+		rootA.AssemblyLinearVelocity = Vector3.zero
+		M.advance(1 / 30)
+		check(crunches() == 0, "a slow bump is not a crash")
+		M.rawset(charA.Humanoid, "MoveDirection", Vector3.zero)
+		M.advance(1)
+	end
+	-- the horn: the Horn button or H
+	markLog()
+	hud.Dashboard.Horn.Activated:Fire()
+	M.advance(0.1)
+	hud.Dashboard.Horn.Activated:Fire()
+	M.advance(0.1)
+	check(soundsFor("Ali", "Horn") == 1, "honk! (and not again straight away)")
+	local hornEvent = nil
+	for i = mark + 1, #M.log do
+		local e = M.log[i]
+		if e.remote == "PlaySound" and e.player == "Ali" and e.args[1] == "Horn" then
+			hornEvent = e
+		end
+	end
+	check(
+		hornEvent and M.typeof(hornEvent.args[2]) == "Vector3" and hornEvent.args[3] == Vehicles.byId.Motorbike.horn,
+		"everyone nearby hears the motorbike's own horn"
+	)
+	M.advance(1)
+	local inputService = game:GetService("UserInputService")
+	M.signalOf(inputService, "InputBegan"):Fire({ KeyCode = M.Enum.KeyCode.H }, true)
+	M.advance(0.1)
+	check(soundsFor("Ali", "Horn") == 1, "typing an H in the chat doesn't honk")
+	M.signalOf(inputService, "InputBegan"):Fire({ KeyCode = M.Enum.KeyCode.H }, false)
+	M.advance(0.1)
+	check(soundsFor("Ali", "Horn") == 2, "H sounds the horn too")
 	-- fuel: every stud uses fuel, a rickshaw ride or teleport does not
 	local fuel0 = pa.data.vehicles.Motorbike.fuel
 	local mango = Biomes.byId.MangoBagh
@@ -1767,7 +1873,43 @@ do
 	check(pa.driving == nil and pa.egg ~= nil and #pa.boot == 0, "got out: one egg in Ali's hands")
 	check(notified("Ali", "fell out of the boot"), "the other fell out")
 	check(charA.Humanoid.HipHeight == 2, "standing again")
-	EggSystem.drop(A)
+	markLog()
+	Remotes.Honk:FireServer()
+	M.advance(0.1)
+	check(soundsFor("Ali", "Horn") == 0, "no horn without a vehicle")
+	-- the rickshaw home at the end of a ring 3 road only takes people
+	do
+		local pad = map.Biomes.LahoreQila.RickshawHome
+		goTo(A, pad.Position)
+		M.advance(0.1)
+		markLog()
+		PPS.PromptTriggered:Fire(pad.RickshawHome, A)
+		M.advance(0.1)
+		check(notified("Ali", "No eggs in the rickshaw"), "no eggs in the rickshaw: they must make the trip home")
+		check((charA:GetPivot().Position - pad.Position).Magnitude < 10, "so Ali stays put")
+		EggSystem.drop(A)
+		Remotes.Drive:FireServer("Motorbike")
+		M.advance(0.2)
+		markLog()
+		PPS.PromptTriggered:Fire(pad.RickshawHome, A)
+		M.advance(0.1)
+		check(notified("Ali", "Park your vehicle first"), "and no vehicles in the rickshaw")
+		Remotes.Drive:FireServer(nil)
+		M.advance(0.2)
+		for _, egg in pa.boot do
+			check(false, "unexpected boot egg " .. tostring(egg))
+		end
+		if pa.egg then
+			EggSystem.drop(A)
+		end
+		markLog()
+		PPS.PromptTriggered:Fire(pad.RickshawHome, A)
+		M.advance(0.1)
+		check(notified("Ali", "Pon pon"), "on foot with empty hands: a ride to the Chowk")
+		check((charA:GetPivot().Position * FLAT).Magnitude < 40, "dropped at the Chowk")
+		goTo(A, Biomes.point(mango, Biomes.innerRadius(mango) + 30, -20))
+		M.advance(0.2)
+	end
 	-- no stealing from a vehicle, and no driving with a stolen brainrot
 	Remotes.Drive:FireServer("Motorbike")
 	M.advance(0.2)
@@ -2313,6 +2455,10 @@ do
 	PPS.PromptTriggered:Fire(seats[2].RideAlong, A)
 	M.advance(0.1)
 	check(seats[2].Occupant == nil, "the driver can't sit in the back")
+	markLog()
+	Remotes.Honk:FireServer()
+	M.advance(0.6)
+	check(soundsFor("Ali", "Horn") == 2 and soundsFor("Bilal", "Horn") == 2, "the rickshaw goes pon pon, for everyone")
 	-- no stealing from a vehicle
 	local bilalRot = pb.owned[1]
 	if bilalRot then
@@ -2350,7 +2496,202 @@ do
 	rangeela.id = 0
 	Remotes.SetPaint:FireServer("Factory")
 	M.advance(0.1)
-end
+end -- in a function of its own: the main chunk is close to Luau's 200 locals
+(function()
+	---------------------------------------------------------------------------
+	section("Wild brainrots")
+	---------------------------------------------------------------------------
+	local Wild = serverModule("Wild")
+	local Mover = serverModule("Mover")
+	local CollectionService = M.services.CollectionService
+	local mango = Biomes.byId.MangoBagh
+	local wildFolder = workspace:FindFirstChild("ChaiChaosWild")
+	check(wildFolder ~= nil, "a folder for wild brainrots")
+	check(
+		Wild.count() >= 1 and Wild.count() <= Config.WILD_MAX,
+		"wild brainrots turned up by themselves: " .. Wild.count()
+	)
+	local allWild, inZone = true, true
+	for model, info in Wild.list() do
+		allWild = allWild and Config.WILD_RARITIES[info.def.rarity] == true
+		local here = Biomes.at(Mover.pivot(model).Position)
+		inZone = inZone and here ~= nil and here.id == info.biome.id
+	end
+	check(allWild, "only Rare, Epic, Legendary and Mythic brainrots roam wild")
+	local mangoWild = Brainrots.wildOdds(Biomes.byId.MangoBagh.odds)
+	local qissaWild = Brainrots.wildOdds(Biomes.byId.QissaKhawani.odds)
+	local barfaniWild = Brainrots.wildOdds(Biomes.byId.BarfaniPahar.odds)
+	check(mangoWild.Rare and not mangoWild.Epic and not mangoWild.Common, "wild in Mango Bagh: always Rare")
+	check(
+		qissaWild.Epic == 5 and qissaWild.Legendary == 1 and not qissaWild.Uncommon,
+		"a zone's own odds, Rare or better"
+	)
+	check(barfaniWild.Mythic and not barfaniWild.Secret, "Secrets only ever hatch from eggs")
+	check(inZone, "each one stays in its own zone")
+	-- room at home for what we catch (put back at the end)
+	local oldLevel = pa.data.level
+	pa.data.level = #Config.HAVELI_LEVELS
+	local rareDef = nil
+	for _, id in mango.pool do
+		if Brainrots.byId[id].rarity == "Rare" then
+			rareDef = Brainrots.byId[id]
+			break
+		end
+	end
+	local wildOne = Wild.spawn(mango, rareDef, "Golden")
+	check(
+		wildOne.Parent == wildFolder and CollectionService:HasTag(wildOne, "ChaiWild"),
+		"a wild brainrot in Mango Bagh"
+	)
+	check(wildOne.ModelStreamingMode == M.Enum.ModelStreamingMode.Persistent, "always loaded, for the radar")
+	local catch = wildOne.PrimaryPart.CatchPrompt
+	check(
+		catch.HoldDuration == Config.WILD_CATCH_TIME and catch.ObjectText:find("^Wild Golden") ~= nil,
+		"hold E to catch it: " .. catch.ObjectText
+	)
+	check(Mover.isWalking(wildOne), "it wanders about")
+	M.advance(15)
+	local here = Biomes.at(Mover.pivot(wildOne).Position)
+	check(here and here.id == "MangoBagh", "and stays in Mango Bagh")
+	-- on the radar
+	goTo(A, Mover.pivot(wildOne).Position + Vector3.new(15, 0, 0))
+	M.advance(0.3)
+	local wildDot = false
+	for _, d in visibleDots() do
+		wildDot = wildDot or (d.Icon.Text == "W" and d.BackgroundColor3 == Brainrots.RARITY_COLORS.Rare)
+	end
+	check(wildDot, "a W on the radar in its rarity's colour")
+	-- driving close scares it away
+	Remotes.Drive:FireServer("Motorbike")
+	M.advance(0.2)
+	check(pa.driving ~= nil, "Ali drives up to it")
+	goTo(A, Mover.pivot(wildOne).Position + Vector3.new(12, 0, 0))
+	M.advance(0.6)
+	check(wildOne:GetAttribute("MoveSpeed") == Config.WILD_FLEE_SPEED, "the motorbike scares it: it runs away")
+	-- a horn scares them from further away
+	local wildTwo = Wild.spawn(mango, rareDef, "Golden")
+	local twoAt = Mover.pivot(wildTwo).Position
+	goTo(A, twoAt + (twoAt * FLAT).Unit * -50)
+	M.advance(0.6)
+	check(wildTwo:GetAttribute("MoveSpeed") ~= Config.WILD_FLEE_SPEED, "a quiet vehicle 50 studs away is fine")
+	Remotes.Honk:FireServer()
+	M.advance(0.1)
+	check(wildTwo:GetAttribute("MoveSpeed") == Config.WILD_FLEE_SPEED, "but a horn makes it run")
+	Remotes.Drive:FireServer(nil)
+	M.advance(0.2)
+	if pa.egg then
+		EggSystem.drop(A)
+	end
+	-- catching: on foot, in an open zone, with a free plot
+	local function sneakUp(model)
+		goTo(A, Mover.pivot(model).Position + Vector3.new(3, 0, 0))
+		M.advance(0.05)
+		PPS.PromptTriggered:Fire(model.PrimaryPart.CatchPrompt, A)
+		M.advance(0.1)
+	end
+	local locked = Wild.spawn(Biomes.byId.BarfaniPahar, nil, nil)
+	markLog()
+	sneakUp(locked)
+	check(locked.Parent == wildFolder and notified("Ali", "Unlock Barfani Pahar"), "only in zones you have unlocked")
+	local realFree = Havelis.hasFreePlot
+	Havelis.hasFreePlot = function()
+		return false
+	end
+	markLog()
+	sneakUp(wildOne)
+	Havelis.hasFreePlot = realFree
+	check(wildOne.Parent == wildFolder and notified("Ali", "No empty plot"), "it needs a free plot")
+	setQuests(pa, { { id = "catchWild", target = 1, progress = 0, claimed = false } })
+	local ownedBefore = #pa.owned
+	markLog()
+	sneakUp(wildOne)
+	check(wildOne.Parent == nil and #pa.owned == ownedBefore + 1, "caught it!")
+	local caught = pa.owned[#pa.owned]
+	for _, entry in pa.owned do
+		if entry.def == rareDef and entry.mutation == "Golden" then
+			caught = entry
+		end
+	end
+	check(caught.def == rareDef and caught.mutation == "Golden", "a Golden " .. rareDef.name .. " for the haveli")
+	check(caught.model.Parent == pa.haveli.brainrotFolder, "it walks into Ali's haveli")
+	check(notified("Ali", "You caught a wild Golden"), "catch message")
+	check(pa.data.quests.list[1].progress == 1, "the catch quest counts it")
+	-- big ones are announced, old ones wander off
+	markLog()
+	local legend = Wild.spawn(mango, Brainrots.byRarity.Legendary[1], nil)
+	check(notified("Ali", "wild LEGENDARY"), "a wild Legendary is announced to everyone")
+	Wild.list()[legend].born = M.now() - Config.WILD_LIFETIME - 1
+	M.advance(0.6)
+	check(legend.Parent == nil and Wild.list()[legend] == nil, "after a while it wanders off")
+	while Wild.count() < Config.WILD_MAX do
+		Wild.spawn()
+	end
+	M.advance(Config.WILD_EVERY + 1)
+	check(Wild.count() <= Config.WILD_MAX, "never more than " .. Config.WILD_MAX .. " at once")
+
+	---------------------------------------------------------------------------
+	section("The Mandi lane")
+	---------------------------------------------------------------------------
+	local Mandi = serverModule("Mandi")
+	check(
+		Mandi.count() >= 1 and Mandi.count() <= Config.MANDI_MAX,
+		"brainrots walk round the Mandi lane: " .. Mandi.count()
+	)
+	local onLane, cheap = true, true
+	for model, walker in Mandi.walkers() do
+		if model.Parent then
+			onLane = onLane and math.abs((Mover.pivot(model).Position * FLAT).Magnitude - Biomes.MANDI_RADIUS) < 2
+			cheap = cheap and Config.MANDI_ODDS[walker.def.rarity] ~= nil and not walker.def.questOnly
+		end
+	end
+	check(onLane, "every one is on the lane")
+	check(cheap, "never a Mythic, Secret or quest brainrot on the lane")
+	local biryani = Brainrots.byId.BiryaniBadshah
+	local walker = Mandi.spawn(biryani, "Golden")
+	local price = Mandi.price(biryani, "Golden")
+	check(price > Mutations.value(biryani, "Golden"), "lane brainrots cost more than they're worth: " .. price)
+	check(walker.PrimaryPart.BuyPrompt.ActionText == "Buy for " .. Format.rupees(price), "the price on the prompt")
+	local arch = Biomes.polar(Biomes.MANDI_START, Biomes.MANDI_RADIUS)
+	check(((Mover.pivot(walker).Position - arch) * FLAT).Magnitude < 2, "it comes out of the Mandi arch")
+	M.advance(10)
+	local turned = Biomes.angleDiff(Biomes.angleOf(Mover.pivot(walker).Position), Biomes.MANDI_START)
+	check(turned > 30 and turned < 42, "and walks clockwise round the Chowk: " .. turned)
+	local function buy(model)
+		goTo(A, Mover.pivot(model).Position + Vector3.new(0, 0, 3))
+		M.advance(0.05)
+		PPS.PromptTriggered:Fire(model.PrimaryPart.BuyPrompt, A)
+		M.advance(0.1)
+	end
+	pa.data.rupees = 10
+	State.syncStats(pa)
+	markLog()
+	buy(walker)
+	check(Mandi.walkers()[walker] ~= nil and notified("Ali", "Not enough rupees"), "too poor to buy it")
+	setQuests(pa, { { id = "buyMandi", target = 1, progress = 0, claimed = false } })
+	pa.data.rupees = price + 500
+	State.syncStats(pa)
+	markLog()
+	buy(walker)
+	check(pa.data.rupees == 500 and Mandi.walkers()[walker] == nil, "bought it for " .. Format.rupees(price))
+	check(State.entries[walker] ~= nil and walker.Parent == pa.haveli.brainrotFolder, "it walks to Ali's haveli")
+	check(walker.PrimaryPart:FindFirstChild("BuyPrompt") == nil, "and can't be bought twice")
+	check(notified("Ali", "You bought Golden Biryani Badshah"), "purchase message")
+	check(pa.data.quests.list[1].progress == 1, "the Mandi quest counts it")
+	local unsold = Mandi.spawn(biryani, nil)
+	M.advance(Config.MANDI_WALK_TIME + 2)
+	check(unsold.Parent == nil, "nobody bought it, so it walks back into the Mandi")
+	check(Mandi.count() <= Config.MANDI_MAX, "never more than " .. Config.MANDI_MAX .. " on the lane")
+
+	-- put Ali's haveli back the way it was
+	for _, entry in { caught, State.entries[walker] } do
+		Havelis.remove(pa, entry)
+		entry.model:Destroy()
+	end
+	pa.data.level = oldLevel
+	Havelis.arrange(pa)
+	pa.data.rupees = 100_000
+	State.syncStats(pa)
+end)()
 
 do
 	---------------------------------------------------------------------------
@@ -2381,7 +2722,8 @@ do
 	end
 	check(kites == 24 and near == 24, "kites fill the sky around you: " .. kites .. ", " .. near)
 	local luckyRares = tally(khet, false, 40000).Rare or 0
-	check(luckyRares / 40000 > 0.08, "luck makes rare hatches likelier: " .. luckyRares / 40000)
+	-- luck x2 doubles Rare's weight: 8 / (72 + 24 + 8)
+	check(math.abs(luckyRares / 40000 - 8 / 104) < 0.006, "luck makes rare hatches likelier: " .. luckyRares / 40000)
 	EventRunner.stop()
 	M.advance(1)
 	check(effects:FindFirstChild("Kite") == nil and hud.EventBanner.Title.Text == "Next event", "kites gone")
@@ -2562,7 +2904,7 @@ do
 	openShop("Rebirth")
 	local rp = hud.RebirthPanel
 	check(rp.Visible, "the Naya Safar gate opens its window")
-	check(rp.Content.Cost.Text:find("Rs 1,000,000") ~= nil, "cost shown: " .. rp.Content.Cost.Text)
+	check(rp.Content.Cost.Text:find("Rs 2,500,000") ~= nil, "cost shown: " .. rp.Content.Cost.Text)
 	check(rp.Content.Theme.Text:find("Truck Art") ~= nil, "shows the theme it unlocks")
 	check(rp.Content.Theme.Text:find("Lahore Qila") ~= nil, "and the zone it opens")
 	check(rp.Content.Rebirth.Text == "Start Naya Safar!", "ready")
@@ -2587,7 +2929,7 @@ do
 	check(pa.data.theme == "BaghGarden", "theme kept")
 	check(notified("Ali", "New haveli theme unlocked: Truck Art"), "new theme unlocked")
 	check(soundsFor("Ali", "Rebirth") == 1, "rebirth sound")
-	check(A:GetAttribute("RebirthCost") == 2_500_000, "next Naya Safar costs more")
+	check(A:GetAttribute("RebirthCost") == 10_000_000, "next Naya Safar costs 4 times more")
 	check(h1.StairGates.StairGate.CanCollide and h1.Decor:FindFirstChild("Chowkidar") == nil, "haveli back to level 1")
 	haveliPanel.Content.TruckArt.Use.Activated:Fire()
 	M.advance(0.1)

@@ -4,6 +4,7 @@
 --   reaches. The nearest egg out of range shows as a pip on the edge, so you
 --   always know where to go.
 -- * Golden eggs from tracker level 3, treasure chests from level 5.
+-- * Wild brainrots ("W", in their rarity's colour) roaming the zones.
 -- * A house for your haveli and a dot for the Chowk.
 -- * The countdown of the egg you are carrying, hazard warnings and egg rushes.
 -- * A big title when you walk into a zone or a bazaar sector.
@@ -17,6 +18,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Config = require(Shared:WaitForChild("Config"))
 local Biomes = require(Shared:WaitForChild("Biomes"))
+local Brainrots = require(Shared:WaitForChild("Brainrots"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
 local rgb, create, label = Ui.rgb, Ui.create, Ui.label
@@ -319,6 +321,19 @@ local function refreshDots()
 		-- no egg in range: a pip on the edge points to the nearest one
 		local x, y = project(me, look, right, nearest, range)
 		dot(x, y, 10, rgb(255, 255, 255), "•")
+	end
+
+	-- wild brainrots, in their rarity's colour
+	local wild = workspace:FindFirstChild("ChaiChaosWild")
+	if wild then
+		for _, model in wild:GetChildren() do
+			if model:IsA("Model") then
+				local x, y, inside = project(me, look, right, model:GetPivot().Position, range)
+				if inside then
+					dot(x, y, 13, Brainrots.RARITY_COLORS[model:GetAttribute("Rarity") or ""] or GOLD, "W")
+				end
+			end
+		end
 	end
 
 	local chowkX, chowkY = project(me, look, right, Vector3.zero, range)

@@ -30,6 +30,8 @@ Quests.list = {
 	{ id = "taala", text = "Lock your haveli with the Taala", targets = { 1 } },
 	{ id = "eventEgg", text = "Bring an egg home during an event", targets = { 1 }, rolls = 1 },
 	{ id = "biomes", text = "Bring eggs home from %s different biomes", targets = { 2, 3 } },
+	{ id = "catchWild", text = "Catch a wild brainrot", targets = { 1 }, rolls = 1 },
+	{ id = "buyMandi", text = "Buy %s brainrots on the Mandi lane", targets = { 1, 2 } },
 } :: { QuestDef }
 
 Quests.byId = {} :: { [string]: QuestDef }

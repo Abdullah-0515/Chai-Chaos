@@ -19,28 +19,34 @@ Config.HAVELI_LEVELS = {
 	{
 		plots = 8,
 		incubators = 2,
-		cost = 12_000,
+		cost = 15_000,
 		name = "Laser Darwaza",
 		unlock = "A second incubator, and the Laser Darwaza: your Taala blocks the door",
 	},
-	{ plots = 10, incubators = 2, cost = 30_000, name = "Bagh Wala Ghar", unlock = "A garden full of decorations" },
+	{ plots = 10, incubators = 2, cost = 40_000, name = "Bagh Wala Ghar", unlock = "A garden full of decorations" },
 	{
 		plots = 12,
 		incubators = 3,
-		cost = 80_000,
+		cost = 120_000,
 		name = "Do Manzila",
 		unlock = "The second floor and a third incubator",
 	},
-	{ plots = 14, incubators = 3, cost = 180_000, name = "Chowkidar Wali", unlock = "A Chowkidar who catches thieves" },
-	{ plots = 16, incubators = 4, cost = 350_000, name = "Bari Haveli", unlock = "A fourth incubator" },
+	{ plots = 14, incubators = 3, cost = 300_000, name = "Chowkidar Wali", unlock = "A Chowkidar who catches thieves" },
+	{ plots = 16, incubators = 4, cost = 600_000, name = "Bari Haveli", unlock = "A fourth incubator" },
 	{
 		plots = 18,
 		incubators = 4,
-		cost = 550_000,
+		cost = 1_100_000,
 		name = "Chhat Wali Haveli",
 		unlock = "A rooftop with chhatris and kites",
 	},
-	{ plots = 20, incubators = 4, cost = 800_000, name = "Shahi Haveli", unlock = "The fanciest haveli in the bazaar" },
+	{
+		plots = 20,
+		incubators = 4,
+		cost = 2_000_000,
+		name = "Shahi Haveli",
+		unlock = "The fanciest haveli in the bazaar",
+	},
 }
 Config.LASER_LEVEL = 3
 Config.GARDEN_LEVEL = 4
@@ -76,6 +82,29 @@ Config.EGG_RUSH_EVERY = 240 -- an egg rush in a random zone every 4 minutes
 Config.EGG_RUSH_DURATION = 60
 Config.EGG_RUSH_EGGS = 14
 Config.PICKUP_DISTANCE = 12
+
+-- Wild brainrots (Wild.luau): rare brainrots that roam the zones. Walk up
+-- quietly and catch one (it needs a free plot). Vehicles and horns scare them.
+-- A wild brainrot is like a lucky egg from its zone: it uses the zone's egg
+-- odds, but is always one of these rarities (so never Common, Uncommon or Secret).
+Config.WILD_EVERY = 90 -- a new wild brainrot turns up this often...
+Config.WILD_MAX = 4 -- ...while there are fewer than this many
+Config.WILD_LIFETIME = 300 -- each one wanders off after this many seconds
+Config.WILD_RARITIES = { Rare = true, Epic = true, Legendary = true, Mythic = true }
+Config.WILD_RING_WEIGHT = { 3, 2, 1 } -- inner zones get wild brainrots more often
+Config.WILD_SPEED = 7 -- studs per second while wandering
+Config.WILD_FLEE_SPEED = 30 -- running away (faster than walking, slower than driving)
+Config.WILD_SCARE_RADIUS = 30 -- a vehicle this close scares them away
+Config.WILD_HONK_RADIUS = 70 -- and so does a horn this close
+Config.WILD_CATCH_TIME = 1.5 -- hold E this long to catch one
+
+-- The Mandi lane (Mandi.luau): brainrots walk out of the Brainrot Mandi arch
+-- and all the way round the lane in front of the havelis. Press E to buy one.
+Config.MANDI_EVERY = 6 -- a new brainrot comes out this often...
+Config.MANDI_MAX = 16 -- ...while fewer than this are on the lane
+Config.MANDI_WALK_TIME = 100 -- seconds to walk all the way round
+Config.MANDI_ODDS = { Common = 62, Uncommon = 30, Rare = 7.5, Epic = 0.5 } -- never Legendary or better
+Config.MANDI_PRICE = 2.5 -- lane brainrots cost this many times their value (eggs are free!)
 
 -- Treasure chests (need a Rope Ladder for cliff tops, a Shovel for buried ones)
 Config.TREASURE_COOLDOWN = 600 -- each player can open each chest once every 10 minutes
@@ -149,8 +178,8 @@ Config.GUARD_COOLDOWN = 40 -- then he takes a nap
 
 -- Rebirth ("Naya Safar"). Resets rupees, haveli, tracker and brainrots; keeps gear,
 -- themes, the Collection Book and Kismat Rolls.
-Config.REBIRTH_COST = 1_000_000
-Config.REBIRTH_COST_GROWTH = 2.5 -- every Naya Safar costs this many times more than the last
+Config.REBIRTH_COST = 2_500_000
+Config.REBIRTH_COST_GROWTH = 4 -- every Naya Safar costs this many times more than the last
 Config.REBIRTH_BONUS = 0.5 -- +50% income for every rebirth
 
 function Config.rebirthCost(rebirths: number): number

@@ -35,6 +35,8 @@ local Treasure = require(script.Parent.Treasure)
 local Upgrades = require(script.Parent.Upgrades)
 local Garage = require(script.Parent.Garage)
 local Zones = require(script.Parent.Zones)
+local Wild = require(script.Parent.Wild)
+local Mandi = require(script.Parent.Mandi)
 
 World.init()
 local map = MapBuilder.ensure()
@@ -46,6 +48,9 @@ Hazards.init(map)
 Treasure.init(map)
 Upgrades.init(map)
 Garage.init(map)
+Garage.onHonk = Wild.scare
+Wild.init(map)
+Mandi.init()
 Shop.init()
 Shop.paintHook = Garage.onPaintBought
 Kismat.init()
@@ -361,6 +366,10 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 		Garage.rideAlong(player, prompt.Parent)
 	elseif name == "RickshawHome" then
 		Zones.rideHome(player, prompt.Parent)
+	elseif name == "CatchPrompt" then
+		Wild.catch(player, prompt:FindFirstAncestorOfClass("Model"))
+	elseif name == "BuyPrompt" then
+		Mandi.buy(player, prompt:FindFirstAncestorOfClass("Model"))
 	end
 end)
 

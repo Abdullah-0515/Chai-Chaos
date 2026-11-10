@@ -54,7 +54,8 @@ local function distanceVolume(position: Vector3?): number
 	return math.clamp(1 - distance / HEARING_RANGE, 0, 1)
 end
 
-function SoundPlayer.play(name: string, position: Vector3?)
+-- `pitch` multiplies the sound's own pitch (every vehicle's horn sounds different).
+function SoundPlayer.play(name: string, position: Vector3?, pitch: number?)
 	local sound = SoundPlayer.get(name)
 	if not sound then
 		return
@@ -63,6 +64,7 @@ function SoundPlayer.play(name: string, position: Vector3?)
 	if fade <= 0 then
 		return
 	end
+	sound.PlaybackSpeed = (Sounds.list[name].pitch or 1) * (pitch or 1)
 	sound.Volume = Sounds.list[name].volume * fade
 	sound.TimePosition = 0
 	sound:Play()

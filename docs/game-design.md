@@ -6,7 +6,7 @@ Oct 31, 2026 · @RANA ABDULLAH
 
 **Chai Chaos** is a collect-and-earn tycoon set in a loud Pakistani bazaar. You live in a haveli next to the Chowk, drive out into 12 zones across 4 regions of Pakistan, collect eggs and bring them home, where they hatch into silly desi "brainrot" creatures. Brainrots earn rupees every second, so you can unlock farther zones, better vehicles and rarer brainrots.
 
-*Updated Nov 2026: the game now uses the biome-slices map (12 zones), vehicles to reach the eggs, and 4 Secret brainrots. The first version's conveyor-lane loop is kept below for reference.*
+*Updated Nov 2026: the game now uses the biome-slices map (12 zones), vehicles to reach the eggs, and 4 Secret brainrots. Vehicles crash into things and have horns, wild brainrots roam the zones, and the first version's conveyor lane is back as the Mandi lane round the Chowk. Prices were retuned with a pacing simulation (see Pacing below). The first version's loop is kept below for reference.*
 
 Tone rules: food, rickshaws, cricket, load shedding, aunties and uncles are fair game. No real people, no religion, no politics, and no jokes that put down any city, province or group. Every joke should be something a Pakistani kid would laugh at with their family.
 
@@ -18,7 +18,11 @@ Tone rules: food, rickshaws, cricket, load shedding, aunties and uncles are fair
 4. The egg hatches in an incubator, and the brainrot walks to a plot and earns rupees every second into your **galla**.
 5. Spend rupees on zone gates, vehicles, upgrades, petrol, gear, haveli levels and Kismat Rolls, then rebirth (Naya Safar) to open the ring 3 zones.
 
-Other ways to get brainrots: the Kismat Roll (RNG), stealing from other players' havelis (with a Chor Pass), and Collection Book rewards.
+Other ways to get brainrots:
+
+- **Wild brainrots** roam the zones now and then: Rare or better, using the zone's own odds (never Secret). Walk up and hold E to catch one. Vehicles and horns scare them off, so you park and sneak up on foot.
+- **The Mandi lane:** brainrots walk out of the Brainrot Mandi arch and round a brick lane in front of the haveli doors. Press E to buy one with rupees. They are mostly Common and Uncommon and cost 2.5 times their value, so eggs stay the best way.
+- The Kismat Roll (RNG), stealing from other players' havelis (with a Chor Pass), and Collection Book rewards.
 
 ### The first version's loop (conveyor lane)
 
@@ -109,21 +113,23 @@ One big circle, about 1,500 studs across.
 
 - **The Chowk** in the middle: a fountain, the Sell stall, Gear Shop, Radar Wala, Kismat Kettle, Naya Safar gate, quest board and leaderboard.
 - **8 havelis** in a ring around the Chowk, facing the fountain. Each is two floors with up to 20 plots, incubators, a galla and a rooftop.
+- **The Mandi lane:** a brick path round the Chowk, just in front of the haveli doors, where brainrots for sale walk out of the Brainrot Mandi arch and all the way round.
 - **The Lahore bazaar** (the town ring): stalls along a round bazaar street and six sectors: Brainrot Mandi, Kite Point, Cricket Gali, Mela Ground, Chai Dhaba Bazaar (Ustad's Workshop for vehicle upgrades) and the Rickshaw Stand (the Gaari Showroom).
 - **The town wall** with four gates. Outside it, **4 regions** (Punjab, Sindh, Thar and Balochistan, KPK and the North), each cut into **3 rings**: 12 zones.
 
 | Region | Ring 1 | Ring 2 | Ring 3 |
 | --- | --- | --- | --- |
-| Punjab | Mango Bagh · free | Sarson Fields · Rs 200,000 | Lahore Qila · 1 rebirth |
-| Sindh | Railway Junction · Rs 10,000 | Sahil Beach · Rs 400,000 | Karachi Port · 2 rebirths |
-| Thar | Camel Mela · Rs 30,000 | Thar Desert · Rs 750,000 | Mohenjo-daro · 3 rebirths |
-| KPK | Qissa Khawani · Rs 75,000 | Namak Caves · Rs 1,500,000 | Barfani Pahar · 4 rebirths (Secret brainrots) |
+| Punjab | Mango Bagh · free | Sarson Fields · Rs 500,000 | Lahore Qila · 1 rebirth |
+| Sindh | Railway Junction · Rs 15,000 | Sahil Beach · Rs 1,200,000 | Karachi Port · 2 rebirths |
+| Thar | Camel Mela · Rs 50,000 | Thar Desert · Rs 3,000,000 | Mohenjo-daro · 3 rebirths |
+| KPK | Qissa Khawani · Rs 150,000 | Namak Caves · Rs 7,000,000 | Barfani Pahar · 4 rebirths (Secret brainrots) |
 
 - **Farther out always costs more:** every ring 2 zone costs more than every ring 1 zone, and ring 3 needs rebirths. Unlocks are kept after a rebirth.
 - **No straight runs:** the gate into ring 2 is turned 30 degrees one way and the gate into ring 3 30 degrees the other way, so you zigzag through each zone.
 - **Shortcut doors** between neighbouring regions open once you have unlocked both sides.
 - **Hazards** knock you back and knock time off eggs, but never hurt: the train in Railway Junction (watch the crossing light), waves at Sahil Beach, falling salt rocks in the Namak Caves, slippery frozen lakes and snowballs in Barfani Pahar, sandstorms in the Thar Desert and Mohenjo-daro, mud in Mango Bagh and Sarson Fields, and water at the beach, port and fort moat.
-- **Roads** run from the Chowk through every gate, with **petrol pumps** by the gates and a **rickshaw stand** at the far end of each ring 3 zone that takes you back to the Chowk for free.
+- **Roads** run from the Chowk through every gate, with **petrol pumps** by the gates and a **rickshaw stand** at the far end of each ring 3 zone that takes you back to the Chowk for free (people only: no eggs, no vehicles).
+- **Wild brainrots** wander between open spots in their zone and show on everyone's radar.
 
 ## Vehicles
 
@@ -140,6 +146,8 @@ Vehicles are how you reach the far zones. Everything about them is bought with r
 - **Fuel:** driving uses fuel; an empty tank crawls at walking speed. Petrol pumps fill you up for rupees, and parked vehicles refill slowly for free at your haveli.
 - **The boot:** eggs picked up while driving ride in the boot. Drive up to your haveli door and they go straight into your incubators.
 - **Friends** can hop on and ride along.
+- **Crashes:** a solid bumper stops the vehicle at walls, trees, buildings and other vehicles (never at players). Hit something fast and you bounce back with a crunch.
+- **Horns:** H or the Horn button. Every vehicle sounds different (the rickshaw goes pon pon), and horns scare wild brainrots.
 - **Paint jobs** (Phool Patti, Sona, Rangeela, Chamak) are the only Robux item for vehicles, and they change looks only.
 - Riding brainrots was removed when vehicles came in.
 
@@ -154,12 +162,16 @@ The map is one big bazaar with a lane down the middle and eight havelis (player 
 
 ## Progression and events
 
-- **Haveli levels:** 9 levels from 4 plots up to 20, with incubators, a Laser Darwaza, a garden, a second floor, a Chowkidar and a rooftop along the way.
+- **Haveli levels:** 9 levels from 4 plots up to 20 (Rs 4,000 up to Rs 2,000,000), with incubators, a Laser Darwaza, a garden, a second floor, a Chowkidar and a rooftop along the way.
 - **Zones:** unlock ring 1 and ring 2 zones with rupees at their gates.
-- **Rebirth ("Naya Safar"):** starts at Rs 1,000,000 (2.5 times more each time). You reset your rupees, haveli level, radar and brainrots for a permanent +50% income multiplier and a new haveli theme, and each of the first four rebirths opens one ring 3 zone. You keep gear, vehicles and unlocked zones.
+- **Rebirth ("Naya Safar"):** starts at Rs 2,500,000 (4 times more each time). You reset your rupees, haveli level, radar and brainrots for a permanent +50% income multiplier and a new haveli theme, and each of the first four rebirths opens one ring 3 zone. You keep gear, vehicles and unlocked zones.
 - **Daily chai:** log in each day for a free brainrot or a rupee boost.
 - **Events:** every 15-20 minutes: Basant Kite Festival, Baarish, Cricket Mania, Load Shedding, Mela Night and Sardi, each with its own boosts. Event content stays friendly to everyone.
 - **Collection book:** a Pokédex-style page that fills in as you discover each brainrot.
+
+### Pacing
+
+A simulation (`tests/run.sh pacing`) plays the game hundreds of times with fast, typical and casual players, using the real map and numbers. With the current prices a typical player buys a motorbike after about 4 minutes, opens Railway Junction after about 8, finishes ring 1 after about 23, opens the first ring 2 zone after about 36 and starts the **first Naya Safar after about 53 minutes** (fast players about 47, casual about 64). The 2nd, 3rd and 4th follow at about 79, 110 and 150 minutes. Ring 2 is meant to be finished over several rebirths, because opened zones stay open. The README has the full table and what the simulation changed.
 
 ## Monetization ideas
 

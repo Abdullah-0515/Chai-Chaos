@@ -772,6 +772,89 @@ local function buildHub(map: Model): { [string]: BasePart }
 end
 
 ---------------------------------------------------------------------------
+-- The Mandi lane: a brick path round the Chowk, in front of the haveli doors.
+-- Brainrots come out of the Brainrot Mandi arch and walk round it (Mandi.luau).
+---------------------------------------------------------------------------
+local function buildMandiLane(map: Model)
+	local folder = Instance.new("Folder")
+	folder.Name = "MandiLane"
+	folder.Parent = map
+	local r = Biomes.MANDI_RADIUS
+	local steps = 72
+	local chord = 2 * r * math.sin(math.pi / steps) + 0.4
+	for i = 0, steps - 1 do
+		local angle = (i + 0.5) * 360 / steps
+		local a = math.rad(angle)
+		local p = Biomes.polar(angle, r) + Vector3.new(0, 0.1, 0)
+		local tangent = Vector3.new(-math.sin(a), 0, math.cos(a))
+		part({
+			Name = "LaneTile",
+			Size = Vector3.new(8, 0.2, chord),
+			CFrame = CFrame.lookAt(p, p + tangent),
+			Color = if i % 2 == 0 then rgb(190, 95, 60) else rgb(210, 120, 75),
+			Material = Enum.Material.Brick,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = folder,
+		})
+		-- arrows show which way the brainrots walk
+		if i % 6 == 3 then
+			local cf = CFrame.lookAt(p, p + tangent) * CFrame.new(0, 0.05, 0)
+			for _, side in { -1, 1 } do
+				part({
+					Name = "LaneArrow",
+					Size = Vector3.new(0.6, 0.2, 3),
+					CFrame = cf * CFrame.new(side * 0.9, 0, 0) * CFrame.Angles(0, math.rad(35 * side), 0),
+					Color = rgb(255, 240, 200),
+					CanCollide = false,
+					CastShadow = false,
+					Parent = folder,
+				})
+			end
+		end
+	end
+
+	-- the Brainrot Mandi arch where they come out
+	local start = Biomes.polar(Biomes.MANDI_START, r)
+	local outward = (start * Vector3.new(1, 0, 1)).Unit
+	local a = math.rad(Biomes.MANDI_START)
+	local tangent = Vector3.new(-math.sin(a), 0, math.cos(a))
+	local archCF = CFrame.lookAt(start, start + tangent)
+	for _, side in { -1, 1 } do
+		part({
+			Name = "MandiPillar",
+			Size = Vector3.new(2, 16, 2),
+			CFrame = CFrame.new(start + outward * side * 6 + Vector3.new(0, 8, 0)),
+			Color = rgb(230, 120, 40),
+			Material = Enum.Material.Brick,
+			Parent = folder,
+		})
+	end
+	local sign = part({
+		Name = "MandiSign",
+		Size = Vector3.new(14, 3, 1),
+		CFrame = archCF * CFrame.new(0, 17, 0),
+		Color = rgb(40, 120, 60),
+		Parent = folder,
+	})
+	surfaceText(sign, Enum.NormalId.Front, "BRAINROT MANDI", rgb(255, 230, 90))
+	surfaceText(sign, Enum.NormalId.Back, "BRAINROT MANDI", rgb(255, 230, 90))
+	for k = -3, 3 do
+		part({
+			Name = "Bulb",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 0.7,
+			CFrame = archCF * CFrame.new(k * 2, 15.2, 0),
+			Color = BRIGHT[(k + 4) % #BRIGHT + 1],
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = folder,
+		})
+	end
+end
+
+---------------------------------------------------------------------------
 -- Roads, walls, gates, shortcut doors, petrol pumps and the edge of the world
 ---------------------------------------------------------------------------
 local ROAD_COLORS = {
@@ -1209,6 +1292,7 @@ local function build(): (Model, { [string]: any })
 		)
 	end
 	buildRoads(map)
+	buildMandiLane(map)
 	buildWalls(map)
 	buildTown(map)
 	local biomes = Instance.new("Folder")

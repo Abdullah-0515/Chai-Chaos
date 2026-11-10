@@ -4,7 +4,10 @@
 --   turns towards it like a car, instead of spinning on the spot. On ice it
 --   slides and on sand it turns slowly, unless its tyres (Grip) are good enough.
 -- * You sit in the seat (the default sit animation).
--- * A fuel gauge, the eggs in your boot and a Park button while you drive.
+-- * A fuel gauge, the eggs in your boot, a Horn button (or H) and a Park
+--   button while you drive.
+-- * Crashes: the vehicle's bumper is solid (see Garage.luau). Hit a wall or a
+--   tree at speed and you bounce back with a crunch and stop for a moment.
 -- * Rangeela (rainbow) paint jobs change colour on everyone's screen.
 -- The server sets the speed, uses the fuel and decides everything else.
 
@@ -12,11 +15,13 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Vehicles = require(Shared:WaitForChild("Vehicles"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
+local SoundPlayer = require(script.Parent:WaitForChild("SoundPlayer"))
 
 local rgb, create, label = Ui.rgb, Ui.create, Ui.label
 local player = Players.LocalPlayer
@@ -25,6 +30,10 @@ local gui = player:WaitForChild("PlayerGui"):WaitForChild("ChaiChaosHud")
 local BIND = "ChaiChaosDrive"
 local ICE = { [Enum.Material.Ice] = true, [Enum.Material.Glacier] = true }
 local SAND = { [Enum.Material.Sand] = true }
+local CRASH_SPEED = 16 -- hitting something faster than this is a crash
+local CRASH_STOP = 0.35 -- ...when the speed drops below this share in one frame
+local CRASH_BOUNCE = 22 -- how hard you bounce back
+local CRASH_STUN = 0.7 -- seconds before you can drive again
 
 ---------------------------------------------------------------------------
 -- The dashboard: fuel, boot and the Park button
@@ -33,7 +42,7 @@ local dash = create("Frame", {
 	Name = "Dashboard",
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -12),
-	Size = UDim2.fromOffset(330, 74),
+	Size = UDim2.fromOffset(420, 74),
 	BackgroundColor3 = rgb(40, 30, 25),
 	BackgroundTransparency = 0.15,
 	Visible = false,
@@ -42,14 +51,14 @@ local dash = create("Frame", {
 local vehicleName = label({
 	Name = "Vehicle",
 	Position = UDim2.fromOffset(10, 4),
-	Size = UDim2.new(1, -110, 0, 24),
+	Size = UDim2.new(1, -200, 0, 24),
 	TextXAlignment = Enum.TextXAlignment.Left,
 	Parent = dash,
 })
 local fuelBar = create("Frame", {
 	Name = "FuelBar",
 	Position = UDim2.fromOffset(10, 32),
-	Size = UDim2.new(1, -110, 0, 16),
+	Size = UDim2.new(1, -200, 0, 16),
 	BackgroundColor3 = rgb(80, 70, 60),
 	Parent = dash,
 }, { Ui.corner(8) })
@@ -62,7 +71,7 @@ local fuelFill = create("Frame", {
 local fuelText = label({
 	Name = "FuelText",
 	Position = UDim2.fromOffset(10, 50),
-	Size = UDim2.new(1, -110, 0, 20),
+	Size = UDim2.new(1, -200, 0, 20),
 	TextColor3 = rgb(255, 230, 170),
 	TextXAlignment = Enum.TextXAlignment.Left,
 	Parent = dash,
@@ -78,6 +87,23 @@ local parkButton = Ui.textButton({
 })
 parkButton.Activated:Connect(function()
 	Remotes.Drive:FireServer(nil)
+end)
+local hornButton = Ui.textButton({
+	Name = "Horn",
+	AnchorPoint = Vector2.new(1, 0.5),
+	Position = UDim2.new(1, -104, 0.5, 0),
+	Size = UDim2.fromOffset(82, 56),
+	BackgroundColor3 = rgb(230, 170, 40),
+	Text = "Horn",
+	Parent = dash,
+})
+hornButton.Activated:Connect(function()
+	Remotes.Honk:FireServer()
+end)
+UserInputService.InputBegan:Connect(function(input: InputObject, typing: boolean)
+	if not typing and input.KeyCode == Enum.KeyCode.H and (player:GetAttribute("Driving") or "") ~= "" then
+		Remotes.Honk:FireServer()
+	end
 end)
 
 local function refreshDash()
@@ -114,6 +140,8 @@ local sitTrack: AnimationTrack? = nil
 local heading = Vector3.new(0, 0, -1)
 local moveDir = heading
 local throttle = 0
+local lastSpeed = 0
+local stunnedUntil = 0
 
 local function flat(v: Vector3): Vector3
 	local f = Vector3.new(v.X, 0, v.Z)
@@ -140,6 +168,7 @@ local function startDriving(character: Model, humanoid: Humanoid, root: BasePart
 	end
 	moveDir = heading
 	throttle = 0
+	lastSpeed = 0
 	-- sit in the seat with the character's own sit animation
 	local animate = character:FindFirstChild("Animate")
 	local sit = animate and animate:FindFirstChild("sit")
@@ -169,6 +198,20 @@ local function startDriving(character: Model, humanoid: Humanoid, root: BasePart
 		local input = flat(raw)
 		local strength = math.min(1, raw.Magnitude)
 		local target = 0
+		-- crashed into something? bounce back and stop for a moment
+		local velocity = root.AssemblyLinearVelocity or Vector3.zero
+		local speed = (velocity * Vector3.new(1, 0, 1)).Magnitude
+		local now = os.clock()
+		if lastSpeed > CRASH_SPEED and speed < lastSpeed * CRASH_STOP and throttle > 0.5 and now > stunnedUntil then
+			stunnedUntil = now + CRASH_STUN
+			throttle = 0
+			root.AssemblyLinearVelocity = -moveDir * CRASH_BOUNCE + Vector3.new(0, 8, 0)
+			SoundPlayer.play("Crash", root.Position)
+		end
+		lastSpeed = speed
+		if now < stunnedUntil then
+			strength = 0
+		end
 		if strength > 0.05 then
 			local turnRate = math.rad(if icy then 80 elseif sandy then 110 else 170)
 			local angle = math.atan2(heading:Cross(input).Y, heading:Dot(input))

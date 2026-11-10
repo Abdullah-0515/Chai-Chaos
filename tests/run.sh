@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Plays through Chai Chaos on a mock Roblox engine (no Studio needed).
+# tests/run.sh pacing runs the pacing simulation instead (tests/pacing.luau).
 # Needs: Rust (cargo), Python 3 and curl. Run from anywhere: tests/run.sh
 set -euo pipefail
 
@@ -32,5 +33,7 @@ fi
 # 3. A tiny Rust program that embeds the real Luau VM.
 cargo build --release --quiet --manifest-path "$TEST_DIR/runner/Cargo.toml"
 
+# 4. Run the playthrough, or another script: tests/run.sh pacing
+SCRIPT="${1:-playthrough}"
 TEST_DIR="$TEST_DIR" CACHE_DIR="$CACHE_DIR" SRC_DIR="$ROOT/src" \
-  "$TEST_DIR/runner/target/release/luau-runner" "$TEST_DIR/playthrough.luau"
+  "$TEST_DIR/runner/target/release/luau-runner" "$TEST_DIR/$SCRIPT.luau"

@@ -12,6 +12,12 @@
 -- * Grip: mud, sand and ice slow vehicles down (and ice makes them slide)
 --   unless their tyres are good enough (see Vehicles.luau and Hazards.luau).
 -- * Paint jobs (Robux, looks only) recolour the painted panels.
+-- * Crashes: every vehicle has a solid bumper (an invisible box the size of
+--   the vehicle, raised a little off the road). It stops at walls, trees,
+--   buildings, fences and other vehicles, but never shoves other players
+--   (see Defenses). Driving.client bounces you back when you hit something.
+-- * The horn (H, or the Horn button): every vehicle sounds different, and a
+--   honk scares wild brainrots away (see Wild.luau).
 --
 -- Vehicles and their upgrades are kept forever, even after a Naya Safar.
 
@@ -25,6 +31,7 @@ local Remotes = require(Shared.Remotes)
 local Vehicles = require(Shared.Vehicles)
 
 local State = require(script.Parent.State)
+local Defenses = require(script.Parent.Defenses)
 local Havelis = require(script.Parent.Havelis)
 local Props = require(script.Parent.Props)
 local Upgrades = require(script.Parent.Upgrades)
@@ -33,6 +40,10 @@ local EggSystem = require(script.Parent.EggSystem)
 local Garage = {}
 
 local SEAT_LIFT = 1.1 -- a sitting character's middle is this far above the seat
+local BUMPER_CLEARANCE = 1.4 -- the bumper's bottom is this high off the road, so kerbs do not stop you
+local BUMPER_FOOTPRINT = 0.9 -- of the vehicle's length and width
+local HONK_COOLDOWN = 0.8
+local HONK_GAP = 0.22 -- seconds between the beeps of a "pon pon"
 local HOME_REFILL_RANGE = 40 -- parked vehicles refill while you are this close to your door
 local PHOOL_PATTI = {
 	Color3.fromRGB(230, 50, 60),
@@ -414,6 +425,27 @@ function Garage.drive(player: Player, id: any)
 	end
 	Garage.paint(model, profile.data.paint)
 
+	-- the solid bumper that crashes into things
+	local center, size = Props.bounds(name)
+	local bottom = math.max(0, center.Y - size.Y / 2) + BUMPER_CLEARANCE
+	local top = math.max(bottom + 1, center.Y + size.Y / 2)
+	local bumper = Instance.new("Part")
+	bumper.Name = "Bumper"
+	bumper.Size = Vector3.new(size.X * BUMPER_FOOTPRINT, top - bottom, size.Z * BUMPER_FOOTPRINT)
+	bumper.CFrame = CFrame.new(center.X, (bottom + top) / 2, center.Z)
+	bumper.Transparency = 1
+	bumper.CanCollide = true
+	bumper.CanTouch = false
+	bumper.CanQuery = false
+	bumper.Massless = true
+	bumper.CollisionGroup = Defenses.VEHICLE_GROUP
+	bumper.Parent = model
+	local hold = Instance.new("WeldConstraint")
+	hold.Name = "Hold"
+	hold.Part0 = vehicleRoot
+	hold.Part1 = bumper
+	hold.Parent = bumper
+
 	-- sit the driver on the seat: raise them so the wheels touch the ground
 	profile.baseHipHeight = profile.baseHipHeight or humanoid.HipHeight
 	local rootHalf = root.Size.Y / 2
@@ -435,6 +467,7 @@ function Garage.drive(player: Player, id: any)
 		entry = entry,
 		model = model,
 		root = vehicleRoot,
+		bumper = bumper,
 		seat = seat,
 		seats = seats,
 		lastPos = root.Position,
@@ -463,6 +496,30 @@ function Garage.drive(player: Player, id: any)
 		State.notify(player, "bad", "Your tank is empty! Fill up at a petrol pump.")
 	end
 end
+
+-- Pon pon! Everyone nearby hears it; wild brainrots run away from it.
+function Garage.honk(player: Player)
+	local profile = State.profiles[player]
+	local drive = profile and profile.driving
+	if not drive then
+		return
+	end
+	local t = os.clock()
+	if t - (drive.honkAt or 0) < HONK_COOLDOWN then
+		return
+	end
+	drive.honkAt = t
+	local position = drive.root.Position
+	for i = 1, drive.def.honks do
+		task.delay((i - 1) * HONK_GAP, function()
+			Remotes.PlaySound:FireAllClients("Horn", position, drive.def.horn)
+		end)
+	end
+	if Garage.onHonk then
+		Garage.onHonk(player, position)
+	end
+end
+Garage.onHonk = nil :: ((Player, Vector3) -> ())?
 
 -- A friend hops on (the RideAlong prompt on a passenger seat).
 function Garage.rideAlong(player: Player, seat: Instance?)
@@ -614,6 +671,7 @@ function Garage.init(gameMap)
 	Remotes.UpgradeVehicle.OnServerEvent:Connect(Garage.upgrade)
 	Remotes.Drive.OnServerEvent:Connect(Garage.drive)
 	Remotes.SetPaint.OnServerEvent:Connect(Garage.setPaint)
+	Remotes.Honk.OnServerEvent:Connect(Garage.honk)
 	task.spawn(function()
 		while true do
 			Garage.tick(task.wait(0.25))

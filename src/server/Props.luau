@@ -117,6 +117,12 @@ function Props.size(name: string, scale: number?): Vector3
 	return v3(PropData.props[name].size, scale)
 end
 
+-- The middle of the prop's box (from its ground point) and its size.
+function Props.bounds(name: string, scale: number?): (Vector3, Vector3)
+	local spec = PropData.props[name]
+	return v3(spec.center, scale), v3(spec.size, scale)
+end
+
 -- Where a named point of the prop ends up when it is placed at `cf`.
 function Props.anchor(name: string, anchorName: string, cf: CFrame, scale: number?): Vector3
 	local spec = PropData.props[name]
