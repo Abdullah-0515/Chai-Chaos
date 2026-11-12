@@ -529,9 +529,10 @@ def chowk_dhaba(p):
     p.box((w, dp, 0.4), (0, 0, 0.2), None, "stone", "Concrete")
     p.box((w - 1, 0.6, 8.2), (0, back - 0.6, 4.5), None, "plaster", "SmoothPlastic")
     for x in (-w / 2 + 0.5, -3.4, w / 2 - 0.5):
-        p.box((0.5, 0.5, 8.8), (x, front + 0.6, 4.8), None, "wood", "Wood")
+        p.box((0.6, 0.6, 8.8), (x, front + 0.6, 4.8), None, "warmwood", "Wood")
     for x in (-w / 2 + 0.5, w / 2 - 0.5):
-        p.box((0.5, 0.5, 8.2), (x, back - 0.6, 4.5), None, "wood", "Wood")
+        p.box((0.6, 0.6, 8.2), (x, back - 0.6, 4.5), None, "warmwood", "Wood")
+    p.box((w, 0.5, 0.5), (0, front + 0.6, 8.95), None, "warmwood", "Wood", D)
     # shelves of tins and jars on the back wall
     for z in (4.2, 6.0):
         p.box((7.4, 0.9, 0.2), (-4.4, back - 1.4, z), None, "darkwood", "WoodPlanks", D)
@@ -585,13 +586,17 @@ def chowk_dhaba(p):
         p.box((0.4, 0.4, 2.2), (x, sy + 0.5, 9.9), None, "wood", "Wood", D)
     p.box((14.8, 0.3, 4.2), (0, sy + 0.2, 11.6), None, "cream", "WoodPlanks", D)
     p.box((14.2, 0.3, 3.6), (0, sy, 11.6), None, "dhabateal", "WoodPlanks", D)
-    p.box((9.0, 0.1, 0.16), (0, sy - 0.2, 10.35), None, "yellow", "SmoothPlastic", D)
+    p.box((9.0, 0.1, 0.16), (0, sy - 0.2, 10.35), None, "ochre", "SmoothPlastic", D)
     p.box((0.34, 0.12, 0.34), (0, sy - 0.22, 10.35), (0, 45, 0), "red", "SmoothPlastic", D)
+    for side in (-1, 1):  # cream leaf sprigs at both ends of the sign
+        for k, (dx, dz, turn) in enumerate(((0, 0.5, 20), (0.35, 0.0, -25), (0, -0.5, 20))):
+            p.box((0.7, 0.1, 0.24), (side * (6.45 + dx * 0.3), sy - 0.2, 11.6 + dz), (0, side * (turn + k * 8), 0),
+                  "cream", "SmoothPlastic", D)
     p.anchor("Sign", (0, sy - 0.22, 11.85))
     # string lights under the awning
     p.box((w, 0.06, 0.06), (0, front - 2.3, 7.15), None, "black", "SmoothPlastic", D)
-    for i in range(7):
-        p.ball(0.3, (-w / 2 + 1.5 + i * 2.5, front - 2.3, 6.85), "bulb", "Neon", D | (LIGHT if i % 3 == 0 else 0))
+    for i in range(10):
+        p.ball(0.32, (-w / 2 + 0.9 + i * 1.8, front - 2.3, 6.85), "bulb", "Neon", D | (LIGHT if i % 3 == 0 else 0))
 
 
 @prop("ChowkGate", "zone", "The red-brick arch over each road out of the Chowk (an 18 stud opening); the game writes where it leads")
@@ -636,3 +641,67 @@ def planter_tree(p):
     p.blob(3.5, (0, 0, 10.4), (1, 1, 0.9), "leaflight", seed=3)
     p.blob(2.7, (2.4, 0.6, 8.9), color="leaf", seed=5)
     p.blob(2.5, (-2.3, -0.5, 8.5), color="leaf", seed=8)
+
+
+def chowk_house(p, wall, wall_mat, upper, upper_mat, trim, awning, door, top="merlons", band=None, crates=None):
+    """A little two-storey bazaar house: a shop with an awning below, a balcony with arches above."""
+    w, dp = 10.0, 8.0
+    front = -dp / 2
+    p.box((w, dp, 7), (0, 0, 3.5), None, wall, wall_mat)
+    p.box((w, dp - 1.6, 6.6), (0, 0.8, 10.3), None, upper, upper_mat)
+    # the balcony
+    p.box((w + 0.4, 2.0, 0.3), (0, front + 0.8, 7.15), None, trim)
+    p.box((w + 0.2, 0.25, 0.25), (0, front - 0.05, 8.3), None, trim, "SmoothPlastic", D)
+    for x in (-4.6, -2.3, 0, 2.3, 4.6):
+        p.box((0.3, 0.25, 1.0), (x, front - 0.05, 7.75), None, trim, "SmoothPlastic", D)
+    # three arched openings upstairs
+    for x in (-3.1, 0, 3.1):
+        p.box((2.0, 0.2, 2.9), (x, front + 1.55, 9.6), None, "maroon", "SmoothPlastic", D)
+        p.cyl(1.0, 0.2, (x, front + 1.55, 11.05), (90, 0, 0), "maroon", "SmoothPlastic", D, verts=12)
+    # a door and a shuttered window
+    p.box((2.6, 0.25, 4.6), (-2.3, front - 0.05, 2.3), None, door, "WoodPlanks", D)
+    p.box((2.4, 0.25, 2.4), (2.5, front - 0.05, 3.5), None, trim, "SmoothPlastic", D)
+    p.box((1.9, 0.3, 1.9), (2.5, front - 0.08, 3.5), None, door, "WoodPlanks", D)
+    # the striped awning
+    for i in range(5):
+        p.box((w / 5, 2.8, 0.2), (-w / 2 + w / 10 + i * w / 5, front - 1.25, 6.1), (20, 0, 0),
+              awning[i % len(awning)], "Fabric", D)
+    # the roof line
+    p.box((w + 0.5, dp - 1.1, 0.5), (0, 0.8, 13.85), None, trim)
+    if top == "merlons":
+        for x in (-4.1, -1.4, 1.4, 4.1):
+            p.box((1.5, 1.0, 1.1), (x, front + 2.1, 14.65), None, upper, upper_mat)
+    else:
+        p.box((w, 0.5, 1.0), (0, front + 1.9, 14.6), None, upper, upper_mat)
+    if band:
+        p.box((w + 0.1, 0.15, 1.0), (0, front + 1.52, 12.9), None, band[0], "SmoothPlastic", D)
+        for x in (-3.6, -1.2, 1.2, 3.6):
+            p.box((0.6, 0.18, 0.6), (x, front + 1.5, 12.9), (0, 45, 0), band[1], "SmoothPlastic", D)
+    for i, color in enumerate(crates or ()):
+        x = -3.4 + i * 2.2
+        p.box((1.8, 1.4, 1.1), (x + 2.0, front - 2.6, 0.55), None, "lightwood", "WoodPlanks")
+        p.box((1.5, 1.1, 0.35), (x + 2.0, front - 2.6, 1.2), None, color, "SmoothPlastic", D)
+
+
+@prop("ChowkHouseCream", "zone", "A cream bazaar house with a brick upper floor and a red striped awning")
+def chowk_house_cream(p):
+    chowk_house(p, "cream", "SmoothPlastic", "rosebrick", "Brick", "cream", ("red", "white"), "dhabateal",
+                band=("dhabateal", "gold"))
+
+
+@prop("ChowkHouseBrick", "zone", "A red-brick bazaar house with a yellow awning and teal shutters")
+def chowk_house_brick(p):
+    chowk_house(p, "rosebrick", "Brick", "peach", "SmoothPlastic", "cream", ("yellow", "ochre"), "dhabateal",
+                top="flat", crates=("red", "yellow"))
+
+
+@prop("ChowkHouseOchre", "zone", "A yellow bazaar house with a striped awning and crates of fruit")
+def chowk_house_ochre(p):
+    chowk_house(p, "ochre", "SmoothPlastic", "cream", "SmoothPlastic", "cream", ("red", "white", "yellow"), "maroon",
+                crates=("orange", "red", "leaflight"))
+
+
+@prop("ChowkHousePeach", "zone", "A peach bazaar house with a terracotta upper floor and a green awning")
+def chowk_house_peach(p):
+    chowk_house(p, "peach", "SmoothPlastic", "terracotta", "Brick", "cream", ("dhabateal", "cream"), "blue",
+                top="flat", band=("ochre", "red"))

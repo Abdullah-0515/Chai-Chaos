@@ -42,14 +42,17 @@ function World.init()
 	Lighting.GlobalShadows = true
 
 	local color = effect("ColorCorrectionEffect", "ChaiChaosColor")
-	color.Saturation = 0.22
-	color.Contrast = 0.06
+	color.Saturation = 0.3
+	color.Contrast = 0.08
 	color.Brightness = 0.02
 	color.TintColor = rgb(255, 249, 238)
 	local bloom = effect("BloomEffect", "ChaiChaosBloom")
 	bloom.Intensity = 0.35
 	bloom.Size = 24
 	bloom.Threshold = 1.7
+	local rays = effect("SunRaysEffect", "ChaiChaosRays")
+	rays.Intensity = 0.06
+	rays.Spread = 0.8
 	local atmosphere = effect("Atmosphere", "ChaiChaosAir")
 	atmosphere.Density = 0.22
 	atmosphere.Offset = 0.1

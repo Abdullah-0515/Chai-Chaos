@@ -661,6 +661,41 @@ do
 			kite and kite.KitePanel1.Position.Y > 30 and kite.KiteString.CanCollide == false,
 			"a kite flies over the Chowk"
 		)
+		-- colourful bazaar houses round the square, with a walkway to every haveli door
+		local houseCount, styles, blocked, gateBulbs, rings = 0, {}, 0, 0, 0
+		for _, d in map:GetChildren() do
+			if d.Name:match("^ChowkHouse") then
+				houseCount += 1
+				styles[d.Name] = (styles[d.Name] or 0) + 1
+				local at = d.WorldPivot.Position * FLAT
+				blocked += if Biomes.roadDistance(at) < 3 then 1 else 0
+				for _, h in Havelis.all() do
+					local door = h.doorOutside.Position * FLAT
+					local along = door.Unit
+					local ahead = at:Dot(along)
+					local aside = (at - along * ahead).Magnitude
+					-- houses are 10 wide: leave at least 4 studs each side of the way to the door
+					if ahead > 0 and aside < 5 + 4 then
+						blocked += 1
+					end
+				end
+			elseif d.Name == "GateBulb" then
+				gateBulbs += 1
+			elseif d.Name == "PlazaRing" then
+				rings += 1
+			end
+		end
+		check(houseCount == 16, "16 bazaar houses round the square: " .. houseCount)
+		check(
+			styles.ChowkHouseCream == 4
+				and styles.ChowkHouseBrick == 4
+				and styles.ChowkHouseOchre == 4
+				and styles.ChowkHousePeach == 4,
+			"in four colours"
+		)
+		check(blocked == 0, "no house stands on a road or in the way to a haveli door: " .. blocked)
+		check(gateBulbs == 64, "string lights from every arch to the rooftops")
+		check(rings == 5 and map:FindFirstChild("Sidewalk") ~= nil, "rings in the paving and a warm sidewalk")
 		local brickRoads, asphaltLines = 0, 0
 		for _, d in map.Roads:GetChildren() do
 			if d.Name == "Road" and d.Material == M.Enum.Material.Brick then

@@ -46,8 +46,12 @@ local PLOTS_PER_FLOOR = 10
 local INCUBATOR_SPOTS = { { 11, -11 }, { 19, -11 }, { -17, -11 }, { -21, -18 } }
 local SHOP_RADIUS = 50
 local CHOWK_GATE_RADIUS = 80 -- the brick arches over the roads out of the Chowk
+local CHOWK_HOUSE_RADIUS = 86 -- the bazaar houses round the square stand this far out...
+local CHOWK_HOUSE_ASIDE = 9.5 -- ...and this far to each side of the walkway to a haveli's door
 -- the Chowk's colours, after the reference picture
 local TERRACOTTA = Color3.fromRGB(198, 110, 82)
+local TERRACOTTA_LIGHT = Color3.fromRGB(226, 142, 108)
+local CHOWK_HOUSES = { "ChowkHouseCream", "ChowkHouseBrick", "ChowkHouseOchre", "ChowkHousePeach" }
 local ROSE_BRICK = Color3.fromRGB(200, 96, 84)
 local STONE = Color3.fromRGB(245, 235, 212)
 local WARM_LIGHT = Color3.fromRGB(255, 214, 120)
@@ -566,6 +570,37 @@ local function buildHub(map: Model): { [string]: BasePart }
 		Material = Enum.Material.Brick,
 		Parent = map,
 	})
+	-- a warm sidewalk from the plaza out to the Mandi lane
+	part({
+		Name = "Sidewalk",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.2, (Biomes.MANDI_RADIUS - 4) * 2, (Biomes.MANDI_RADIUS - 4) * 2),
+		CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 0.1, 0))),
+		Color = rgb(236, 210, 186),
+		Material = Enum.Material.Pavement,
+		Parent = map,
+	})
+	-- rings of lighter brick in the paving, and pale stone round the fountain
+	for i, ring in
+		{
+			{ 60, TERRACOTTA_LIGHT },
+			{ 56, TERRACOTTA },
+			{ 36, TERRACOTTA_LIGHT },
+			{ 32, TERRACOTTA },
+			{ 17, STONE },
+		}
+	do
+		local height = 0.6 + i * 0.02
+		part({
+			Name = "PlazaRing",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(height, ring[1] * 2, ring[1] * 2),
+			CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, height / 2, 0))),
+			Color = ring[2],
+			Material = if ring[2] == STONE then Enum.Material.Marble else Enum.Material.Brick,
+			Parent = map,
+		})
+	end
 	-- a tiered fountain
 	for i, tier in { { 2, 26, 0 }, { 1.6, 14, 2.4 }, { 1.2, 6, 4.6 } } do
 		part({
@@ -757,7 +792,7 @@ local function buildHub(map: Model): { [string]: BasePart }
 	local onPlaza = Vector3.new(0, 0.6, 0) -- the plaza's paving is this much above the ground
 	local dhaba = spot(7) * CFrame.new(0, 0.6, 4)
 	Props.place("ChowkDhaba", dhaba, map)
-	Props.text(map, dhaba, Props.anchor("ChowkDhaba", "Sign", dhaba), 12.5, 2.3, "CHAI DHABA", STONE)
+	Props.text(map, dhaba, Props.anchor("ChowkDhaba", "Sign", dhaba), 11, 2.2, "CHAI DHABA", STONE)
 	Props.place("Charpai", dhaba * CFrame.new(-13, 0, -5) * CFrame.Angles(0, math.rad(75), 0), map)
 	Props.place("FruitStall", CFrame.lookAt(Biomes.polar(236, 60), center) + onPlaza, map)
 	-- rickshaws parked by the fountain
@@ -826,10 +861,55 @@ local function buildHub(map: Model): { [string]: BasePart }
 		)
 	end
 
+	-- colourful bazaar houses round the square: two in front of every haveli,
+	-- with a walkway between them from its door to the fountain
+	local houses = {}
+	for k = 1, 8 do
+		local inward = -Biomes.polar(math.deg(Biomes.haveliAngle(k)), 1) * Vector3.new(1, 0, 1)
+		local across = Vector3.new(-inward.Z, 0, inward.X)
+		for _, side in { -1, 1 } do
+			local position = Biomes.polar(math.deg(Biomes.haveliAngle(k)), CHOWK_HOUSE_RADIUS)
+				+ across * side * CHOWK_HOUSE_ASIDE
+				+ Vector3.new(0, 0.2, 0)
+			local name = CHOWK_HOUSES[(2 * k + (side + 1) / 2) % #CHOWK_HOUSES + 1]
+			Props.place(name, CFrame.lookAt(position, position + inward), map)
+			table.insert(houses, position)
+		end
+	end
+	-- warm string lights from each arch down to the nearest rooftops
+	for _, region in Biomes.REGIONS do
+		local archCF = CFrame.lookAt(Biomes.polar(region.angle, CHOWK_GATE_RADIUS), center)
+		for _, side in { -1, 1 } do
+			local from = (archCF * CFrame.new(side * 15, 24.6, 0)).Position
+			local to, best = from, math.huge
+			for _, house in houses do
+				local distance = (house - from).Magnitude
+				if distance < best and (house - archCF.Position):Dot(archCF.RightVector) * side > 0 then
+					to, best = house + Vector3.new(0, 14.6, 0), distance
+				end
+			end
+			for n = 1, 8 do
+				local t = n / 9
+				part({
+					Name = "GateBulb",
+					Shape = Enum.PartType.Ball,
+					Size = Vector3.one * 0.8,
+					Position = from:Lerp(to, t) - Vector3.new(0, 10 * t * (1 - t), 0),
+					Color = WARM_LIGHT,
+					Material = Enum.Material.Neon,
+					CanCollide = false,
+					CastShadow = false,
+					Parent = map,
+				})
+			end
+		end
+	end
+
 	-- a brainrot statue on a pedestal by the fountain: the boss himself
 	local statueAngle = math.rad(325)
 	local statueAt = center + Vector3.new(math.cos(statueAngle) * 19.5, 0.6, math.sin(statueAngle) * 19.5)
-	local statueCF = CFrame.lookAt(statueAt, statueAt + (statueAt - center) * Vector3.new(1, 0, 1))
+	-- he looks across the square, towards the Punjab side
+	local statueCF = CFrame.lookAt(statueAt, statueAt + Biomes.polar(208, 1) * Vector3.new(1, 0, 1))
 	part({
 		Name = "StatuePedestal",
 		Shape = Enum.PartType.Cylinder,
