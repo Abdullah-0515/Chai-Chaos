@@ -111,7 +111,7 @@ Six more special brainrots (Mithai Mamu, Lassi Lightning, Chowkidar Choocha, Ran
 
 One big circle, about 1,500 studs across.
 
-- **The Chowk** in the middle: a fountain, the Sell stall, Gear Shop, Radar Wala, Kismat Kettle, Naya Safar gate, quest board and leaderboard.
+- **The Chowk** in the middle: a fountain, the Sell stall, Gear Shop, Radar Wala, Kismat Kettle, Naya Safar gate, quest board and leaderboard. It is paved in terracotta brick, with the big Chai Dhaba, a red-brick arch over each road out, trees in planters, warm string lights, a Samosa Supremo statue by the fountain and a kite overhead (after the reference picture, `reference-chowk.jpg`).
 - **8 havelis** in a ring around the Chowk, facing the fountain. Each is two floors with up to 20 plots, incubators, a galla and a rooftop.
 - **The Mandi lane:** a brick path round the Chowk, just in front of the haveli doors, where brainrots for sale walk out of the Brainrot Mandi arch and all the way round.
 - **The Lahore bazaar** (the town ring): stalls along a round bazaar street and six sectors: Brainrot Mandi, Kite Point, Cricket Gali, Mela Ground, Chai Dhaba Bazaar (Ustad's Workshop for vehicle upgrades) and the Rickshaw Stand (the Gaari Showroom).

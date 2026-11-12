@@ -73,6 +73,8 @@ PALETTE = [
     ("lightning", (90, 180, 255)), ("chick", (255, 225, 70)), ("khaki", (190, 170, 110)), ("peacock", (30, 90, 200)),
     ("peacockteal", (20, 160, 150)), ("cypress", (30, 110, 60)), ("fountain", (120, 200, 255)), ("starnavy", (30, 35, 100)),
     ("blush", (255, 150, 160)), ("cream2", (255, 240, 205)), ("lime", (150, 220, 60)), ("magenta", (230, 40, 150)),
+    # the Chowk (the reference picture's teal sign, rosy brick and terracotta paving)
+    ("dhabateal", (28, 108, 98)), ("rosebrick", (200, 96, 84)), ("terracotta", (198, 110, 82)),
 ]
 # fmt: on
 COLOR_INDEX = {name: i for i, (name, _) in enumerate(PALETTE)}

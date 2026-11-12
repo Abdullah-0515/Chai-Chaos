@@ -516,3 +516,123 @@ def mela_stage(p):
     p.box((24, 1, 1.4), (0, 5, 14.4), None, "gold", "Metal")
     for i in range(8):
         p.ball(0.4, (-10.5 + i * 3, 4.4, 13.6), ("red", "yellow", "green", "blue")[i % 4], "Neon", D)
+
+
+# --------------------------------------------------------------------------
+# The Chowk, after the reference picture: the big Chai Dhaba, the brick arch
+# over each road and trees in planters
+# --------------------------------------------------------------------------
+@prop("ChowkDhaba", "zone", "The big Chai Dhaba at the Chowk: teal awning, brick counter, string lights; the game writes its name")
+def chowk_dhaba(p):
+    w, dp = 18.0, 11.0
+    front, back = -dp / 2, dp / 2
+    p.box((w, dp, 0.4), (0, 0, 0.2), None, "stone", "Concrete")
+    p.box((w - 1, 0.6, 8.2), (0, back - 0.6, 4.5), None, "plaster", "SmoothPlastic")
+    for x in (-w / 2 + 0.5, -3.4, w / 2 - 0.5):
+        p.box((0.5, 0.5, 8.8), (x, front + 0.6, 4.8), None, "wood", "Wood")
+    for x in (-w / 2 + 0.5, w / 2 - 0.5):
+        p.box((0.5, 0.5, 8.2), (x, back - 0.6, 4.5), None, "wood", "Wood")
+    # shelves of tins and jars on the back wall
+    for z in (4.2, 6.0):
+        p.box((7.4, 0.9, 0.2), (-4.4, back - 1.4, z), None, "darkwood", "WoodPlanks", D)
+    for x, z, color in ((-7.2, 4.2, "canvas"), (-5.8, 4.2, "yellow"), (-4.2, 4.2, "dhabateal"), (-2.6, 4.2, "purple"),
+                        (-6.4, 6.0, "red"), (-3.4, 6.0, "navy")):
+        p.box((1.0, 0.7, 0.8), (x, back - 1.4, z + 0.5), None, color, "SmoothPlastic", D)
+    # the brick counter with its band of diamonds
+    cx, cw, cy = 2.3, 12.6, front + 1.9
+    p.box((cw, 2.0, 2.8), (cx, cy, 1.8), None, "rosebrick", "Brick")
+    p.box((cw + 0.4, 2.4, 0.3), (cx, cy, 3.35), None, "cream", "SmoothPlastic")
+    p.box((cw, 0.12, 0.9), (cx, cy - 1.02, 2.4), None, "yellow", "SmoothPlastic", D)
+    for i in range(8):
+        p.box((0.6, 0.16, 0.6), (cx - cw / 2 + 0.85 + i * 1.56, cy - 1.04, 2.4), (0, 45, 0),
+              "dhabateal" if i % 2 == 0 else "red", "SmoothPlastic", D)
+    top = 3.5
+    # the kettle
+    kx = cx - 3.4
+    p.cyl(0.75, 0.9, (kx, cy, top + 0.45), None, "steel", "Metal", verts=12)
+    p.ball(0.72, (kx, cy, top + 0.95), "steel", "Metal")
+    p.ball(0.18, (kx, cy, top + 1.75), "darkmetal", "Metal", D)
+    p.rod((kx - 0.6, cy, top + 0.8), (kx - 1.5, cy, top + 1.5), 0.13, "steel", "Metal", D)
+    p.rod((kx + 0.72, cy, top + 0.4), (kx + 0.72, cy, top + 1.3), 0.1, "darkmetal", "Metal", D)
+    # glasses of chai
+    for i in range(4):
+        for j in range(2):
+            p.cyl(0.2, 0.5, (cx - 1.4 + i * 0.6, cy - 0.35 + j * 0.6, top + 0.25), None, "chai", "Glass", D, verts=8)
+    # the clay tandoor at the end of the counter
+    tx = cx + cw / 2 - 1.7
+    p.cyl(1.25, 1.5, (tx, cy, top + 0.75), None, "clay", "Slate", verts=12)
+    p.cyl(0.85, 0.12, (tx, cy, top + 1.52), None, "claydark", "Slate", D, verts=12)
+    # the steel milk can on a crate
+    mx = -w / 2 + 2.7
+    p.box((1.9, 1.9, 1.3), (mx, cy, 1.05), None, "lightwood", "WoodPlanks")
+    p.cyl(0.75, 1.7, (mx, cy, 2.55), None, "steel", "Metal", verts=12)
+    p.cyl(0.5, 0.4, (mx, cy, 3.55), None, "steel", "Metal", D, verts=10)
+    p.cyl(0.6, 0.12, (mx, cy, 3.8), None, "steeldark", "Metal", D, verts=10)
+    # the tin roof
+    p.box((w + 1.5, dp + 1, 0.25), (0, 0.3, 9.0), (-4, 0, 0), "tin", "Metal")
+    for i in range(-8, 9, 2):
+        p.detail((0.25, dp + 1, 0.12), (i, 0.3, 9.15), (-4, 0, 0), color="metal")
+    # the teal awning with a scalloped edge and a cream stripe
+    p.box((w + 1, 3.8, 0.2), (0, front - 1.1, 8.3), (22, 0, 0), "dhabateal", "Fabric", D)
+    edge_y, edge_z = front - 2.85, 7.6
+    p.box((w + 1, 0.16, 0.22), (0, edge_y - 0.02, edge_z + 0.12), None, "cream", "Fabric", D)
+    for i in range(9):
+        p.cyl(1.07, 0.14, (-(w + 1) / 2 + 1.06 + i * 2.11, edge_y, edge_z), (90, 0, 0), "dhabateal", "Fabric", D,
+              verts=10)
+    # the sign board on the roof
+    sy = front - 0.4
+    for x in (-5.5, 5.5):
+        p.box((0.4, 0.4, 2.2), (x, sy + 0.5, 9.9), None, "wood", "Wood", D)
+    p.box((14.8, 0.3, 4.2), (0, sy + 0.2, 11.6), None, "cream", "WoodPlanks", D)
+    p.box((14.2, 0.3, 3.6), (0, sy, 11.6), None, "dhabateal", "WoodPlanks", D)
+    p.box((9.0, 0.1, 0.16), (0, sy - 0.2, 10.35), None, "yellow", "SmoothPlastic", D)
+    p.box((0.34, 0.12, 0.34), (0, sy - 0.22, 10.35), (0, 45, 0), "red", "SmoothPlastic", D)
+    p.anchor("Sign", (0, sy - 0.22, 11.85))
+    # string lights under the awning
+    p.box((w, 0.06, 0.06), (0, front - 2.3, 7.15), None, "black", "SmoothPlastic", D)
+    for i in range(7):
+        p.ball(0.3, (-w / 2 + 1.5 + i * 2.5, front - 2.3, 6.85), "bulb", "Neon", D | (LIGHT if i % 3 == 0 else 0))
+
+
+@prop("ChowkGate", "zone", "The red-brick arch over each road out of the Chowk (an 18 stud opening); the game writes where it leads")
+def chowk_gate(p):
+    depth, radius, spring = 5.0, 9.0, 9.0
+    for side in (-1, 1):
+        p.box((6, depth, 12), (side * 12, 0, 6), None, "rosebrick", "Brick")
+        p.box((6.6, depth + 0.6, 1.0), (side * 12, 0, 0.5), None, "cream", "Sandstone")
+        # the wall between the pillar and the arch, in steps hidden behind the trim
+        for z0, z1, inner in ((12, 15, 8.3), (15, 16.5, 6.5), (16.5, 18, 4.6)):
+            width = 15 - inner
+            p.box((width, depth, z1 - z0), (side * (inner + width / 2), 0, (z0 + z1) / 2), None, "rosebrick", "Brick")
+    p.box((30, depth, 6), (0, 0, 21), None, "rosebrick", "Brick")
+    # cream stones round the arch
+    stones = 11
+    for i in range(stones):
+        a = math.radians(180 * (i + 0.5) / stones)
+        # every other stone stands out a little, so no two faces share a plane
+        p.box((3.9, depth + (0.8 if i % 2 == 0 else 0.4), 2.0 if i % 2 == 0 else 1.8),
+              (math.cos(a) * (radius + 0.6), 0, spring + math.sin(a) * (radius + 0.6)),
+              (0, 90 - math.degrees(a), 0), "cream", "Sandstone")
+    # a teal band with gold diamonds, a cream ledge and battlements
+    p.box((30.2, depth + 0.3, 1.8), (0, 0, 22.8), None, "dhabateal", "SmoothPlastic", D)
+    for i in range(9):
+        p.box((1.1, depth + 0.6, 1.1), (-12 + i * 3, 0, 22.8), (0, 45, 0), "gold", "SmoothPlastic", D)
+    p.box((31, depth + 1, 0.8), (0, 0, 24.4), None, "cream", "Sandstone")
+    for i in range(7):
+        p.box((2.2, depth, 1.6), (-13.5 + i * 4.5, 0, 25.6), None, "rosebrick", "Brick")
+    p.ball(0.5, (0, 0, 16.9), "bulb", "Neon", D | LIGHT)
+    p.anchor("Sign", (0, -depth / 2 - 0.05, 20.7))
+    p.anchor("SignBack", (0, depth / 2 + 0.05, 20.7))
+
+
+@prop("PlanterTree", "zone", "A round tree in a wooden planter box, for the Chowk")
+def planter_tree(p):
+    p.box((4.2, 4.2, 1.6), (0, 0, 0.8), None, "lightwood", "WoodPlanks")
+    p.box((4.7, 4.7, 0.3), (0, 0, 1.6), None, "wood", "Wood")
+    p.box((3.6, 3.6, 0.16), (0, 0, 1.78), None, "mud", "Concrete", D)
+    p.cyl(0.55, 6.0, (0, 0, 4.7), None, "darkwood", "Wood", verts=8)
+    p.rod((0, 0, 6.4), (1.7, 0.3, 8.4), 0.3, "darkwood", "Wood", D)
+    p.rod((0, 0, 5.8), (-1.6, -0.4, 7.8), 0.28, "darkwood", "Wood", D)
+    p.blob(3.5, (0, 0, 10.4), (1, 1, 0.9), "leaflight", seed=3)
+    p.blob(2.7, (2.4, 0.6, 8.9), color="leaf", seed=5)
+    p.blob(2.5, (-2.3, -0.5, 8.5), color="leaf", seed=8)

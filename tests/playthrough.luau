@@ -607,9 +607,70 @@ do
 		"the lane runs just in front of the haveli doors"
 	)
 	check(
-		map:FindFirstChild("ChaiDhaba") ~= nil and map:FindFirstChild("FruitStall") ~= nil,
-		"a dhaba and a fruit cart in the Chowk"
+		map:FindFirstChild("ChowkDhaba") ~= nil and map:FindFirstChild("FruitStall") ~= nil,
+		"the big Chai Dhaba and a fruit cart in the Chowk"
 	)
+	-- the Chowk, after the reference picture
+	do
+		local signs, gateCount, trees, poles, onRoad, warm, bulbs = {}, 0, 0, 0, 0, 0, 0
+		for _, d in map:GetChildren() do
+			if d.Name == "SignText" then
+				signs[d.Gui.Text.Text] = true
+			elseif d.Name == "ChowkGate" then
+				gateCount += 1
+				local at = d.WorldPivot.Position
+				-- the road runs through the middle of the arch, the pillars stand clear of it
+				if Biomes.roadDistance(at) > -7 or math.abs((at * FLAT).Magnitude - 80) > 1 then
+					onRoad += 1
+				end
+				for _, piece in d:GetChildren() do
+					if piece.Size.Y >= 11.9 and piece.Position.Y < 7 and Biomes.roadDistance(piece.Position) < 3 then
+						onRoad += 1
+					end
+				end
+			elseif d.Name == "PlanterTree" then
+				trees += 1
+				onRoad += if Biomes.roadDistance(d.WorldPivot.Position) < 4 then 1 else 0
+			elseif d.Name == "LightPole" then
+				poles += 1
+				onRoad += if Biomes.roadDistance(d.Position) < 2 then 1 else 0
+			elseif d.Name == "Bulb" then
+				bulbs += 1
+				warm += if d.Color.R > 0.9 and d.Color.G > 0.7 and d.Color.B < 0.6 then 1 else 0
+			end
+		end
+		check(signs["CHAI DHABA"], "the dhaba's sign says CHAI DHABA")
+		check(
+			gateCount == 4 and signs.PUNJAB and signs.SINDH and signs.THAR and signs.KPK,
+			"a brick arch over each road"
+		)
+		check(signs.CHOWK and signs["SAMOSA SUPREMO"], "signs back to the Chowk, and the statue's name")
+		check(trees == 8 and poles == 16, "trees in planters and light poles round the plaza")
+		check(onRoad == 0, "nothing in the Chowk stands on a road: " .. onRoad)
+		check(bulbs == 72 and warm == 72, "warm string lights: " .. warm)
+		local plaza = map.Plaza
+		check(
+			plaza.Material == M.Enum.Material.Brick and plaza.Color.R > plaza.Color.B * 1.8,
+			"terracotta brick paving"
+		)
+		local statue = map:FindFirstChild("ChowkStatue")
+		check(statue ~= nil and map:FindFirstChild("StatuePedestal") ~= nil, "a Samosa Supremo statue on a pedestal")
+		check(statue and (statue.WorldPivot.Position * FLAT).Magnitude < 30, "it stands by the fountain")
+		local kite = map:FindFirstChild("ChowkKite")
+		check(
+			kite and kite.KitePanel1.Position.Y > 30 and kite.KiteString.CanCollide == false,
+			"a kite flies over the Chowk"
+		)
+		local brickRoads, asphaltLines = 0, 0
+		for _, d in map.Roads:GetChildren() do
+			if d.Name == "Road" and d.Material == M.Enum.Material.Brick then
+				brickRoads += 1
+			elseif d.Name == "RoadLine" then
+				asphaltLines += 1
+			end
+		end
+		check(brickRoads == 4 and asphaltLines == 12, "brick roads in town, asphalt with a yellow line in the zones")
+	end
 	-- a budget so the world stays light enough for phones
 	local parts = 0
 	for _, d in workspace:GetDescendants() do

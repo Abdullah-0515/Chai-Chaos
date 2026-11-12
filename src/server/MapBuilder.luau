@@ -45,6 +45,12 @@ local STAIR_STEPS = 16
 local PLOTS_PER_FLOOR = 10
 local INCUBATOR_SPOTS = { { 11, -11 }, { 19, -11 }, { -17, -11 }, { -21, -18 } }
 local SHOP_RADIUS = 50
+local CHOWK_GATE_RADIUS = 80 -- the brick arches over the roads out of the Chowk
+-- the Chowk's colours, after the reference picture
+local TERRACOTTA = Color3.fromRGB(198, 110, 82)
+local ROSE_BRICK = Color3.fromRGB(200, 96, 84)
+local STONE = Color3.fromRGB(245, 235, 212)
+local WARM_LIGHT = Color3.fromRGB(255, 214, 120)
 
 MapBuilder.PLOTS_PER_FLOOR = PLOTS_PER_FLOOR
 
@@ -491,8 +497,15 @@ local function shopStall(parent: Instance, cf: CFrame, shop: string, title: stri
 		Name = "Counter",
 		Size = Vector3.new(12, 3.5, 4),
 		CFrame = cf * CFrame.new(0, 1.75, 0),
-		Color = rgb(150, 95, 55),
-		Material = Enum.Material.WoodPlanks,
+		Color = ROSE_BRICK,
+		Material = Enum.Material.Brick,
+		Parent = stall,
+	})
+	part({
+		Name = "CounterTop",
+		Size = Vector3.new(12.5, 0.3, 4.5),
+		CFrame = cf * CFrame.new(0, 3.65, 0),
+		Color = STONE,
 		Parent = stall,
 	})
 	for _, x in { -5.6, 5.6 } do
@@ -534,13 +547,23 @@ local function buildHub(map: Model): { [string]: BasePart }
 	terrain:FillCylinder(CFrame.new(0, GROUND_Y - 2, 0), 4, 130, Enum.Material.Pavement)
 
 	local center = Vector3.new(0, GROUND_Y, 0)
+	-- terracotta brick paving with a pale stone kerb round it
+	part({
+		Name = "PlazaKerb",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.45, Biomes.PLAZA_RADIUS * 2 + 5, Biomes.PLAZA_RADIUS * 2 + 5),
+		CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 0.225, 0))),
+		Color = STONE,
+		Material = Enum.Material.Concrete,
+		Parent = map,
+	})
 	part({
 		Name = "Plaza",
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(0.6, Biomes.PLAZA_RADIUS * 2, Biomes.PLAZA_RADIUS * 2),
 		CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 0.3, 0))),
-		Color = rgb(235, 215, 185),
-		Material = Enum.Material.Slate,
+		Color = TERRACOTTA,
+		Material = Enum.Material.Brick,
 		Parent = map,
 	})
 	-- a tiered fountain
@@ -550,7 +573,7 @@ local function buildHub(map: Model): { [string]: BasePart }
 			Shape = Enum.PartType.Cylinder,
 			Size = Vector3.new(tier[1], tier[2], tier[2]),
 			CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 1 + tier[3], 0))),
-			Color = rgb(245, 245, 250),
+			Color = STONE,
 			Material = Enum.Material.Marble,
 			Parent = map,
 		})
@@ -571,8 +594,8 @@ local function buildHub(map: Model): { [string]: BasePart }
 				Shape = Enum.PartType.Ball,
 				Size = Vector3.one * 2.4,
 				CFrame = CFrame.new(center + Vector3.new(0, 7.2, 0)),
-				Color = rgb(255, 205, 60),
-				Material = Enum.Material.Metal,
+				Color = STONE,
+				Material = Enum.Material.Marble,
 				Parent = map,
 			})
 			local spray = Instance.new("ParticleEmitter")
@@ -600,10 +623,12 @@ local function buildHub(map: Model): { [string]: BasePart }
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = map
 
-	-- the shops, around the fountain and facing it
+	-- the shops, around the fountain and facing it. They stand between the
+	-- roads and alleys (which leave the Chowk every 45 degrees), so every way
+	-- out is clear and you can see the arches from the fountain.
 	local shops = {}
 	local function spot(k: number): CFrame
-		local a = math.rad(45 * k)
+		local a = math.rad(45 * k + 22.5)
 		local position = center + Vector3.new(math.cos(a), 0, math.sin(a)) * SHOP_RADIUS
 		return CFrame.lookAt(position, center)
 	end
@@ -729,15 +754,18 @@ local function buildHub(map: Model): { [string]: BasePart }
 	boardGui.Parent = board
 
 	-- a chai dhaba, a fruit cart and parked rickshaws (props modelled in Blender)
-	local dhaba = spot(7)
-	Props.place("ChaiDhaba", dhaba, map)
-	Props.text(map, dhaba, Props.anchor("ChaiDhaba", "Sign", dhaba), 5.6, 1.2, "CHAI")
-	Props.place("Charpai", dhaba * CFrame.new(9, 0, -2) * CFrame.Angles(0, math.rad(80), 0), map)
-	Props.place("FruitStall", CFrame.lookAt(center + Vector3.new(-18, 0, -40), center), map)
-	Props.place("Rickshaw", CFrame.new(center + Vector3.new(30, 0, 40)) * CFrame.Angles(0, math.rad(30), 0), map)
-	Props.place("Rickshaw", CFrame.new(center + Vector3.new(-36, 0, 30)) * CFrame.Angles(0, math.rad(-50), 0), map)
+	local onPlaza = Vector3.new(0, 0.6, 0) -- the plaza's paving is this much above the ground
+	local dhaba = spot(7) * CFrame.new(0, 0.6, 4)
+	Props.place("ChowkDhaba", dhaba, map)
+	Props.text(map, dhaba, Props.anchor("ChowkDhaba", "Sign", dhaba), 12.5, 2.3, "CHAI DHABA", STONE)
+	Props.place("Charpai", dhaba * CFrame.new(-13, 0, -5) * CFrame.Angles(0, math.rad(75), 0), map)
+	Props.place("FruitStall", CFrame.lookAt(Biomes.polar(236, 60), center) + onPlaza, map)
+	-- rickshaws parked by the fountain
+	Props.place("Rickshaw", CFrame.new(Biomes.polar(28, 30) + onPlaza) * CFrame.Angles(0, math.rad(-40), 0), map)
+	Props.place("Rickshaw", CFrame.new(Biomes.polar(150, 29) + onPlaza) * CFrame.Angles(0, math.rad(70), 0), map)
 
-	-- string lights around the plaza
+	-- warm string lights around the plaza. Their poles stand between the roads
+	-- and alleys (which leave the Chowk every 45 degrees), never on them.
 	local i = 0
 	for degree = 0, 355, 5 do
 		i += 1
@@ -747,7 +775,7 @@ local function buildHub(map: Model): { [string]: BasePart }
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * 0.8,
 			Position = center + Vector3.new(math.cos(a) * 68, 9 - (i % 6 == 0 and 0 or 0.6), math.sin(a) * 68),
-			Color = BRIGHT[i % #BRIGHT + 1],
+			Color = WARM_LIGHT,
 			Material = Enum.Material.Neon,
 			CanCollide = false,
 			CastShadow = false,
@@ -759,15 +787,121 @@ local function buildHub(map: Model): { [string]: BasePart }
 			light.Range = 16
 			light.Brightness = 1.2
 			light.Parent = bulb
-			part({
-				Name = "LightPole",
-				Size = Vector3.new(0.5, 9, 0.5),
-				Position = center + Vector3.new(math.cos(a) * 68, 4.5, math.sin(a) * 68),
-				Color = rgb(110, 70, 45),
-				Parent = map,
-			})
 		end
 	end
+	for k = 0, 15 do
+		local a = math.rad(11.25 + 22.5 * k)
+		part({
+			Name = "LightPole",
+			Size = Vector3.new(0.5, 9, 0.5),
+			Position = center + Vector3.new(math.cos(a) * 68, 4.5, math.sin(a) * 68),
+			Color = rgb(110, 70, 45),
+			Parent = map,
+		})
+	end
+
+	-- trees in planters on both sides of each road, framing its arch
+	for k, region in Biomes.REGIONS do
+		for _, side in { -1, 1 } do
+			local position = Biomes.polar(region.angle + side * 12, 64) + onPlaza
+			Props.place("PlanterTree", CFrame.new(position) * CFrame.Angles(0, math.rad(k * 50 + side * 70), 0), map)
+		end
+	end
+
+	-- a red-brick arch over each of the four roads out of the Chowk
+	for _, region in Biomes.REGIONS do
+		local position = Biomes.polar(region.angle, CHOWK_GATE_RADIUS)
+		local cf = CFrame.lookAt(position, center)
+		local gate = Props.place("ChowkGate", cf, map)
+		gate:SetAttribute("Region", region.id)
+		Props.text(map, cf, Props.anchor("ChowkGate", "Sign", cf), 16, 1.7, region.id:upper(), STONE)
+		Props.text(
+			map,
+			cf * CFrame.Angles(0, math.pi, 0),
+			Props.anchor("ChowkGate", "SignBack", cf),
+			16,
+			1.7,
+			"CHOWK",
+			STONE
+		)
+	end
+
+	-- a brainrot statue on a pedestal by the fountain: the boss himself
+	local statueAngle = math.rad(325)
+	local statueAt = center + Vector3.new(math.cos(statueAngle) * 19.5, 0.6, math.sin(statueAngle) * 19.5)
+	local statueCF = CFrame.lookAt(statueAt, statueAt + (statueAt - center) * Vector3.new(1, 0, 1))
+	part({
+		Name = "StatuePedestal",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1, 9, 9),
+		CFrame = cylinderUp(CFrame.new(statueAt + Vector3.new(0, 0.5, 0))),
+		Color = rgb(250, 248, 240),
+		Material = Enum.Material.Marble,
+		Parent = map,
+	})
+	local statue = Props.place("SamosaSupremo", statueCF + Vector3.new(0, 1, 0), map, 1.7, { noColliders = true })
+	statue.Name = "ChowkStatue"
+	Props.text(
+		map,
+		statueCF,
+		statueAt + Vector3.new(0, 0.5, 0) + statueCF.LookVector * 4.5,
+		6,
+		0.8,
+		"SAMOSA SUPREMO",
+		rgb(120, 70, 40)
+	)
+
+	-- a kite flying over the Chowk, on a long string from the dhaba's roof
+	local kite = Instance.new("Model")
+	kite.Name = "ChowkKite"
+	local kiteCF = CFrame.new(center + Vector3.new(62, 40, -38))
+		* CFrame.Angles(math.rad(-25), math.rad(35), math.rad(45))
+	for k, quarter in
+		{
+			{ -1, 1, rgb(255, 90, 150) },
+			{ 1, 1, rgb(255, 200, 50) },
+			{ -1, -1, rgb(250, 140, 40) },
+			{ 1, -1, rgb(230, 40, 150) },
+		}
+	do
+		part({
+			Name = "KitePanel" .. k,
+			Size = Vector3.new(3, 3, 0.15),
+			CFrame = kiteCF * CFrame.new(quarter[1] * 1.5, quarter[2] * 1.5, 0),
+			Color = quarter[3],
+			Material = Enum.Material.Fabric,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = kite,
+		})
+	end
+	for k, color in { rgb(30, 170, 170), rgb(60, 170, 80), rgb(220, 50, 50) } do
+		part({
+			Name = "KiteTail",
+			Size = Vector3.new(0.35, 5 + k, 0.1),
+			CFrame = kiteCF
+				* CFrame.new(-3, -3, 0)
+				* CFrame.Angles(0, 0, math.rad(20 + k * 14))
+				* CFrame.new(0, -(2.5 + k / 2), 0),
+			Color = color,
+			Material = Enum.Material.Fabric,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = kite,
+		})
+	end
+	local stringFrom = Props.anchor("ChowkDhaba", "Sign", dhaba) + Vector3.new(0, 1.5, 0)
+	local stringTo = kiteCF.Position
+	part({
+		Name = "KiteString",
+		Size = Vector3.new(0.08, 0.08, (stringTo - stringFrom).Magnitude),
+		CFrame = CFrame.lookAt((stringFrom + stringTo) / 2, stringTo),
+		Color = rgb(250, 250, 250),
+		CanCollide = false,
+		CastShadow = false,
+		Parent = kite,
+	})
+	kite.Parent = map
 	return shops
 end
 
@@ -857,11 +991,19 @@ end
 ---------------------------------------------------------------------------
 -- Roads, walls, gates, shortcut doors, petrol pumps and the edge of the world
 ---------------------------------------------------------------------------
+-- Inside the town wall the roads are terracotta brick like the Chowk; out in
+-- the zones they are asphalt with a yellow line.
 local ROAD_COLORS = {
-	spoke = rgb(75, 75, 82),
+	spoke = TERRACOTTA,
 	zone = rgb(75, 75, 82),
 	street = rgb(200, 175, 140),
 	alley = rgb(200, 175, 140),
+}
+local ROAD_MATERIALS = {
+	spoke = Enum.Material.Brick,
+	zone = Enum.Material.Asphalt,
+	street = Enum.Material.Cobblestone,
+	alley = Enum.Material.Cobblestone,
 }
 
 local function buildRoads(map: Model)
@@ -871,16 +1013,15 @@ local function buildRoads(map: Model)
 	for _, road in Biomes.roads() do
 		local a, b = road.a + Vector3.new(0, 0.15, 0), road.b + Vector3.new(0, 0.15, 0)
 		local cf = CFrame.lookAt((a + b) / 2, b)
-		local paved = road.kind == "street" or road.kind == "alley"
 		part({
 			Name = "Road",
 			Size = Vector3.new(road.width, 0.3, (b - a).Magnitude + road.width * 0.25),
 			CFrame = cf,
 			Color = ROAD_COLORS[road.kind],
-			Material = if paved then Enum.Material.Cobblestone else Enum.Material.Asphalt,
+			Material = ROAD_MATERIALS[road.kind],
 			Parent = roads,
 		})
-		if not paved then
+		if road.kind == "zone" then
 			part({
 				Name = "RoadLine",
 				Size = Vector3.new(0.5, 0.32, (b - a).Magnitude),
