@@ -55,7 +55,8 @@ for _, theme in Themes.list do
 		Ui.create("Frame", add({ Name = theme.id, Size = UDim2.new(1, 0, 0, 74), BackgroundColor3 = CARD_COLOR }), {
 			Ui.corner(10),
 		})
-	for i, color in { theme.wall, theme.trim, theme.accent } do
+	-- what the theme changes: towers and awnings, domes, the courtyard floor
+	for i, color in { theme.trim, theme.accent, theme.floor } do
 		Ui.create("Frame", {
 			Name = "Swatch",
 			Size = UDim2.fromOffset(16, 16),

@@ -76,6 +76,7 @@ PALETTE = [
     # the Chowk (the reference picture's teal sign, rosy brick and terracotta paving)
     ("dhabateal", (28, 108, 98)), ("rosebrick", (200, 96, 84)), ("terracotta", (198, 110, 82)),
     ("warmwood", (198, 128, 68)), ("ochre", (236, 176, 84)), ("peach", (244, 196, 150)),
+    ("mughal", (215, 95, 65)), ("haveliupper", (238, 214, 172)),
 ]
 # fmt: on
 COLOR_INDEX = {name: i for i, (name, _) in enumerate(PALETTE)}

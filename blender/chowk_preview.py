@@ -2,9 +2,9 @@
 
     python blender/chowk_preview.py
 
-It puts the Blender props where MapBuilder.luau puts them in the game, with
-simple stand-ins for the things the game builds from code (the shop stalls,
-the fountain, the havelis). It shows the mesh version of the props; built from
+It puts the Blender props where MapBuilder.luau puts them in the game, and
+rebuilds the things the game makes from code (the havelis, the shop stalls,
+the fountain) from the same measurements. It shows the mesh version of the props; built from
 parts in the game, tree tops are round balls and the smallest details are left
 out. Use it to check the look against docs/reference-chowk.jpg.
 """
@@ -24,6 +24,7 @@ import kit  # noqa: E402
 import build  # noqa: E402  (registers every prop)
 
 OUT = os.path.join(ROOT, "docs", "chowk-preview.jpg")
+HAVELI_OUT = os.path.join(ROOT, "docs", "haveli-preview.jpg")
 REGISTRY = {name: (category, fn) for name, category, _note, fn in kit.REGISTRY}
 count = 0
 
@@ -104,6 +105,92 @@ TERRACOTTA, TERRACOTTA_LIGHT, MORTAR = (198, 110, 82), (226, 142, 108), (160, 86
 HOUSES = ("ChowkHouseCream", "ChowkHouseBrick", "ChowkHouseOchre", "ChowkHousePeach")
 
 
+def haveli(name, pos, yaw, trim="mughal", accent="yellow"):
+    """A haveli as the game builds it (Blender's -Y is the front, facing the Chowk)."""
+    h = kit.Prop(name, "zone")
+    W, D, FLOOR, WALL, UPPER, DECK_FRONT, DOOR_W, DOOR_H = 72, 52, 0.4, 12, 9, -6, 14, 9
+    hw, hd = W / 2, D / 2
+    front = -hd + 0.5
+    deck_y = FLOOR + WALL
+    face = front - 0.55
+    seg = (W - DOOR_W) / 2
+    h.box((W, D, FLOOR), (0, 0, FLOOR / 2), None, "cream")
+    # red brick ground floor, with the door gap in the front wall
+    for x in (-(DOOR_W / 2 + seg / 2), DOOR_W / 2 + seg / 2):
+        h.box((seg, 1, WALL), (x, front, FLOOR + WALL / 2), None, "rosebrick", "Brick")
+    h.box((DOOR_W, 1, WALL - DOOR_H), (0, front, FLOOR + DOOR_H + (WALL - DOOR_H) / 2), None, "rosebrick", "Brick")
+    for x in (-hw + 0.5, hw - 0.5):
+        h.box((1, D, WALL), (x, 0, FLOOR + WALL / 2), None, "rosebrick", "Brick")
+    h.box((W, 1, WALL), (0, hd - 0.5, FLOOR + WALL / 2), None, "rosebrick", "Brick")
+    # the cream upper floor, set back behind the courtyard
+    deck_depth = hd - DECK_FRONT
+    h.box((W - 2, deck_depth, 1), (0, DECK_FRONT + deck_depth / 2, deck_y - 0.5), None, "cream")
+    h.box((W, 1, UPPER), (0, hd - 0.5, deck_y + UPPER / 2), None, "haveliupper")
+    for x in (-hw + 0.5, hw - 0.5):
+        h.box((1, deck_depth, UPPER), (x, DECK_FRONT + deck_depth / 2, deck_y + UPPER / 2), None, "haveliupper")
+    # the facade: plinth, teal band with diamonds, door, windows, awnings
+    for x in (-(DOOR_W / 2 + seg / 2), DOOR_W / 2 + seg / 2):
+        h.box((seg, 0.3, 1.2), (x, face, FLOOR + 0.6), None, "cream")
+    h.box((W, 0.3, 1.4), (0, face, FLOOR + WALL - 0.9), None, "dhabateal")
+    for x in range(-33, 34, 6):
+        h.box((0.9, 0.35, 0.9), (x, face - 0.05, FLOOR + WALL - 0.9), (0, 45, 0), "gold")
+    h.box((DOOR_W + 3, 0.6, 1.2), (0, face - 0.1, FLOOR + DOOR_H + 0.6), None, "cream")
+    h.box((1.6, 0.7, 1.8), (0, face - 0.2, FLOOR + DOOR_H + 0.9), None, "cream")
+    for side in (-1, 1):
+        h.box((3.4, 0.3, DOOR_H - 0.6), (side * (DOOR_W / 2 + 2.6), face - 0.1, FLOOR + (DOOR_H - 0.6) / 2), None,
+              "dhabateal", "WoodPlanks")
+        h.cyl(0.9, WALL + 1, (side * DOOR_W / 2, front - 0.2, FLOOR + (WALL + 1) / 2), None, trim, verts=12)
+    for x in (-29, -18, 18, 29):
+        h.box((4.2, 0.3, 4.2), (x, face, FLOOR + 4.6), None, "cream")
+        for half in (-1, 1):
+            h.box((1.6, 0.35, 3.4), (x + half * 0.9, face - 0.05, FLOOR + 4.6), None, "dhabateal", "WoodPlanks")
+        h.box((4.8, 0.9, 0.4), (x, face - 0.3, FLOOR + 2.4), None, "cream")
+        for k in range(1, 6):
+            h.box((1.2, 2.6, 0.2), (x - 3 + k * 1.2 - 0.6, face - 1.15, FLOOR + 7.6), (22, 0, 0),
+                  trim if k % 2 == 1 else "cream2", "Fabric")
+    # the cream upper storey on the front: arched windows, a balcony, battlements, the sign
+    bottom, top_front = FLOOR + WALL + 1, deck_y + UPPER
+    sign_y = bottom + 3.6
+    h.box((W, 2.4, 1), (0, front - 0.5, FLOOR + WALL + 0.5), None, "cream")
+    h.box((W, 1, top_front - bottom), (0, front, (bottom + top_front) / 2), None, "haveliupper")
+    for side in (-1, 1):
+        for x in (17, 24, 31):
+            h.box((3.4, 0.2, 3.6), (side * x, face + 0.1, bottom + 2.8), None, "maroon")
+            h.cyl(1.7, 0.2, (side * x, face + 0.1, bottom + 4.6), (90, 0, 0), "maroon", verts=16)
+        h.box((22, 0.35, 0.35), (side * 24.5, front - 1.3, bottom + 1.4), None, "cream")
+        for k in range(11):
+            h.box((0.35, 0.35, 1.2), (side * (14 + k * 2.1), front - 1.3, bottom + 0.65), None, "cream")
+    h.box((W + 0.6, 1.6, 0.6), (0, front - 0.1, top_front - 0.3), None, "cream")
+    for x in range(-34, 35, 4):
+        h.box((2, 1.2, 1.6), (x, front, top_front + 0.8), None, "rosebrick", "Brick")
+    h.box((24.8, 0.4, 4.4), (0, front - 0.7, sign_y), None, "cream")
+    h.box((24, 0.6, 3.6), (0, front - 1.05, sign_y), None, "dhabateal")
+    # the arcade of cream arches along the balcony, and its battlements
+    top = deck_y + UPPER
+    pillars = (-27.6, -17.8, -8, 1.8, 11.6, 21.4, 31.2)
+    for x in pillars:
+        h.box((1.4, 1.4, UPPER - 2), (x, DECK_FRONT, deck_y + (UPPER - 2) / 2), None, "cream")
+    h.box((W - 1, 1.4, 2), (0, DECK_FRONT, top - 1), None, "cream")
+    for a, b in zip(pillars, pillars[1:]):
+        for edge in (a + 0.7, b - 0.7):
+            h.box((2.4, 1.3, 2.4), (edge, DECK_FRONT, top - 2), (0, 45, 0), "cream")
+    h.box((W - 30, 0.6, 3), (3, DECK_FRONT, deck_y + 1.5), None, "cream")
+    for x in [-34 + 4.5 * k for k in range(16)]:
+        h.box((2, 1.2, 1.6), (x, DECK_FRONT, top + 1.8), None, "haveliupper")
+    # corner towers with cream caps and domes
+    for cx, cz in ((-1, -1), (1, -1), (-1, 1), (1, 1)):
+        height = WALL + 3 if cz < 0 else WALL + UPPER + 3
+        x, y = cx * hw, cz * hd
+        h.cyl(2, height, (x, y, FLOOR + height / 2), None, trim, verts=16)
+        h.cyl(2.5, 0.8, (x, y, FLOOR + height - 0.2), None, "cream", verts=16)
+        h.ball(2.3, (x, y, FLOOR + height + 0.8), accent)
+    h.transform(1.0, (0, 0, yaw))
+    build.move(h, Vector((pos.x, pos.y, 0)))
+    sign_front = Vector((math.sin(math.radians(yaw)), -math.cos(math.radians(yaw)), 0))
+    text("Ali ki Haveli", Vector((pos.x, pos.y, FLOOR + WALL + 1 + 3.6)) + sign_front * (hd + 0.86), yaw, 2.0,
+         "yellow")
+
+
 def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     palette = os.path.join(ROOT, "assets", "props", "palette.png")
@@ -137,7 +224,7 @@ def main():
         s.cyl(radius, height, (0, 0, plaza_top + base + height / 2), None, "cream", verts=32)
         s.cyl(radius - 0.75, 0.3, (0, 0, plaza_top + base + height + 0.05), None, "water", verts=32)
     s.ball(1.2, (0, 0, plaza_top + 6.8), "cream")
-    # the shop stalls (built from code in the game)
+    # the shop stalls (built from code in MapBuilder.shopStall)
     stalls = (("BECHO", "green"), ("GEAR SHOP", "blue"), ("RADAR WALA", "purple"))
     for k, (title, color) in enumerate(stalls):
         pos = polar(45 * k + 22.5, 50)
@@ -145,14 +232,29 @@ def main():
         stall = kit.Prop(f"Stall{k}", "zone")
         stall.box((12, 4, 3.5), (0, 0, 1.75), None, "rosebrick", "Brick")
         stall.box((12.5, 4.5, 0.3), (0, 0, 3.65), None, "cream")
+        stall.box((12.05, 0.2, 0.9), (0, -2.05, 2.4), None, "gold")
+        for j in range(7):
+            stall.box((0.6, 0.25, 0.6), (-5.1 + j * 1.7, -2.12, 2.4), (0, 45, 0), "dhabateal" if j % 2 == 0 else "red")
         for x in (-5.6, 5.6):
-            stall.box((0.6, 0.6, 9), (x, 1.6, 4.5), None, "darkwood", "Wood")
-        for i in range(4):
-            stall.box((13.5 / 4, 6.5, 0.5), (-5 + i * 3.375, 0.4, 9.2), (12, 0, 0), color if i % 2 == 0 else "white")
-        stall.box((11, 0.4, 2.2), (0, -2.6, 10.8), None, "black")
+            stall.box((0.6, 0.6, 12.6), (x, -1.6, 6.3), None, "warmwood", "Wood")
+            stall.box((0.6, 0.6, 9), (x, 1.6, 4.5), None, "warmwood", "Wood")
+        stall.box((12, 0.5, 0.5), (0, -1.6, 8.8), None, "warmwood", "Wood")
+        for j in range(6):
+            stripe = color if j % 2 == 0 else "cream2"
+            stall.box((2.2, 6, 0.3), (-5.5 + j * 2.2, -0.6, 9.6), (14, 0, 0), stripe, "Fabric")
+        stall.box((13.2, 0.15, 0.7), (0, -3.62, 8.6), None, color, "Fabric")
+        for j in range(12):
+            stall.cyl(0.55, 0.12, (-6.05 + j * 1.1, -3.52, 8.25), (90, 0, 0), color if j % 2 == 0 else "cream2",
+                      "Fabric", verts=12)
+        for j in range(5):
+            stall.ball(0.3, (-4.4 + j * 2.2, -2.6, 8.0), "bulb", "Neon")
+        stall.box((11.8, 0.3, 3), (0, -1.45, 11.4), None, "cream")
+        stall.box((11, 0.4, 2.2), (0, -1.7, 11.4), None, color)
         stall.transform(1.0, (0, 0, yaw))
         build.move(stall, Vector((pos.x, pos.y, plaza_top)))
-    # the dhaba, charpai, statue, trees, gates, rickshaws and the fruit cart
+        front = Vector((math.sin(math.radians(yaw)), -math.cos(math.radians(yaw)), 0))
+        text(title, Vector((pos.x, pos.y, plaza_top + 11.4)) + front * 1.92, yaw, 1.1)
+    # the dhaba, charpai, trees, gates, rickshaws and the fruit cart
     dhaba_at = polar(337.5, 54)
     dhaba_yaw = yaw_to(dhaba_at)
     dhaba = place("ChowkDhaba", dhaba_at, dhaba_yaw, z=plaza_top)
@@ -162,10 +264,6 @@ def main():
     right = Vector((front.y, -front.x, 0))
     charpai_at = dhaba_at + right * 13 + front * 5
     place("Charpai", charpai_at, dhaba_yaw + 75, z=plaza_top)
-    statue_at = polar(325, 19.5)
-    s.cyl(4.5, 1.0, (statue_at.x, statue_at.y, plaza_top + 0.5), None, "white", verts=32)
-    look = polar(208, 1)  # he looks across the square, towards the Punjab side
-    place("SamosaSupremo", statue_at, math.degrees(math.atan2(look.x, -look.y)), scale=1.7, z=plaza_top + 1.0)
     # the bazaar houses: two in front of every haveli, with a walkway between them
     house_spots = []
     for k in range(1, 9):
@@ -205,17 +303,11 @@ def main():
     for k in range(16):
         p = polar(11.25 + 22.5 * k, 68)
         s.box((0.5, 0.5, 9), (p.x, p.y, 4.5), None, "darkwood", "Wood")
-    # the havelis (stand-ins: in the game each player's haveli has its own theme)
+    # the havelis, with the facade MapBuilder.buildHaveli gives them (in the
+    # free Mughal Marble theme: red-orange towers and awnings, gold domes)
     for i in range(8):
         pos = polar(-67.5 + 45 * i, 150)
-        house = kit.Prop(f"Haveli{i}", "zone")
-        house.box((72, 52, 12.4), (0, 0, 6.2), None, "plaster")
-        house.box((72, 30, 9), (0, 10, 16.9), None, "rosebrick" if i % 2 else "cream", "Brick")
-        house.box((14, 1.2, 9), (0, -26, 4.5), None, "darkwood")
-        for x in range(-30, 31, 12):
-            house.box((6, 0.6, 5), (x, -5.2, 16.5), None, "maroon")
-        house.transform(1.0, (0, 0, yaw_to(pos)))
-        build.move(house, Vector((pos.x, pos.y, 0)))
+        haveli(f"Haveli{i}", pos, yaw_to(pos))
     # the kite
     kite = kit.Prop("Kite", "zone")
     for sx, sz, color in ((-1, 1, "pink"), (1, 1, "yellow"), (-1, -1, "orange"), (1, -1, "magenta")):
@@ -255,6 +347,16 @@ def main():
     scene.render.filepath = OUT
     bpy.ops.render.render(write_still=True)
     print("wrote", OUT)
+
+    # a second picture: a haveli, seen from the walkway between the bazaar houses
+    eye = polar(-67.5, 93) + Vector((0, 0, 8))
+    target = polar(-67.5, 150) + Vector((0, 0, 13))
+    cam.location = eye
+    cam.rotation_euler = (target - eye).to_track_quat("-Z", "Y").to_euler()
+    cam_data.lens = 15
+    scene.render.filepath = HAVELI_OUT
+    bpy.ops.render.render(write_still=True)
+    print("wrote", HAVELI_OUT)
 
 
 if __name__ == "__main__":

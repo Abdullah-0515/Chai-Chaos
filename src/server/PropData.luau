@@ -171,6 +171,8 @@ PropData.palette = {
 	{ 198, 128, 68 }, -- warmwood
 	{ 236, 176, 84 }, -- ochre
 	{ 244, 196, 150 }, -- peach
+	{ 215, 95, 65 }, -- mughal
+	{ 238, 214, 172 }, -- haveliupper
 }
 
 PropData.materials = { "Brick", "Concrete", "Fabric", "Foil", "Glass", "Grass", "Ground", "Ice", "Marble", "Metal", "Neon", "Plaster", "Salt", "Sandstone", "Slate", "SmoothPlastic", "Snow", "Wood", "WoodPlanks" }

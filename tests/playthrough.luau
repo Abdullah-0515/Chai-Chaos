@@ -644,7 +644,7 @@ do
 			gateCount == 4 and signs.PUNJAB and signs.SINDH and signs.THAR and signs.KPK,
 			"a brick arch over each road"
 		)
-		check(signs.CHOWK and signs["SAMOSA SUPREMO"], "signs back to the Chowk, and the statue's name")
+		check(signs.CHOWK and not signs["SAMOSA SUPREMO"], "signs back to the Chowk")
 		check(trees == 8 and poles == 16, "trees in planters and light poles round the plaza")
 		check(onRoad == 0, "nothing in the Chowk stands on a road: " .. onRoad)
 		check(bulbs == 72 and warm == 72, "warm string lights: " .. warm)
@@ -653,9 +653,25 @@ do
 			plaza.Material == M.Enum.Material.Brick and plaza.Color.R > plaza.Color.B * 1.8,
 			"terracotta brick paving"
 		)
-		local statue = map:FindFirstChild("ChowkStatue")
-		check(statue ~= nil and map:FindFirstChild("StatuePedestal") ~= nil, "a Samosa Supremo statue on a pedestal")
-		check(statue and (statue.WorldPivot.Position * FLAT).Magnitude < 30, "it stands by the fountain")
+		check(
+			map:FindFirstChild("ChowkStatue") == nil and map:FindFirstChild("StatuePedestal") == nil,
+			"no statue by the fountain"
+		)
+		-- the shop stalls in the reference style, each in its own colour
+		local sell = map.SellShop
+		local parts = {}
+		for _, piece in sell:GetChildren() do
+			parts[piece.Name] = (parts[piece.Name] or 0) + 1
+		end
+		check(
+			parts.Pole == 4 and parts.AwningScallop == 12 and parts.StallBulb == 5,
+			"stalls: posts, a scalloped awning, bulbs"
+		)
+		check(
+			sell.Counter.Material == M.Enum.Material.Brick and sell.Pole.Color == Themes.BASE.wood,
+			"a brick counter and warm wooden posts"
+		)
+		check(map.GearShop.Awning.Color ~= sell.Awning.Color, "every stall keeps its own colour")
 		local kite = map:FindFirstChild("ChowkKite")
 		check(
 			kite and kite.KitePanel1.Position.Y > 30 and kite.KiteString.CanCollide == false,
@@ -1013,7 +1029,55 @@ check(notified("Ali", "radar"), "welcome message explains the egg hunt")
 check(pa.data.rollTokens == 1, "one free Kismat Roll")
 check(#pa.data.quests.list == Config.QUESTS_PER_DAY, "daily quests given")
 check(type(A:GetAttribute("QuestState")) == "string", "quest state sent to the HUD")
-check(h1.Walls:GetChildren()[1].Material == M.Enum.Material.Marble, "Mughal Marble walls")
+-- every haveli has the bazaar look of the reference picture; the theme colours the rest
+check(
+	h1.Walls:GetChildren()[1].Material == M.Enum.Material.Brick and h1.Walls:GetChildren()[1].Color == Themes.BASE.brick,
+	"red brick ground floor"
+)
+check(h1.UpperWalls:GetChildren()[1].Color == Themes.BASE.upper, "cream upper floor")
+check(pa.haveli.trims[1].Color == Themes.byId.MughalMarble.trim, "Mughal Marble towers and pillars")
+do
+	local stripes = {}
+	for _, stripe in pa.haveli.awnings do
+		stripes[stripe.Color == Themes.byId.MughalMarble.trim and 1 or stripe.Color == Themes.BASE.stripe and 2 or 0] =
+			true
+	end
+	check(
+		#pa.haveli.awnings == 20 and stripes[1] and stripes[2] and not stripes[0],
+		"striped awnings in the theme's colour"
+	)
+	local facade = {}
+	for _, piece in h1.Stone:GetChildren() do
+		facade[piece.Name] = (facade[piece.Name] or 0) + 1
+	end
+	check(
+		facade.ArcadePillar == 7 and facade.ArchCorner == 12 and facade.ArcadeLintel == 1,
+		"cream arches along the balcony"
+	)
+	check(
+		facade.DoorLeaf == 2 and facade.Shutter == 8 and facade.BandDiamond == 12,
+		"teal doors, shutters and a band of diamonds"
+	)
+	check(
+		h1.Stone.DoorLeaf.Color == Themes.BASE.teal and h1.Stone.DoorLeaf.CanCollide == false,
+		"the open door leaves never get in the way"
+	)
+	check(h1.Sign.Color == Themes.BASE.teal, "a teal name sign")
+	check(
+		facade.ArchWindow == 6 and facade.Baluster == 22 and h1.UpperWalls:FindFirstChild("UpperFront") ~= nil,
+		"a cream upper storey on the front with arched windows and a balcony"
+	)
+	check(h1.Sign.Position.Y > h1.Stone.DoorLintel.Position.Y + 4, "the name sign sits on the upper storey")
+	-- awnings slope down towards the street: their front edge is lower than the back
+	local awning = pa.haveli.awnings[1]
+	local frontEdge = awning.CFrame * Vector3.new(0, 0, -awning.Size.Z / 2)
+	local backEdge = awning.CFrame * Vector3.new(0, 0, awning.Size.Z / 2)
+	local street = pa.haveli.doorOutside.Position
+	check(
+		(frontEdge - street).Magnitude < (backEdge - street).Magnitude and frontEdge.Y < backEdge.Y - 0.5,
+		"window awnings slope down towards the street"
+	)
+end
 check(h1.StairGates.StairGate.CanCollide == true, "stairs closed at level 1")
 check(pa.haveli.incubatorLabels[1].Text == "Empty incubator", "one empty incubator at level 1")
 check(pa.haveli.incubatorLabels[2].Text == "", "the second incubator comes later")
@@ -3448,7 +3512,7 @@ do
 	local pa2 = State.profiles[A2]
 	local pyaaz = entryOf(pa2, "PyaazPehelwan")
 	check(pyaaz and pyaaz.mutation == "Diamond" and pyaaz.arrived, "Diamond Pyaaz back on its plot")
-	check(pa2.haveli.walls[1].Color == Themes.byId.TruckArt.wall, "theme restored")
+	check(pa2.haveli.trims[1].Color == Themes.byId.TruckArt.trim, "theme restored")
 	check(pa2.incubating[1] and pa2.incubating[1].hatchAt == savedHatch, "the egg is back in its nest")
 	check(pa2.incubating[1].id == savedHatchId, "and will hatch the same brainrot")
 	check(A2:GetAttribute("TrackerLevel") == 3 and A2:GetAttribute("Gear"):find("Shovel"), "tracker and gear back")
@@ -3533,7 +3597,10 @@ do
 			most = math.max(most, #spare.decor:GetChildren())
 			check((guard ~= nil) == (level >= Config.GUARD_LEVEL), theme.id .. " level " .. level .. " guard")
 		end
-		check(spare.walls[1].Color == theme.wall, theme.id .. " wall colour")
+		check(
+			spare.walls[1].Color == Themes.BASE.brick and spare.trims[1].Color == theme.trim,
+			theme.id .. ": bazaar walls, the theme's trim"
+		)
 	end
 	check(most > 40, "top level havelis are full of decorations: " .. most)
 	HaveliStyle.apply(spare, nil, 1)

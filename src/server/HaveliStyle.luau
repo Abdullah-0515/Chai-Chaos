@@ -1,4 +1,6 @@
 -- Paints a haveli in its owner's theme and adds decorations for its level.
+-- Every haveli has the bazaar look of Themes.BASE (brick, cream, teal); the
+-- theme colours its towers, pillars, awnings, domes and courtyard floor.
 --
 -- Level 1: lanterns by the door and a little decor in the courtyard
 -- Level 2: more courtyard decor
@@ -669,10 +671,16 @@ end
 function HaveliStyle.apply(h, themeId: string?, level: number): Model?
 	local theme = themeId and Themes.byId[themeId]
 	local look = theme or Themes.EMPTY
-	paint(h.walls, look.wall, material(look.wallMaterial), look.reflectance)
-	paint(h.trims, look.trim)
+	local base = Themes.BASE
+	paint(h.walls, base.brick, Enum.Material.Brick)
+	paint(h.upperWalls or {}, base.upper, Enum.Material.SmoothPlastic)
+	paint(h.trims, look.trim, nil, look.reflectance)
 	paint(h.accents, look.accent, Enum.Material.SmoothPlastic)
 	paint(h.floors, look.floor, material(look.floorMaterial))
+	-- striped awnings: the theme's colour and a light stripe
+	for _, stripe in h.awnings or {} do
+		stripe.Color = if stripe:GetAttribute("Stripe") == 1 then look.trim else base.stripe
+	end
 
 	local upstairs = theme ~= nil and level >= Config.UPPER_FLOOR_LEVEL
 	for _, gate in h.stairGates do
@@ -699,7 +707,7 @@ function HaveliStyle.apply(h, themeId: string?, level: number): Model?
 	if h.roof then
 		h.roof.Transparency = if rooftop then 0 else 1
 		h.roof.CanCollide = rooftop
-		h.roof.Color = look.trim
+		h.roof.Color = base.stone
 	end
 
 	h.decor:ClearAllChildren()

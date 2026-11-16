@@ -45,6 +45,7 @@ local STAIR_STEPS = 16
 local PLOTS_PER_FLOOR = 10
 local INCUBATOR_SPOTS = { { 11, -11 }, { 19, -11 }, { -17, -11 }, { -21, -18 } }
 local SHOP_RADIUS = 50
+local SIGN_Y = FLOOR_TOP + WALL_H + 1 + 3.6 -- the haveli's name sign, on its upper storey
 local CHOWK_GATE_RADIUS = 80 -- the brick arches over the roads out of the Chowk
 local CHOWK_HOUSE_RADIUS = 86 -- the bazaar houses round the square stand this far out...
 local CHOWK_HOUSE_ASIDE = 9.5 -- ...and this far to each side of the walkway to a haveli's door
@@ -74,6 +75,8 @@ export type Haveli = {
 	barrier: BasePart,
 	signLabel: TextLabel,
 	walls: { BasePart },
+	upperWalls: { BasePart },
+	awnings: { BasePart },
 	trims: { BasePart },
 	accents: { BasePart },
 	floors: { BasePart },
@@ -200,25 +203,49 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 	local accent = Instance.new("Folder")
 	accent.Name = "Accent"
 	accent.Parent = haveli
+	local upperWalls = Instance.new("Folder")
+	upperWalls.Name = "UpperWalls"
+	upperWalls.Parent = haveli
+	local stone = Instance.new("Folder")
+	stone.Name = "Stone"
+	stone.Parent = haveli
+	local awnings = Instance.new("Folder")
+	awnings.Name = "Awnings"
+	awnings.Parent = haveli
+	local base = Themes.BASE
 
 	local segment = (HAVELI_W - DOOR_W) / 2
 	local upperY = deckY + UPPER_H / 2
 	local wallPieces = {
-		-- back wall, both floors
-		{ Vector3.new(HAVELI_W, WALL_H + UPPER_H, 1), at(0, FLOOR_TOP + (WALL_H + UPPER_H) / 2, halfD - 0.5) },
+		-- back wall, ground floor
+		{ Vector3.new(HAVELI_W, WALL_H, 1), at(0, FLOOR_TOP + WALL_H / 2, halfD - 0.5) },
 		-- side walls, ground floor
 		{ Vector3.new(1, WALL_H, HAVELI_D), at(-halfW + 0.5, FLOOR_TOP + WALL_H / 2, 0) },
 		{ Vector3.new(1, WALL_H, HAVELI_D), at(halfW - 0.5, FLOOR_TOP + WALL_H / 2, 0) },
-		-- side walls, second floor
-		{ Vector3.new(1, UPPER_H, deckDepth), at(-halfW + 0.5, upperY, DECK_FRONT + deckDepth / 2) },
-		{ Vector3.new(1, UPPER_H, deckDepth), at(halfW - 0.5, upperY, DECK_FRONT + deckDepth / 2) },
 		-- front wall with the door gap
 		{ Vector3.new(segment, WALL_H, 1), at(-(DOOR_W / 2 + segment / 2), FLOOR_TOP + WALL_H / 2, front) },
 		{ Vector3.new(segment, WALL_H, 1), at(DOOR_W / 2 + segment / 2, FLOOR_TOP + WALL_H / 2, front) },
 		{ Vector3.new(DOOR_W, WALL_H - DOOR_H, 1), at(0, FLOOR_TOP + DOOR_H + (WALL_H - DOOR_H) / 2, front) },
 	}
 	for _, piece in wallPieces do
-		part({ Name = "Wall", Size = piece[1], CFrame = piece[2], Color = look.wall, Parent = walls })
+		part({
+			Name = "Wall",
+			Size = piece[1],
+			CFrame = piece[2],
+			Color = base.brick,
+			Material = Enum.Material.Brick,
+			Parent = walls,
+		})
+	end
+	-- the upper floor: back wall and side walls, in cream
+	for _, piece in
+		{
+			{ Vector3.new(HAVELI_W, UPPER_H, 1), at(0, upperY, halfD - 0.5) },
+			{ Vector3.new(1, UPPER_H, deckDepth), at(-halfW + 0.5, upperY, DECK_FRONT + deckDepth / 2) },
+			{ Vector3.new(1, UPPER_H, deckDepth), at(halfW - 0.5, upperY, DECK_FRONT + deckDepth / 2) },
+		}
+	do
+		part({ Name = "UpperWall", Size = piece[1], CFrame = piece[2], Color = base.upper, Parent = upperWalls })
 	end
 
 	-- corner towers with domes
@@ -232,6 +259,14 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 			CFrame = cylinderUp(at(x, FLOOR_TOP + height / 2, z)),
 			Color = look.trim,
 			Parent = trim,
+		})
+		part({
+			Name = "TowerCap",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.8, 5, 5),
+			CFrame = cylinderUp(at(x, FLOOR_TOP + height - 0.2, z)),
+			Color = base.stone,
+			Parent = stone,
 		})
 		part({
 			Name = "Dome",
@@ -254,11 +289,11 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 	end
 	-- top edge of the front wall and second floor railing
 	part({
-		Name = "Parapet",
-		Size = Vector3.new(HAVELI_W, 1, 1.4),
-		CFrame = at(0, FLOOR_TOP + WALL_H + 0.5, front),
-		Color = look.trim,
-		Parent = trim,
+		Name = "Parapet", -- also the ledge of the balcony on the upper storey
+		Size = Vector3.new(HAVELI_W, 1, 2.4),
+		CFrame = at(0, FLOOR_TOP + WALL_H + 0.5, front - 0.5),
+		Color = base.stone,
+		Parent = stone,
 	})
 	local railFrom = STAIR_X + STAIR_W / 2
 	local railLength = halfW - 1 - railFrom
@@ -266,8 +301,8 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 		Name = "Railing",
 		Size = Vector3.new(railLength, 3, 0.6),
 		CFrame = at(railFrom + railLength / 2, deckY + 1.5, DECK_FRONT),
-		Color = look.trim,
-		Parent = trim,
+		Color = base.stone,
+		Parent = stone,
 	})
 	for _, x in { -20, -4, 12, 28 } do
 		part({
@@ -287,8 +322,8 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 			Name = "Step",
 			Size = Vector3.new(STAIR_W, stepH * i, 1),
 			CFrame = at(STAIR_X, FLOOR_TOP + stepH * i / 2, STAIR_START + i - 0.5),
-			Color = look.trim,
-			Parent = trim,
+			Color = base.stone,
+			Parent = stone,
 		})
 	end
 	-- blocked until the second floor is unlocked
@@ -327,11 +362,214 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 		Name = "Roof",
 		Size = Vector3.new(HAVELI_W, 1, deckDepth),
 		CFrame = at(0, deckY + UPPER_H + 0.5, DECK_FRONT + deckDepth / 2),
-		Color = look.trim,
+		Color = base.stone,
 		Transparency = 1,
 		CanCollide = false,
 		Parent = haveli,
 	})
+
+	-- the bazaar facade, after the reference picture (docs/reference-chowk.jpg)
+	local face = front - 0.55 -- just in front of the front wall
+	local function facadePart(props: { [string]: any })
+		props.CanCollide = false
+		props.CastShadow = props.CastShadow or false
+		return part(props)
+	end
+	-- a cream plinth along the bottom, and a teal band with gold diamonds at the top
+	for _, side in { -1, 1 } do
+		local x = side * (DOOR_W / 2 + segment / 2)
+		facadePart({
+			Name = "Plinth",
+			Size = Vector3.new(segment, 1.2, 0.3),
+			CFrame = at(x, FLOOR_TOP + 0.6, face),
+			Color = base.stone,
+			Parent = stone,
+		})
+	end
+	facadePart({
+		Name = "Band",
+		Size = Vector3.new(HAVELI_W, 1.4, 0.3),
+		CFrame = at(0, FLOOR_TOP + WALL_H - 0.9, face),
+		Color = base.teal,
+		Parent = stone,
+	})
+	for x = -33, 33, 6 do
+		facadePart({
+			Name = "BandDiamond",
+			Size = Vector3.new(0.9, 0.9, 0.35),
+			CFrame = at(x, FLOOR_TOP + WALL_H - 0.9, face - 0.05) * CFrame.Angles(0, 0, math.rad(45)),
+			Color = base.gold,
+			Parent = stone,
+		})
+	end
+	-- a cream lintel and keystone over the door, and the teal door leaves opened back
+	facadePart({
+		Name = "DoorLintel",
+		Size = Vector3.new(DOOR_W + 3, 1.2, 0.6),
+		CFrame = at(0, FLOOR_TOP + DOOR_H + 0.6, face - 0.1),
+		Color = base.stone,
+		Parent = stone,
+	})
+	facadePart({
+		Name = "Keystone",
+		Size = Vector3.new(1.6, 1.8, 0.7),
+		CFrame = at(0, FLOOR_TOP + DOOR_H + 0.9, face - 0.2),
+		Color = base.stone,
+		Parent = stone,
+	})
+	for _, side in { -1, 1 } do
+		facadePart({
+			Name = "DoorLeaf",
+			Size = Vector3.new(3.4, DOOR_H - 0.6, 0.3),
+			CFrame = at(side * (DOOR_W / 2 + 2.6), FLOOR_TOP + (DOOR_H - 0.6) / 2, face - 0.1),
+			Color = base.teal,
+			Material = Enum.Material.WoodPlanks,
+			Parent = stone,
+		})
+	end
+	-- shuttered windows with striped awnings either side of the door
+	for _, x in { -29, -18, 18, 29 } do
+		facadePart({
+			Name = "WindowFrame",
+			Size = Vector3.new(4.2, 4.2, 0.3),
+			CFrame = at(x, FLOOR_TOP + 4.6, face),
+			Color = base.stone,
+			Parent = stone,
+		})
+		for _, half in { -1, 1 } do
+			facadePart({
+				Name = "Shutter",
+				Size = Vector3.new(1.6, 3.4, 0.35),
+				CFrame = at(x + half * 0.9, FLOOR_TOP + 4.6, face - 0.05),
+				Color = base.teal,
+				Material = Enum.Material.WoodPlanks,
+				Parent = stone,
+			})
+		end
+		facadePart({
+			Name = "Sill",
+			Size = Vector3.new(4.8, 0.4, 0.9),
+			CFrame = at(x, FLOOR_TOP + 2.4, face - 0.3),
+			Color = base.stone,
+			Parent = stone,
+		})
+		for k = 1, 5 do
+			local stripe = facadePart({
+				Name = "Awning",
+				Size = Vector3.new(1.2, 0.2, 2.6),
+				-- tilted so the front edge hangs lower than the back
+				CFrame = at(x - 3 + k * 1.2 - 0.6, FLOOR_TOP + 7.6, face - 1.15) * CFrame.Angles(math.rad(-22), 0, 0),
+				Material = Enum.Material.Fabric,
+				Parent = awnings,
+			})
+			stripe:SetAttribute("Stripe", if k % 2 == 1 then 1 else 2)
+		end
+	end
+	-- a cream upper storey on the front, like the bazaar houses in the
+	-- reference: arched windows behind a balcony railing, brick battlements on
+	-- top. It is only a front: the courtyard behind it stays open to the sky.
+	local storeyBottom = FLOOR_TOP + WALL_H + 1
+	local storeyTop = deckY + UPPER_H
+	part({
+		Name = "UpperFront",
+		Size = Vector3.new(HAVELI_W, storeyTop - storeyBottom, 1),
+		CFrame = at(0, (storeyBottom + storeyTop) / 2, front),
+		Color = base.upper,
+		Parent = upperWalls,
+	})
+	for _, side in { -1, 1 } do
+		for _, x in { 17, 24, 31 } do
+			facadePart({
+				Name = "ArchWindow",
+				Size = Vector3.new(3.4, 3.6, 0.2),
+				CFrame = at(side * x, storeyBottom + 2.8, face + 0.1),
+				Color = rgb(130, 30, 50),
+				Parent = stone,
+			})
+			facadePart({
+				Name = "ArchWindowTop",
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(0.2, 3.4, 3.4),
+				CFrame = at(side * x, storeyBottom + 4.6, face + 0.1) * CFrame.Angles(0, math.rad(90), 0),
+				Color = rgb(130, 30, 50),
+				Parent = stone,
+			})
+		end
+		-- the balcony railing in front of the windows
+		facadePart({
+			Name = "BalconyRail",
+			Size = Vector3.new(22, 0.35, 0.35),
+			CFrame = at(side * 24.5, storeyBottom + 1.4, front - 1.3),
+			Color = base.stone,
+			Parent = stone,
+		})
+		for k = 0, 10 do
+			facadePart({
+				Name = "Baluster",
+				Size = Vector3.new(0.35, 1.2, 0.35),
+				CFrame = at(side * (14 + k * 2.1), storeyBottom + 0.65, front - 1.3),
+				Color = base.stone,
+				Parent = stone,
+			})
+		end
+	end
+	facadePart({
+		Name = "Cornice",
+		Size = Vector3.new(HAVELI_W + 0.6, 0.6, 1.6),
+		CFrame = at(0, storeyTop - 0.3, front - 0.1),
+		Color = base.stone,
+		Parent = stone,
+	})
+	for x = -34, 34, 4 do
+		part({
+			Name = "Merlon",
+			Size = Vector3.new(2, 1.6, 1.2),
+			CFrame = at(x, storeyTop + 0.8, front),
+			Color = base.brick,
+			Material = Enum.Material.Brick,
+			Parent = walls,
+		})
+	end
+	-- the upper floor: an arcade of cream arches along the balcony
+	local arcadeTop = deckY + UPPER_H
+	local pillars = { -27.6, -17.8, -8, 1.8, 11.6, 21.4, 31.2 }
+	for _, x in pillars do
+		part({
+			Name = "ArcadePillar",
+			Size = Vector3.new(1.4, UPPER_H - 2, 1.4),
+			CFrame = at(x, deckY + (UPPER_H - 2) / 2, DECK_FRONT),
+			Color = base.stone,
+			Parent = stone,
+		})
+	end
+	part({
+		Name = "ArcadeLintel",
+		Size = Vector3.new(HAVELI_W - 1, 2, 1.4),
+		CFrame = at(0, arcadeTop - 1, DECK_FRONT),
+		Color = base.stone,
+		Parent = stone,
+	})
+	for i = 1, #pillars - 1 do
+		-- corner stones round off the top of each arch
+		for _, edge in { pillars[i] + 0.7, pillars[i + 1] - 0.7 } do
+			facadePart({
+				Name = "ArchCorner",
+				Size = Vector3.new(2.4, 2.4, 1.3),
+				CFrame = at(edge, arcadeTop - 2, DECK_FRONT) * CFrame.Angles(0, 0, math.rad(45)),
+				Color = base.stone,
+				Parent = stone,
+			})
+		end
+	end
+	for x = -34, 34, 4.5 do
+		part({
+			Name = "Merlon",
+			Size = Vector3.new(2, 1.6, 1.2),
+			CFrame = at(x, arcadeTop + 1.8, DECK_FRONT),
+			Color = base.upper,
+			Parent = upperWalls,
+		})
+	end
 
 	-- door, laser barrier and sign
 	part({
@@ -355,12 +593,20 @@ local function buildHaveli(parent: Instance, index: number, center: Vector3)
 		CanQuery = false,
 		Parent = haveli,
 	})
+	-- the name sign, in the middle of the upper storey's front
 	local sign = part({
 		Name = "Sign",
 		Size = Vector3.new(24, 3.6, 0.6),
-		CFrame = at(0, FLOOR_TOP + WALL_H + 2.8, front),
-		Color = rgb(30, 130, 100),
+		CFrame = at(0, SIGN_Y, front - 1.05),
+		Color = base.teal,
 		Parent = haveli,
+	})
+	part({
+		Name = "SignFrame",
+		Size = Vector3.new(24.8, 4.4, 0.4),
+		CFrame = at(0, SIGN_Y, front - 0.7),
+		Color = base.stone,
+		Parent = stone,
 	})
 	surfaceText(sign, Enum.NormalId.Front, "Khaali Haveli", rgb(255, 240, 160))
 
@@ -512,33 +758,120 @@ local function shopStall(parent: Instance, cf: CFrame, shop: string, title: stri
 		Color = STONE,
 		Parent = stall,
 	})
-	for _, x in { -5.6, 5.6 } do
+	-- a band of diamonds on the counter, like the Chai Dhaba's
+	part({
+		Name = "CounterBand",
+		Size = Vector3.new(12.05, 0.9, 0.2),
+		CFrame = cf * CFrame.new(0, 2.4, -2.05),
+		Color = Themes.BASE.gold,
+		CanCollide = false,
+		Parent = stall,
+	})
+	for k = 0, 6 do
 		part({
-			Name = "Pole",
-			Size = Vector3.new(0.6, 9, 0.6),
-			CFrame = cf * CFrame.new(x, 4.5, 1.6),
-			Color = rgb(110, 70, 45),
+			Name = "CounterDiamond",
+			Size = Vector3.new(0.6, 0.6, 0.25),
+			CFrame = cf * CFrame.new(-5.1 + k * 1.7, 2.4, -2.12) * CFrame.Angles(0, 0, math.rad(45)),
+			Color = if k % 2 == 0 then Themes.BASE.teal else rgb(220, 50, 50),
+			CanCollide = false,
 			Parent = stall,
 		})
 	end
-	for i = 0, 3 do
+	-- warm wooden posts and a beam
+	for _, x in { -5.6, 5.6 } do
+		for _, z in { -1.6, 1.6 } do
+			-- the front posts also hold up the sign board
+			local height = if z < 0 then 12.6 else 9
+			part({
+				Name = "Pole",
+				Size = Vector3.new(0.6, height, 0.6),
+				CFrame = cf * CFrame.new(x, height / 2, z),
+				Color = Themes.BASE.wood,
+				Material = Enum.Material.Wood,
+				Parent = stall,
+			})
+		end
+	end
+	part({
+		Name = "Beam",
+		Size = Vector3.new(12, 0.5, 0.5),
+		CFrame = cf * CFrame.new(0, 8.8, -1.6),
+		Color = Themes.BASE.wood,
+		Material = Enum.Material.Wood,
+		CanCollide = false,
+		Parent = stall,
+	})
+	-- a striped awning with a scalloped edge, in the stall's colour
+	for i = 0, 5 do
 		part({
 			Name = "Awning",
-			Size = Vector3.new(13.5 / 4, 0.5, 6.5),
-			CFrame = cf * CFrame.new(-5 + i * 3.375, 9.2, 0.4) * CFrame.Angles(math.rad(-12), 0, 0),
-			Color = if i % 2 == 0 then color else rgb(255, 255, 255),
+			Size = Vector3.new(13.2 / 6, 0.3, 6),
+			CFrame = cf * CFrame.new(-5.5 + i * 2.2, 9.6, -0.6) * CFrame.Angles(math.rad(-14), 0, 0),
+			Color = if i % 2 == 0 then color else Themes.BASE.stripe,
 			Material = Enum.Material.Fabric,
+			CanCollide = false,
 			Parent = stall,
 		})
 	end
+	-- the scalloped edge: a strip along the front with round tabs behind it,
+	-- so only the bottom half of each tab shows
+	part({
+		Name = "AwningEdge",
+		Size = Vector3.new(13.2, 0.7, 0.15),
+		CFrame = cf * CFrame.new(0, 8.6, -3.62),
+		Color = color,
+		Material = Enum.Material.Fabric,
+		CanCollide = false,
+		Parent = stall,
+	})
+	for i = 0, 11 do
+		part({
+			Name = "AwningScallop",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.12, 1.1, 1.1),
+			CFrame = cf * CFrame.new(-6.05 + i * 1.1, 8.25, -3.52) * CFrame.Angles(0, math.rad(90), 0),
+			Color = if i % 2 == 0 then color else Themes.BASE.stripe,
+			Material = Enum.Material.Fabric,
+			CanCollide = false,
+			Parent = stall,
+		})
+	end
+	-- warm bulbs under the awning
+	for i = 0, 4 do
+		local bulb = part({
+			Name = "StallBulb",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 0.6,
+			CFrame = cf * CFrame.new(-4.4 + i * 2.2, 8.0, -2.6),
+			Color = WARM_LIGHT,
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			CastShadow = false,
+			Parent = stall,
+		})
+		if i == 2 then
+			local light = Instance.new("PointLight")
+			light.Color = WARM_LIGHT
+			light.Range = 12
+			light.Parent = bulb
+		end
+	end
+	-- the sign board on top: the stall's colour with a cream frame
+	part({
+		Name = "SignFrame",
+		Size = Vector3.new(11.8, 3, 0.3),
+		CFrame = cf * CFrame.new(0, 11.4, -1.45),
+		Color = Themes.BASE.stone,
+		Parent = stall,
+	})
 	local sign = part({
 		Name = "Sign",
 		Size = Vector3.new(11, 2.2, 0.4),
-		CFrame = cf * CFrame.new(0, 10.8, -2.6),
+		CFrame = cf * CFrame.new(0, 11.4, -1.7),
 		Color = color:Lerp(rgb(0, 0, 0), 0.35),
 		Parent = stall,
 	})
-	surfaceText(sign, Enum.NormalId.Front, title, rgb(255, 240, 160))
+	surfaceText(sign, Enum.NormalId.Front, title, Themes.BASE.stone)
 	shopPrompt(counter, shop, title)
 	stall.Parent = parent
 	return counter
@@ -904,32 +1237,6 @@ local function buildHub(map: Model): { [string]: BasePart }
 			end
 		end
 	end
-
-	-- a brainrot statue on a pedestal by the fountain: the boss himself
-	local statueAngle = math.rad(325)
-	local statueAt = center + Vector3.new(math.cos(statueAngle) * 19.5, 0.6, math.sin(statueAngle) * 19.5)
-	-- he looks across the square, towards the Punjab side
-	local statueCF = CFrame.lookAt(statueAt, statueAt + Biomes.polar(208, 1) * Vector3.new(1, 0, 1))
-	part({
-		Name = "StatuePedestal",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1, 9, 9),
-		CFrame = cylinderUp(CFrame.new(statueAt + Vector3.new(0, 0.5, 0))),
-		Color = rgb(250, 248, 240),
-		Material = Enum.Material.Marble,
-		Parent = map,
-	})
-	local statue = Props.place("SamosaSupremo", statueCF + Vector3.new(0, 1, 0), map, 1.7, { noColliders = true })
-	statue.Name = "ChowkStatue"
-	Props.text(
-		map,
-		statueCF,
-		statueAt + Vector3.new(0, 0.5, 0) + statueCF.LookVector * 4.5,
-		6,
-		0.8,
-		"SAMOSA SUPREMO",
-		rgb(120, 70, 40)
-	)
 
 	-- a kite flying over the Chowk, on a long string from the dhaba's roof
 	local kite = Instance.new("Model")
@@ -1610,6 +1917,8 @@ function MapBuilder.read(map: Model, plans: { [string]: any }): Map
 			barrier = child(model, "Barrier"),
 			signLabel = labelIn(child(model, "Sign")),
 			walls = partsIn(model, "Walls"),
+			upperWalls = partsIn(model, "UpperWalls"),
+			awnings = partsIn(model, "Awnings"),
 			trims = partsIn(model, "Trim"),
 			accents = partsIn(model, "Accent"),
 			floors = { floor, deck },
