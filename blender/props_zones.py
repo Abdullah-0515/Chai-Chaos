@@ -9,7 +9,7 @@ Gaari Showroom, Ustad's Workshop and the bazaar stalls.
 
 import math
 
-from kit import GLASS, LIGHT, NOCOLLIDE, prop
+from kit import GLASS, LIGHT, NOCOLLIDE, PARTSONLY, prop
 
 D = NOCOLLIDE
 
@@ -576,10 +576,13 @@ def chowk_dhaba(p):
     # the teal awning with a scalloped edge and a cream stripe
     p.box((w + 1, 3.8, 0.2), (0, front - 1.1, 8.3), (22, 0, 0), "dhabateal", "Fabric", D)
     edge_y, edge_z = front - 2.85, 7.6
-    p.box((w + 1, 0.16, 0.22), (0, edge_y - 0.02, edge_z + 0.12), None, "cream", "Fabric", D)
-    for i in range(9):
-        p.cyl(1.07, 0.14, (-(w + 1) / 2 + 1.06 + i * 2.11, edge_y, edge_z), (90, 0, 0), "dhabateal", "Fabric", D,
-              verts=10)
+    # the scalloped edge: a strip in front with round tabs behind it, so only the
+    # bottom half of each tab shows (whole discs looked like polka dots)
+    p.box((w + 1, 0.14, 0.75), (0, edge_y - 0.1, edge_z - 0.05), None, "dhabateal", "Fabric", D)
+    p.box((w + 1, 0.16, 0.22), (0, edge_y - 0.2, edge_z + 0.25), None, "cream", "Fabric", D)
+    for i in range(17):
+        p.cyl(0.58, 0.12, (-(w + 1) / 2 + 0.56 + i * 1.12, edge_y, edge_z - 0.42), (90, 0, 0), "dhabateal", "Fabric",
+              D, verts=12)
     # the sign board on the roof
     sy = front - 0.4
     for x in (-5.5, 5.5):
@@ -638,9 +641,19 @@ def planter_tree(p):
     p.cyl(0.55, 6.0, (0, 0, 4.7), None, "darkwood", "Wood", verts=8)
     p.rod((0, 0, 6.4), (1.7, 0.3, 8.4), 0.3, "darkwood", "Wood", D)
     p.rod((0, 0, 5.8), (-1.6, -0.4, 7.8), 0.28, "darkwood", "Wood", D)
-    p.blob(3.5, (0, 0, 10.4), (1, 1, 0.9), "leaflight", seed=3)
-    p.blob(2.7, (2.4, 0.6, 8.9), color="leaf", seed=5)
-    p.blob(2.5, (-2.3, -0.5, 8.5), color="leaf", seed=8)
+    canopies = (
+        (3.5, (0, 0, 10.4), (1, 1, 0.9), "leaflight", 3),
+        (2.7, (2.4, 0.6, 8.9), (1, 1, 1), "leaf", 5),
+        (2.5, (-2.3, -0.5, 8.5), (1, 1, 1), "leaf", 8),
+    )
+    for radius, pos, scale, color, seed in canopies:
+        # the mesh: a lumpy low-poly ball
+        p.blob(radius, pos, scale, color, seed=seed, fallback="None")
+        # built from parts: three blocks turned different ways, so the top
+        # still looks faceted like the reference picture's trees
+        size = radius * 1.35
+        for turn in ((0, 0, 20), (35, 0, 55), (-30, 40, 0)):
+            p.box((size, size, size * scale[2]), pos, turn, color, "Grass", NOCOLLIDE | PARTSONLY)
 
 
 def chowk_house(p, wall, wall_mat, upper, upper_mat, trim, awning, door, top="merlons", band=None, crates=None):

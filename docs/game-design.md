@@ -12,7 +12,7 @@ Tone rules: food, rickshaws, cricket, load shedding, aunties and uncles are fair
 
 ## Core loop
 
-1. Leave your haveli and head out through a town gate (on foot, or in a vehicle once you have one).
+1. Start in the Chowk in front of the Chai Dhaba, and head out through a town gate (on foot, or in a vehicle once you have one).
 2. Find an egg with your radar in a zone you have unlocked and pick it up. A timer starts; farther zones have rarer brainrots but shorter timers.
 3. Bring it home before it cracks. On foot you carry one egg; a vehicle's boot carries more.
 4. The egg hatches in an incubator, and the brainrot walks to a plot and earns rupees every second into your **galla**.

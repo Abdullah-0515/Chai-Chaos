@@ -701,13 +701,69 @@ do
 				rings += 1
 			end
 		end
-		check(houseCount == 16, "16 bazaar houses round the square: " .. houseCount)
+		check(houseCount == 24, "24 bazaar houses all round the square: " .. houseCount)
 		check(
-			styles.ChowkHouseCream == 4
-				and styles.ChowkHouseBrick == 4
-				and styles.ChowkHouseOchre == 4
-				and styles.ChowkHousePeach == 4,
+			styles.ChowkHouseCream == 6
+				and styles.ChowkHouseBrick == 6
+				and styles.ChowkHouseOchre == 6
+				and styles.ChowkHousePeach == 6,
 			"in four colours"
+		)
+		-- a closed row: going round the square, the only gaps between houses are
+		-- the walkways to haveli doors (9 studs), the alleys and the roads under their arches
+		local around = {}
+		for _, d in map:GetChildren() do
+			if d.Name:match("^ChowkHouse") then
+				table.insert(around, Biomes.angleOf(d.WorldPivot.Position) % 360)
+			end
+		end
+		table.sort(around)
+		local widest = 0
+		for k, angle in around do
+			local nextAngle = around[k % #around + 1] + (if k == #around then 360 else 0)
+			local gap = math.rad(nextAngle - angle) * 86 - 10 -- houses are 10 wide
+			widest = math.max(widest, gap)
+		end
+		check(widest < 40, "no wide gaps in the row of houses: " .. math.floor(widest))
+		-- the fountain, wires, crates and trees, like the reference picture
+		check(
+			map:FindFirstChild("FountainBasin") ~= nil
+				and map:FindFirstChild("FountainBowl") ~= nil
+				and map:FindFirstChild("FountainTier") == nil,
+			"a low round basin with a small bowl in the middle"
+		)
+		check(map.FountainBasin.Size.Y == 26 and map.FountainBasin.Size.X < 3, "low and wide")
+		check(map.FountainTop:FindFirstChild("Spray") ~= nil, "with a spray of water on top")
+		local rimStones, rimTop = 0, -math.huge
+		for _, d in map:GetChildren() do
+			if d.Name == "FountainRim" then
+				rimStones += 1
+				rimTop = math.max(rimTop, d.Position.Y + d.Size.Y / 2)
+			end
+		end
+		local basinTop = map.FountainBasin.Position.Y + map.FountainBasin.Size.X / 2
+		check(rimStones == 24 and rimTop > basinTop + 0.5, "a raised rim of stones round the water")
+		local wires = 0
+		for _, d in map:GetDescendants() do
+			wires += if d.Name == "LightWire" then 1 else 0
+		end
+		check(wires == 72 + 72 + 3, "the string lights hang on wires: " .. wires)
+		local crates = 0
+		for _, d in map.SellShop:GetChildren() do
+			crates += if d.Name == "Crate" then 1 else 0
+		end
+		check(crates == 2 and map.SellShop.Fruit.CanCollide == false, "crates of fruit by the stalls")
+		local tree = map:FindFirstChild("PlanterTree")
+		local leafBlocks, tilted = 0, 0
+		for _, piece in tree:GetChildren() do
+			if piece.Color.G > piece.Color.R * 1.3 and piece.Shape == M.Enum.PartType.Block then
+				leafBlocks += 1
+				tilted += if math.abs(piece.CFrame.UpVector.Y) < 0.95 then 1 else 0
+			end
+		end
+		check(
+			leafBlocks == 9 and tilted >= 6,
+			"faceted tree tops built from angled blocks: " .. leafBlocks .. ", " .. tilted
 		)
 		check(blocked == 0, "no house stands on a road or in the way to a haveli door: " .. blocked)
 		check(gateBulbs == 64, "string lights from every arch to the rooftops")
@@ -729,6 +785,7 @@ do
 			parts += 1
 		end
 	end
+	print("    parts in the world: " .. parts)
 	check(parts < 16000, "parts in the whole world: " .. parts)
 
 	-- every Blender prop builds from parts
@@ -1083,11 +1140,35 @@ check(pa.haveli.incubatorLabels[1].Text == "Empty incubator", "one empty incubat
 check(pa.haveli.incubatorLabels[2].Text == "", "the second incubator comes later")
 local charA = spawnCharacter(A)
 M.advance(0.3)
-check((charA:GetPivot().Position - pa.haveli.spawn.Position).Magnitude < 0.01, "Ali teleported into haveli")
-check(
-	#M.streamRequests > 0 and M.streamRequests[#M.streamRequests].position == pa.haveli.spawn.Position,
-	"the haveli streams in before the teleport"
-)
+-- players appear in the Chowk, facing the Chai Dhaba (like the reference picture)
+do
+	local at = charA:GetPivot()
+	local dhaba = map.ChowkDhaba.WorldPivot.Position
+	check(
+		math.abs((at.Position * FLAT).Magnitude - Biomes.SPAWN_RADIUS) < 1 and at.Position.Y > 3,
+		"Ali appears in the Chowk"
+	)
+	check(at.LookVector:Dot(((dhaba - at.Position) * FLAT).Unit) > 0.95, "facing the Chai Dhaba")
+	check(
+		#M.streamRequests > 0 and M.streamRequests[#M.streamRequests].position == at.Position,
+		"the Chowk streams in before the player appears"
+	)
+	local spots = {}
+	for i = 1, 8 do
+		spots[i] = Havelis.chowkSpawn({ haveli = { index = i } }).Position
+	end
+	local closest = math.huge
+	for i = 1, 8 do
+		for j = i + 1, 8 do
+			closest = math.min(closest, (spots[i] - spots[j]).Magnitude)
+		end
+	end
+	check(closest > 1.5, "every player has their own spot")
+	check(
+		map.ChowkSpawn.Position.Y < 2 and (map.ChowkSpawn.Position * FLAT - spots[4] * FLAT).Magnitude < 3,
+		"the spawn pad is there too"
+	)
+end
 check(charA.Humanoid.WalkSpeed == Config.WALK_SPEED, "walk speed " .. charA.Humanoid.WalkSpeed)
 check(charA.HumanoidRootPart.CollisionGroup == "ChaiOwner1", "Ali can pass his own laser")
 check(A.Backpack:FindFirstChild("Chappal") ~= nil, "Ali has a chappal")

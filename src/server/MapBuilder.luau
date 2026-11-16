@@ -49,6 +49,7 @@ local SIGN_Y = FLOOR_TOP + WALL_H + 1 + 3.6 -- the haveli's name sign, on its up
 local CHOWK_GATE_RADIUS = 80 -- the brick arches over the roads out of the Chowk
 local CHOWK_HOUSE_RADIUS = 86 -- the bazaar houses round the square stand this far out...
 local CHOWK_HOUSE_ASIDE = 9.5 -- ...and this far to each side of the walkway to a haveli's door
+local CHOWK_ALLEY_ASIDE = 12.5 -- ...or of an alley into the bazaar
 -- the Chowk's colours, after the reference picture
 local TERRACOTTA = Color3.fromRGB(198, 110, 82)
 local TERRACOTTA_LIGHT = Color3.fromRGB(226, 142, 108)
@@ -127,6 +128,22 @@ end
 MapBuilder.part = part
 
 local UP = CFrame.Angles(0, 0, math.rad(90)) -- turns a cylinder upright
+local WIRE = Color3.fromRGB(45, 38, 36)
+
+-- A thin dark wire from a to b (string lights hang on these).
+local function wire(parent: Instance, a: Vector3, b: Vector3): Part
+	return part({
+		Name = "LightWire",
+		Size = Vector3.new(0.12, 0.12, (b - a).Magnitude),
+		CFrame = CFrame.lookAt((a + b) / 2, b),
+		Color = WIRE,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		CastShadow = false,
+		Parent = parent,
+	})
+end
 local function cylinderUp(cf: CFrame): CFrame
 	return cf * UP
 end
@@ -777,6 +794,28 @@ local function shopStall(parent: Instance, cf: CFrame, shop: string, title: stri
 			Parent = stall,
 		})
 	end
+	-- crates of fruit in front, like the reference picture
+	for k, x in { -7.6, 7.6 } do
+		part({
+			Name = "Crate",
+			Size = Vector3.new(2.2, 1.4, 1.8),
+			CFrame = cf * CFrame.new(x, 0.7, -1),
+			Color = rgb(190, 145, 95),
+			Material = Enum.Material.WoodPlanks,
+			Parent = stall,
+		})
+		for f = 0, 2 do
+			part({
+				Name = "Fruit",
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.one * 0.7,
+				CFrame = cf * CFrame.new(x - 0.6 + f * 0.6, 1.55, -1 + (f % 2) * 0.3),
+				Color = if (f + k) % 2 == 0 then rgb(220, 50, 50) else rgb(255, 200, 40),
+				CanCollide = false,
+				Parent = stall,
+			})
+		end
+	end
 	-- warm wooden posts and a beam
 	for _, x in { -5.6, 5.6 } do
 		for _, z in { -1.6, 1.6 } do
@@ -836,7 +875,16 @@ local function shopStall(parent: Instance, cf: CFrame, shop: string, title: stri
 			Parent = stall,
 		})
 	end
-	-- warm bulbs under the awning
+	-- warm bulbs under the awning, on a wire
+	part({
+		Name = "LightWire",
+		Size = Vector3.new(10, 0.12, 0.12),
+		CFrame = cf * CFrame.new(0, 8.38, -2.6),
+		Color = WIRE,
+		CanCollide = false,
+		CastShadow = false,
+		Parent = stall,
+	})
 	for i = 0, 4 do
 		local bulb = part({
 			Name = "StallBulb",
@@ -934,57 +982,78 @@ local function buildHub(map: Model): { [string]: BasePart }
 			Parent = map,
 		})
 	end
-	-- a tiered fountain
-	for i, tier in { { 2, 26, 0 }, { 1.6, 14, 2.4 }, { 1.2, 6, 4.6 } } do
-		part({
-			Name = "FountainTier",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(tier[1], tier[2], tier[2]),
-			CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 1 + tier[3], 0))),
-			Color = STONE,
-			Material = Enum.Material.Marble,
-			Parent = map,
-		})
-		part({
-			Name = "FountainWater",
-			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.3, tier[2] - 1.5, tier[2] - 1.5),
-			CFrame = cylinderUp(CFrame.new(center + Vector3.new(0, 1.9 + tier[3] + (tier[1] - 2) / 2, 0))),
-			Color = rgb(70, 180, 255),
-			Material = Enum.Material.Neon,
-			Transparency = 0.3,
-			CanCollide = false,
-			Parent = map,
-		})
-		if i == 3 then
-			local top = part({
-				Name = "FountainTop",
-				Shape = Enum.PartType.Ball,
-				Size = Vector3.one * 2.4,
-				CFrame = CFrame.new(center + Vector3.new(0, 7.2, 0)),
-				Color = STONE,
-				Material = Enum.Material.Marble,
-				Parent = map,
-			})
-			local spray = Instance.new("ParticleEmitter")
-			spray.Name = "Spray"
-			spray.Color = ColorSequence.new(rgb(170, 225, 255))
-			spray.Rate = 40
-			spray.Lifetime = NumberRange.new(1.2, 1.6)
-			spray.Speed = NumberRange.new(10, 13)
-			spray.SpreadAngle = Vector2.new(20, 20)
-			spray.Acceleration = Vector3.new(0, -20, 0)
-			spray.Size = NumberSequence.new(0.5, 0.1)
-			spray.Transparency = NumberSequence.new(0.2, 1)
-			spray.Parent = top
-		end
+	-- the fountain, like the reference picture: a low round cream basin of blue
+	-- water, and a small bowl on a pedestal in the middle with a pointed top
+	local plazaTop = center.Y + 0.6
+	local function fountainPart(name: string, props: { [string]: any })
+		props.Name = name
+		props.Material = props.Material or Enum.Material.Marble
+		props.Color = props.Color or STONE
+		props.Parent = map
+		return part(props)
 	end
+	fountainPart("FountainBasin", {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(2.4, 26, 26),
+		CFrame = cylinderUp(CFrame.new(Vector3.new(0, plazaTop + 1.2, 0))),
+	})
+	-- a raised rim of cream stones round the water
+	for k = 0, 23 do
+		local a = math.rad(k * 15)
+		local at = Vector3.new(math.cos(a) * 12.6, plazaTop + 2.75, math.sin(a) * 12.6)
+		fountainPart("FountainRim", {
+			Size = Vector3.new(1, 0.7, 2 * math.pi * 13.1 / 24 + 0.2), -- long enough to close the outer seams
+			CFrame = CFrame.lookAt(at, at + Vector3.new(-math.sin(a), 0, math.cos(a))),
+		})
+	end
+	for _, water in { { 24.4, plazaTop + 2.45 }, { 5, plazaTop + 6.15 } } do
+		fountainPart("FountainWater", {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.3, water[1], water[1]),
+			CFrame = cylinderUp(CFrame.new(Vector3.new(0, water[2], 0))),
+			Color = rgb(95, 195, 240),
+			Material = Enum.Material.Neon,
+			Transparency = 0.25,
+			CanCollide = false,
+		})
+	end
+	fountainPart("FountainPedestal", {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(3.4, 2.6, 2.6),
+		CFrame = cylinderUp(CFrame.new(Vector3.new(0, plazaTop + 4.1, 0))),
+	})
+	fountainPart("FountainBowl", {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1, 6, 6),
+		CFrame = cylinderUp(CFrame.new(Vector3.new(0, plazaTop + 6, 0))),
+	})
+	fountainPart("FountainBlock", {
+		Size = Vector3.new(1.5, 1.4, 1.5),
+		CFrame = CFrame.new(Vector3.new(0, plazaTop + 7, 0)),
+	})
+	-- a cube stood on its corner, half sunk into the block: a little pyramid
+	local top = fountainPart("FountainTop", {
+		Size = Vector3.one * 1.3,
+		CFrame = CFrame.new(Vector3.new(0, plazaTop + 7.7, 0)) * CFrame.Angles(math.rad(45), 0, math.rad(35.26)),
+		CanCollide = false,
+	})
+	local spray = Instance.new("ParticleEmitter")
+	spray.Name = "Spray"
+	spray.Color = ColorSequence.new(rgb(170, 225, 255))
+	spray.Rate = 30
+	spray.Lifetime = NumberRange.new(0.8, 1.1)
+	spray.Speed = NumberRange.new(6, 8)
+	spray.SpreadAngle = Vector2.new(25, 25)
+	spray.Acceleration = Vector3.new(0, -20, 0)
+	spray.Size = NumberSequence.new(0.4, 0.1)
+	spray.Transparency = NumberSequence.new(0.2, 1)
+	spray.Parent = top
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "ChowkSpawn"
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(8, 1, 8)
-	spawn.Position = center + Vector3.new(22, 0.4, 0)
+	spawn.Position = Biomes.polar(Biomes.DHABA_ANGLE, Biomes.SPAWN_RADIUS) + Vector3.new(0, 0.1, 0)
 	spawn.Duration = 0
 	spawn.Neutral = true
 	spawn.Color = rgb(255, 210, 80)
@@ -1123,6 +1192,7 @@ local function buildHub(map: Model): { [string]: BasePart }
 
 	-- a chai dhaba, a fruit cart and parked rickshaws (props modelled in Blender)
 	local onPlaza = Vector3.new(0, 0.6, 0) -- the plaza's paving is this much above the ground
+	assert(45 * 7 + 22.5 == Biomes.DHABA_ANGLE, "the dhaba is in the 8th stall spot")
 	local dhaba = spot(7) * CFrame.new(0, 0.6, 4)
 	Props.place("ChowkDhaba", dhaba, map)
 	Props.text(map, dhaba, Props.anchor("ChowkDhaba", "Sign", dhaba), 11, 2.2, "CHAI DHABA", STONE)
@@ -1135,14 +1205,17 @@ local function buildHub(map: Model): { [string]: BasePart }
 	-- warm string lights around the plaza. Their poles stand between the roads
 	-- and alleys (which leave the Chowk every 45 degrees), never on them.
 	local i = 0
+	local ring = {}
 	for degree = 0, 355, 5 do
 		i += 1
 		local a = math.rad(degree)
+		local position = center + Vector3.new(math.cos(a) * 68, 9 - (i % 6 == 0 and 0 or 0.6), math.sin(a) * 68)
+		table.insert(ring, position + Vector3.new(0, 0.45, 0))
 		local bulb = part({
 			Name = "Bulb",
 			Shape = Enum.PartType.Ball,
 			Size = Vector3.one * 0.8,
-			Position = center + Vector3.new(math.cos(a) * 68, 9 - (i % 6 == 0 and 0 or 0.6), math.sin(a) * 68),
+			Position = position,
 			Color = WARM_LIGHT,
 			Material = Enum.Material.Neon,
 			CanCollide = false,
@@ -1156,6 +1229,10 @@ local function buildHub(map: Model): { [string]: BasePart }
 			light.Brightness = 1.2
 			light.Parent = bulb
 		end
+	end
+	-- the wire the bulbs hang on
+	for k, point in ring do
+		wire(map, point, ring[k % #ring + 1])
 	end
 	for k = 0, 15 do
 		local a = math.rad(11.25 + 22.5 * k)
@@ -1194,19 +1271,26 @@ local function buildHub(map: Model): { [string]: BasePart }
 		)
 	end
 
-	-- colourful bazaar houses round the square: two in front of every haveli,
-	-- with a walkway between them from its door to the fountain
+	-- a row of colourful bazaar houses all round the square, like a bazaar
+	-- street: two in front of every haveli (with a walkway between them from
+	-- its door to the fountain) and one each side of every alley. The only
+	-- gaps are the walkways, the alleys and the four roads under their arches.
 	local houses = {}
-	for k = 1, 8 do
-		local inward = -Biomes.polar(math.deg(Biomes.haveliAngle(k)), 1) * Vector3.new(1, 0, 1)
+	local function addHouse(angle: number, aside: number, style: number)
+		local inward = -Biomes.polar(angle, 1) * Vector3.new(1, 0, 1)
 		local across = Vector3.new(-inward.Z, 0, inward.X)
+		local position = Biomes.polar(angle, CHOWK_HOUSE_RADIUS) + across * aside + Vector3.new(0, 0.2, 0)
+		Props.place(CHOWK_HOUSES[style % #CHOWK_HOUSES + 1], CFrame.lookAt(position, position + inward), map)
+		table.insert(houses, position)
+	end
+	for k = 1, 8 do
 		for _, side in { -1, 1 } do
-			local position = Biomes.polar(math.deg(Biomes.haveliAngle(k)), CHOWK_HOUSE_RADIUS)
-				+ across * side * CHOWK_HOUSE_ASIDE
-				+ Vector3.new(0, 0.2, 0)
-			local name = CHOWK_HOUSES[(2 * k + (side + 1) / 2) % #CHOWK_HOUSES + 1]
-			Props.place(name, CFrame.lookAt(position, position + inward), map)
-			table.insert(houses, position)
+			addHouse(math.deg(Biomes.haveliAngle(k)), side * CHOWK_HOUSE_ASIDE, 2 * k + (side + 1) / 2)
+		end
+	end
+	for k, region in Biomes.REGIONS do
+		for _, side in { -1, 1 } do
+			addHouse(region.angle + 45, side * CHOWK_ALLEY_ASIDE, 2 * k + (side + 1) / 2 + 1)
 		end
 	end
 	-- warm string lights from each arch down to the nearest rooftops
@@ -1221,13 +1305,19 @@ local function buildHub(map: Model): { [string]: BasePart }
 					to, best = house + Vector3.new(0, 14.6, 0), distance
 				end
 			end
+			local function sag(t: number): Vector3
+				return from:Lerp(to, t) - Vector3.new(0, 10 * t * (1 - t), 0)
+			end
+			for n = 0, 8 do
+				wire(map, sag(n / 9) + Vector3.new(0, 0.45, 0), sag((n + 1) / 9) + Vector3.new(0, 0.45, 0))
+			end
 			for n = 1, 8 do
 				local t = n / 9
 				part({
 					Name = "GateBulb",
 					Shape = Enum.PartType.Ball,
 					Size = Vector3.one * 0.8,
-					Position = from:Lerp(to, t) - Vector3.new(0, 10 * t * (1 - t), 0),
+					Position = sag(t),
 					Color = WARM_LIGHT,
 					Material = Enum.Material.Neon,
 					CanCollide = false,

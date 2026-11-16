@@ -15,6 +15,7 @@ local Mutations = require(Shared.Mutations)
 local Themes = require(Shared.Themes)
 local Events = require(Shared.Events)
 local Gear = require(Shared.Gear)
+local Biomes = require(Shared.Biomes)
 
 local State = require(script.Parent.State)
 local Models = require(script.Parent.Models)
@@ -485,18 +486,29 @@ function Havelis.syncData(profile)
 	profile.data.owned = keys
 end
 
-function Havelis.teleportHome(profile)
-	local h = profile.haveli
+-- Where a player appears when they join or respawn: in the Chowk, facing the
+-- Chai Dhaba, a few studs apart from everyone else (one spot per haveli).
+function Havelis.chowkSpawn(profile): CFrame
+	local index = if profile.haveli then profile.haveli.index else 1
+	local angle = Biomes.DHABA_ANGLE + (index - 4.5) * 3
+	local spot = Biomes.polar(angle, Biomes.SPAWN_RADIUS) + Vector3.new(0, 3.6, 0)
+	local dhaba = Biomes.polar(Biomes.DHABA_ANGLE, 60) + Vector3.new(0, 3.6, 0)
+	return CFrame.lookAt(spot, dhaba)
+end
+
+function Havelis.spawnInChowk(profile)
 	local character = profile.player.Character
-	if h and character then
-		if workspace.StreamingEnabled then
-			-- load the haveli on the player's screen first, so they don't fall through the floor
-			pcall(function()
-				profile.player:RequestStreamAroundAsync(h.spawn.Position, 3)
-			end)
-		end
-		character:PivotTo(h.spawn)
+	if not character then
+		return
 	end
+	local cf = Havelis.chowkSpawn(profile)
+	if workspace.StreamingEnabled then
+		-- load the Chowk on the player's screen first, so they don't fall through the floor
+		pcall(function()
+			profile.player:RequestStreamAroundAsync(cf.Position, 3)
+		end)
+	end
+	character:PivotTo(cf)
 end
 
 function Havelis.upgrade(player: Player)

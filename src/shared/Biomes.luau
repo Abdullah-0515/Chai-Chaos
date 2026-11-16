@@ -37,6 +37,8 @@ end
 -- World layout (studs). The Chowk is centred on x = 0, z = 0.
 Biomes.GROUND_Y = 1
 Biomes.PLAZA_RADIUS = 70
+Biomes.DHABA_ANGLE = 337.5 -- the Chai Dhaba stands this way round the Chowk...
+Biomes.SPAWN_RADIUS = 32 -- ...and players appear this far out, facing it
 Biomes.HAVELI_RADIUS = 150
 Biomes.HUB_RADIUS = 200 -- the town ring (Lahore bazaar) starts here
 Biomes.MANDI_RADIUS = 100 -- the Mandi lane runs round the Chowk here, in front of the haveli doors

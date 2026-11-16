@@ -209,7 +209,7 @@ local function onCharacterAdded(profile, character: Model)
 	if State.profiles[profile.player] == profile then
 		profile.carrySpeed = nil
 		Garage.reset(profile)
-		Havelis.teleportHome(profile)
+		Havelis.spawnInChowk(profile)
 		Havelis.applyWalkSpeed(profile)
 		Defenses.applyCharacter(profile)
 	end

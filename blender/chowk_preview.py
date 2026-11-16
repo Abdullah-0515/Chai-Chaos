@@ -4,9 +4,10 @@
 
 It puts the Blender props where MapBuilder.luau puts them in the game, and
 rebuilds the things the game makes from code (the havelis, the shop stalls,
-the fountain) from the same measurements. It shows the mesh version of the props; built from
-parts in the game, tree tops are round balls and the smallest details are left
-out. Use it to check the look against docs/reference-chowk.jpg.
+the fountain) from the same measurements. The trees are shown as the game
+builds them from parts (faceted blocks); the other props show their mesh
+version, which has a few small details the parts version leaves out. Use it to
+check the look against docs/reference-chowk.jpg.
 """
 
 import math
@@ -25,6 +26,7 @@ import build  # noqa: E402  (registers every prop)
 
 OUT = os.path.join(ROOT, "docs", "chowk-preview.jpg")
 HAVELI_OUT = os.path.join(ROOT, "docs", "haveli-preview.jpg")
+SPAWN_OUT = os.path.join(ROOT, "docs", "spawn-preview.jpg")
 REGISTRY = {name: (category, fn) for name, category, _note, fn in kit.REGISTRY}
 count = 0
 
@@ -41,12 +43,20 @@ def yaw_to(pos, target=(0, 0, 0)):
     return math.degrees(math.atan2(d.x, -d.y))
 
 
-def place(name, pos, yaw, scale=1.0, z=0.0):
+def place(name, pos, yaw, scale=1.0, z=0.0, parts=False):
+    """Places a prop. With parts=True it shows the pieces the game builds from
+    parts instead of the mesh-only ones."""
     global count
     count += 1
     category, fn = REGISTRY[name]
     prop = kit.Prop(f"{name}_{count}", category)
     fn(prop)
+    if parts:
+        for obj in prop.pieces:
+            if obj["rbx_flags"] & kit.PARTSONLY:
+                obj.hide_render = False
+            elif obj["rbx_shape"] == "Mesh" and obj["rbx_fallback"] in ("", "None"):
+                obj.hide_render = True
     prop.transform(scale, (0, 0, yaw))
     build.move(prop, Vector((pos[0], pos[1], z)))
     return prop
@@ -219,11 +229,18 @@ def main():
     for i in range(72):  # the Mandi lane
         p0, p1 = polar(i * 5, 100), polar(i * 5 + 5, 100)
         s.beam(p0 + Vector((0, 0, 0.1)), p1 + Vector((0, 0, 0.1)), 8, 0.2, "clay" if i % 2 else "rosebrick", "Brick")
-    # the fountain
-    for height, radius, base in ((2, 13, 0), (1.6, 7, 2.4), (1.2, 3, 4.6)):
-        s.cyl(radius, height, (0, 0, plaza_top + base + height / 2), None, "cream", verts=32)
-        s.cyl(radius - 0.75, 0.3, (0, 0, plaza_top + base + height + 0.05), None, "water", verts=32)
-    s.ball(1.2, (0, 0, plaza_top + 6.8), "cream")
+    # the fountain: a low cream basin, a pedestal and bowl, a little pyramid on top
+    s.cyl(13, 2.4, (0, 0, plaza_top + 1.2), None, "cream", verts=40)
+    for k in range(24):  # the raised rim of stones
+        a = math.radians(k * 15)
+        p = polar(k * 15, 12.6)
+        s.box((1, 2 * math.pi * 13.1 / 24 + 0.2, 0.7), (p.x, p.y, plaza_top + 2.75), (0, 0, -k * 15), "cream")
+    s.cyl(12.2, 0.3, (0, 0, plaza_top + 2.45), None, "skyblue", verts=40)
+    s.cyl(1.3, 3.4, (0, 0, plaza_top + 4.1), None, "cream", verts=16)
+    s.cyl(3, 1, (0, 0, plaza_top + 6), None, "cream", verts=24)
+    s.cyl(2.5, 0.3, (0, 0, plaza_top + 6.15), None, "skyblue", verts=24)
+    s.box((1.5, 1.5, 1.4), (0, 0, plaza_top + 7), None, "cream")
+    s.box((1.3, 1.3, 1.3), (0, 0, plaza_top + 7.7), (45, 35.26, 0), "cream")
     # the shop stalls (built from code in MapBuilder.shopStall)
     stalls = (("BECHO", "green"), ("GEAR SHOP", "blue"), ("RADAR WALA", "purple"))
     for k, (title, color) in enumerate(stalls):
@@ -246,8 +263,14 @@ def main():
         for j in range(12):
             stall.cyl(0.55, 0.12, (-6.05 + j * 1.1, -3.52, 8.25), (90, 0, 0), color if j % 2 == 0 else "cream2",
                       "Fabric", verts=12)
+        stall.box((10, 0.12, 0.12), (0, -2.6, 8.38), None, "black")
         for j in range(5):
             stall.ball(0.3, (-4.4 + j * 2.2, -2.6, 8.0), "bulb", "Neon")
+        for side in (-1, 1):  # crates of fruit
+            stall.box((2.2, 1.8, 1.4), (side * 7.6, -1, 0.7), None, "lightwood", "WoodPlanks")
+            for f in range(3):
+                stall.ball(0.35, (side * 7.6 - 0.6 + f * 0.6, -1 + (f % 2) * 0.3, 1.55),
+                           "red" if (f + side) % 2 == 0 else "yellow")
         stall.box((11.8, 0.3, 3), (0, -1.45, 11.4), None, "cream")
         stall.box((11, 0.4, 2.2), (0, -1.7, 11.4), None, color)
         stall.transform(1.0, (0, 0, yaw))
@@ -274,6 +297,13 @@ def main():
             pos = polar(angle, 86) + across * side * 9.5
             place(HOUSES[(2 * k + (side + 1) // 2) % 4], pos, yaw_to(polar(angle, 86)), z=0.2)
             house_spots.append(pos)
+    for k, angle in enumerate((-45, 45, 135, 225), start=1):  # and one each side of every alley
+        a = math.radians(angle)
+        across = Vector((-math.sin(a), -math.cos(a), 0))
+        for side in (-1, 1):
+            pos = polar(angle, 86) + across * side * 12.5
+            place(HOUSES[(2 * k + (side + 1) // 2 + 1) % 4], pos, yaw_to(polar(angle, 86)), z=0.2)
+            house_spots.append(pos)
     for k, (angle, name) in enumerate(((-90, "PUNJAB"), (0, "SINDH"), (90, "THAR"), (180, "KPK"))):
         gate_at = polar(angle, 80)
         gate_yaw = yaw_to(gate_at)
@@ -285,21 +315,30 @@ def main():
             near = min((h for h in house_spots if (h - gate_at).dot(gate_right) * side > 0),
                        key=lambda h: (h - start).length)
             end = near + Vector((0, 0, 14.6))
+            def sag(t):
+                return start.lerp(end, t) - Vector((0, 0, 10 * t * (1 - t)))
+
+            for n in range(9):
+                s.rod(sag(n / 9) + Vector((0, 0, 0.45)), sag((n + 1) / 9) + Vector((0, 0, 0.45)), 0.06, "black",
+                      "SmoothPlastic", verts=4)
             for n in range(1, 9):
-                t = n / 9
-                b = start.lerp(end, t) - Vector((0, 0, 10 * t * (1 - t)))
-                s.ball(0.4, b, "bulb", "Neon")
+                s.ball(0.4, sag(n / 9), "bulb", "Neon")
         text(name, gate.anchors["Sign"] + gate_at + gate_front * 0.08, gate_yaw, 1.6)
         for side in (-1, 1):
-            place("PlanterTree", polar(angle + side * 12, 64), k * 50 + side * 70, z=plaza_top)
+            place("PlanterTree", polar(angle + side * 12, 64), k * 50 + side * 70, z=plaza_top, parts=True)
     place("Rickshaw", polar(28, 30), 40, z=plaza_top)
     place("Rickshaw", polar(150, 29), -70, z=plaza_top)
     fruit_at = polar(236, 60)
     place("FruitStall", fruit_at, yaw_to(fruit_at), z=plaza_top)
     # warm string lights and their poles
+    ring = []
     for i in range(72):
         p = polar(i * 5, 68)
-        s.ball(0.4, (p.x, p.y, 9 - (0 if (i + 1) % 6 == 0 else 0.6)), "bulb", "Neon")
+        z = 9 - (0 if (i + 1) % 6 == 0 else 0.6)
+        s.ball(0.4, (p.x, p.y, z), "bulb", "Neon")
+        ring.append(Vector((p.x, p.y, z + 0.45)))
+    for i, point in enumerate(ring):
+        s.rod(point, ring[(i + 1) % len(ring)], 0.06, "black", "SmoothPlastic", verts=4)
     for k in range(16):
         p = polar(11.25 + 22.5 * k, 68)
         s.box((0.5, 0.5, 9), (p.x, p.y, 4.5), None, "darkwood", "Wood")
@@ -357,6 +396,19 @@ def main():
     scene.render.filepath = HAVELI_OUT
     bpy.ops.render.render(write_still=True)
     print("wrote", HAVELI_OUT)
+
+    # a third: what a player sees when they appear in the Chowk (Havelis.chowkSpawn),
+    # from just behind and above their head, facing the Chai Dhaba
+    spot = polar(337.5, 32)
+    toward = (dhaba_at - spot).normalized()
+    eye = spot - toward * 9 + Vector((0, 0, 7.5))
+    target = dhaba_at + Vector((0, 0, 5))
+    cam.location = eye
+    cam.rotation_euler = (target - eye).to_track_quat("-Z", "Y").to_euler()
+    cam_data.lens = 22
+    scene.render.filepath = SPAWN_OUT
+    bpy.ops.render.render(write_still=True)
+    print("wrote", SPAWN_OUT)
 
 
 if __name__ == "__main__":
