@@ -1487,8 +1487,15 @@ local function buildRoads(map: Model)
 	local roads = Instance.new("Folder")
 	roads.Name = "Roads"
 	roads.Parent = map
+	-- pieces overlap where they meet, so each kind sits a hair higher than the
+	-- one it crosses and neighbours alternate: overlapping faces at the same
+	-- height flicker (z-fighting)
+	local kindLift = { spoke = 0.04, alley = 0.06 }
+	local count = {}
 	for _, road in Biomes.roads() do
-		local a, b = road.a + Vector3.new(0, 0.15, 0), road.b + Vector3.new(0, 0.15, 0)
+		count[road.kind] = (count[road.kind] or 0) + 1
+		local lift = 0.15 + (kindLift[road.kind] or 0) + (count[road.kind] % 2) * 0.02
+		local a, b = road.a + Vector3.new(0, lift, 0), road.b + Vector3.new(0, lift, 0)
 		local cf = CFrame.lookAt((a + b) / 2, b)
 		part({
 			Name = "Road",

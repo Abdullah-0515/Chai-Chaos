@@ -28,7 +28,7 @@ ROOT = os.path.dirname(HERE)
 DOCS = os.path.join(ROOT, "docs")
 
 GROUND_Y = 1.0
-EXTENT = 800  # studs from the middle to the edge of the picture
+EXTENT = 820  # studs from the middle to the edge of the picture
 PX_PER_STUD = 2
 
 # Roblox's default terrain colours (nothing in the game changes them)
@@ -111,8 +111,9 @@ def ground_object(fills):
     image = bpy.data.images.new("Ground", size, size, alpha=False)
     rgba = np.ones((size, size, 4), dtype=np.float32)
     rgba[:, :, :3] = pixels[::-1]  # images start at the bottom row; row 0 of ours is z = -EXTENT (the top)
-    image.pixels.foreach_set(rgba.ravel())
-    image.colorspace_settings.name = "sRGB"
+    image.pixels.foreach_set(rgba.ravel())  # (set no image settings after this: they reload it blank)
+    image.update()
+    image.pack()
     mesh = bpy.data.meshes.new("Ground")
     e = EXTENT
     mesh.from_pydata([(-e, -e, GROUND_Y - 0.05), (e, -e, GROUND_Y - 0.05), (e, e, GROUND_Y - 0.05),
@@ -309,7 +310,10 @@ def camera(scene, name, location, target, ortho=None, lens=35):
     direction = np.array(target) - np.array(location)
     from mathutils import Vector
 
-    cam.rotation_euler = Vector(direction).to_track_quat("-Z", "Y").to_euler()
+    if ortho:
+        cam.rotation_euler = (0, 0, 0)  # straight down, north (-z in the game) at the top
+    else:
+        cam.rotation_euler = Vector(direction).to_track_quat("-Z", "Y").to_euler()
     scene.camera = cam
     return cam
 
@@ -336,7 +340,7 @@ def label(path, labels, width):
     args = [tool, path]
     for x, z, size, text in labels:
         px, py = (x + EXTENT) * scale, (z + EXTENT) * scale
-        points = 30 if size == 1 else 34
+        points = 26 if size == 1 else 30
         fill = "white" if size == 1 else "#ffe9b0"
         args += ["-gravity", "NorthWest", "-font", "DejaVu-Sans-Bold", "-pointsize", str(points),
                  "-stroke", "#2a1a10", "-strokewidth", "6", "-fill", fill,

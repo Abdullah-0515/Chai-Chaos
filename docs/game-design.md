@@ -107,7 +107,9 @@ Six more special brainrots (Mithai Mamu, Lassi Lightning, Chowkidar Choocha, Ran
 
 ## Map: biome slices
 
-![The world from above](world-map.png)
+![The whole world from above, as the game builds it](world-from-above.jpg)
+
+*Rendered from the game's own world (`tests/run.sh worlddump`, then `python blender/world_preview.py`). The bird's-eye view of the town is [`town-from-above.jpg`](town-from-above.jpg); the plan with prices is [`world-map.png`](world-map.png).*
 
 One big circle, about 1,500 studs across.
 

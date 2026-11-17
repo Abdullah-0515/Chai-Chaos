@@ -98,11 +98,13 @@ end
 -- where to write the names: L x z size name
 local Biomes = requireModule(M.services.ReplicatedStorage.ChaiChaos.Biomes)
 for _, biome in Biomes.list do
-	local p = Biomes.polar(biome.angle, (Biomes.innerRadius(biome) + Biomes.outerRadius(biome)) / 2)
+	-- the rings along a region's middle line would overlap, so each ring's name is turned a little
+	local turn = ({ 0, 13, -13 })[biome.ring] or 0
+	local p = Biomes.polar(biome.angle + turn, (Biomes.innerRadius(biome) + Biomes.outerRadius(biome)) / 2)
 	print(("L %s %s 1 %s"):format(f(p.X), f(p.Z), biome.name:upper()))
 end
 for _, region in Biomes.REGIONS do
-	local p = Biomes.polar(region.angle, Biomes.WORLD_RADIUS + 12)
+	local p = Biomes.polar(region.angle + 24, Biomes.WORLD_RADIUS - 20)
 	print(("L %s %s 2 %s"):format(f(p.X), f(p.Z), region.name:upper()))
 end
 print("L 0 0 1 CHOWK")
