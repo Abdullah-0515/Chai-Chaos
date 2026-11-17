@@ -8,7 +8,7 @@ cylinders and balls, so it looks the same when the game builds it from parts.
 Coordinates are Blender's: x across, y front (-y) to back, z up.
 """
 
-from kit import LIGHT, NOCOLLIDE
+from kit import LIGHT, NOCOLLIDE, PARTSONLY
 
 D = NOCOLLIDE
 
@@ -84,3 +84,37 @@ def side_diamonds(p, x, y0, y1, z, height=0.7, band="dhabateal", colors=("gold",
     for i in range(n):
         p.box((0.14, size, size), (x + out, start + i * step, z), (45, 0, 0), colors[i % len(colors)],
               "SmoothPlastic", D)
+
+
+def canopy(p, radius, pos, scale=(1, 1, 1), color="leaf", seed=0, blocks=2, mat="Grass", flags=D, jitter=0.18):
+    """A faceted tree top like the Chowk's trees: the mesh is a lumpy low-poly
+    ball, and the parts version is blocks turned different ways (a plain ball
+    would look smooth and round in the game)."""
+    p.blob(radius, pos, scale, color, mat, flags, seed=seed, jitter=jitter, fallback="None")
+    turns = ((0, 0, 20 + seed * 7 % 40), (35, 0, 55 + seed * 11 % 30), (-30, 40, seed * 13 % 60))
+    size = radius * 1.4
+    for turn in turns[:blocks]:
+        p.box((size * scale[0], size * scale[1], size * scale[2]), pos, turn, color, mat, flags | PARTSONLY)
+
+
+def rock(p, radius, pos, scale=(1, 1, 0.75), color="stone", seed=0, mat="Slate", flags=0):
+    """A chunky faceted rock: lumpy in the mesh, two turned blocks as parts."""
+    canopy(p, radius, pos, scale, color, seed, 2, mat, flags, jitter=0.3)
+
+
+def flags_along(p, points, x, drop=0.55, size=0.6, colors=("red", "gold", "dhabateal", "cream")):
+    """Little diamond flags hanging from a rope that runs along y (at x)."""
+    for i, q in enumerate(points):
+        p.box((0.06, size, size), (x, q[1], q[2] - drop), (45, 0, 0), colors[i % len(colors)], "Fabric", D)
+
+
+def cone(p, radius, height, pos, color, mat="SmoothPlastic", flags=0, steps=3):
+    """A pointed roof or cap: a cone in the mesh, and stepped cylinders in the
+    parts version (a cone would become a plain cylinder)."""
+    x, y, z = pos  # the middle of the cone
+    p.cone(radius, height, pos, None, color, mat, flags, verts=12, fallback="None")
+    bottom = z - height / 2
+    for k in range(steps):
+        r = radius * (1 - k / steps)
+        h = height / steps
+        p.cyl(r, h, (x, y, bottom + h * (k + 0.5)), None, color, mat, flags | PARTSONLY, verts=12)

@@ -128,6 +128,8 @@ def render(name):
     lo = Vector((min(c.x for c in corners), min(c.y for c in corners), min(c.z for c in corners)))
     hi = Vector((max(c.x for c in corners), max(c.y for c in corners), max(c.z for c in corners)))
     center = (lo + hi) / 2
+    # the floor goes under the lowest piece (bridges hang below their ends, stilts reach into water)
+    ground.location.z = min(ground.location.z, lo.z)
     radius = max((c - center).length for c in corners)
 
     cam_data = bpy.data.cameras.new("ModelCam")
