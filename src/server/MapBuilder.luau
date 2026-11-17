@@ -1804,6 +1804,13 @@ local function buildTown(map: Model)
 			Props.place(stalls[n % #stalls + 1], facingIn(at(angle, 274)), town)
 		end
 	end
+	-- a bus stop on the pavement beside every road out of town, facing the road
+	for _, region in Biomes.REGIONS do
+		local spot = at(region.angle + 4, 226)
+		local cf = CFrame.lookAt(spot, at(region.angle, 226))
+		Props.place("BusStop", cf, town)
+		Props.text(town, cf, Props.anchor("BusStop", "Sign", cf), 1.0, 0.5, "BUS")
+	end
 	-- string lights over the bazaar street
 	for k = 0, 35 do
 		local angle = k * 10 + 5

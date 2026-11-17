@@ -360,6 +360,44 @@ local function eggSpots(ctx, avoid: { [string]: boolean }?)
 	end
 end
 
+-- Milestones along the road through the zone, just off its edge, with the
+-- distance back to the Chowk painted on them (a kilometre for every 100 studs).
+local MILESTONE_EVERY = 90
+local MILESTONE_AVOID = { track = true, water = true, shore = true, mud = true, ice = true }
+local function milestones(ctx)
+	for _, road in Biomes.roads() do
+		if road.kind == "zone" then
+			local a = Vector3.new(road.a.X, GROUND_Y, road.a.Z)
+			local along = Vector3.new(road.b.X, GROUND_Y, road.b.Z) - a
+			local dir = along.Unit
+			local side = Vector3.new(-dir.Z, 0, dir.X)
+			local d = MILESTONE_EVERY / 2
+			while d < along.Magnitude do
+				local onRoad = a + dir * d
+				local spot = onRoad + side * (road.width / 2 + 2.5)
+				local free = Biomes.contains(ctx.biome, spot, EDGE) and not inZone(ctx.plan, spot, MILESTONE_AVOID)
+				for _, gate in ctx.clear do
+					if ((spot - gate) * Vector3.new(1, 0, 1)).Magnitude < GATE_CLEAR then
+						free = false
+					end
+				end
+				for _, o in ctx.occupied do
+					if ((spot - o.position) * Vector3.new(1, 0, 1)).Magnitude < o.radius + 2 then
+						free = false
+					end
+				end
+				if free then
+					local cf = propFacing(ctx, "Milestone", spot, onRoad)
+					occupy(ctx, spot, 2)
+					local km = math.floor((spot * Vector3.new(1, 0, 1)).Magnitude / 100 + 0.5)
+					sign(ctx, "Milestone", cf, "Face", 1.4, 1.1, ("%d KM"):format(km))
+				end
+				d += MILESTONE_EVERY
+			end
+		end
+	end
+end
+
 -- Buried treasure under an X, dug up with a Belcha.
 local function digChests(ctx, count: number, avoid: { [string]: boolean }?)
 	local placed, tries = 0, 0
@@ -494,6 +532,10 @@ function BUILDERS.MangoBagh(ctx)
 			occupy(ctx, spot, 12)
 		end
 	end
+	-- the family's mud houses, before the orchard fills in
+	for _, spot in { { 0.15, -0.45 }, { 0.62, 0.42 } } do
+		landmark(ctx, "MudHut", spot[1], spot[2], 7)
+	end
 	scatter(ctx, "MangoTree", 34, { spacing = 9, scale = { 0.9, 1.2 }, avoid = { mud = true } })
 	scatter(ctx, "KikarTree", 6, { spacing = 9 })
 	scatter(ctx, "Charpai", 6, { spacing = 4 })
@@ -538,6 +580,9 @@ function BUILDERS.SarsonFields(ctx)
 		landmark(ctx, "Scarecrow", 0.55, sf, 3)
 	end
 	landmark(ctx, "TubeWell", 0.85, -0.2, 5)
+	for _, sf in { -0.6, 0.15 } do
+		landmark(ctx, "MudHut", 0.9, sf, 7)
+	end
 	scatter(ctx, { "KikarTree", "Poplar" }, 8, { spacing = 8, rMin = 0.85, rMax = 1 })
 	local tank = landmark(ctx, "WaterTank", 0.9, 0.55, 10)
 	climbAnchors(ctx, "WaterTank", tank, "Top", "Base", "TopStand")
@@ -688,6 +733,14 @@ function BUILDERS.SahilBeach(ctx)
 	sea(ctx, ctx.r2 - 52, 22)
 	for i, sf in { -0.7, -0.35, 0.3, 0.65 } do
 		landmark(ctx, ({ "BeachHutTeal", "BeachHutPink", "BeachHutYellow", "BeachHutTeal" })[i], 0.55, sf, 7)
+	end
+	-- the fishermen's row boats pulled up on the sand, and their nets drying behind them
+	local function rfAt(r: number): number
+		return (r - ctx.r1 - EDGE) / (ctx.r2 - ctx.r1 - 2 * EDGE)
+	end
+	for _, sf in { -0.2, 0.45 } do
+		landmark(ctx, "RowBoat", rfAt(ctx.r2 - 62), sf, 6, 90 + sf * 40)
+		landmark(ctx, "NetRack", rfAt(ctx.r2 - 76), sf + 0.12, 6)
 	end
 	scatter(ctx, "BeachUmbrella", 8, { spacing = 5, rMin = 0.3, rMax = 0.6 })
 	scatter(ctx, "CoconutPalm", 16, { spacing = 6, rMax = 0.55 })
@@ -963,6 +1016,7 @@ function BiomeBuilder.run(parent: Instance?): { [string]: Plan }
 		end
 		local ctx = newContext(biome, folder)
 		BUILDERS[biome.id](ctx)
+		milestones(ctx)
 		plans[biome.id] = ctx.plan
 	end
 	return plans

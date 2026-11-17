@@ -787,6 +787,74 @@ do
 	end
 	print("    parts in the world: " .. parts)
 	check(parts < 16000, "parts in the whole world: " .. parts)
+	-- the village props placed round the world
+;
+	(function()
+		local function zoneOf(model)
+			local folder = model.Parent
+			return folder and folder.Name
+		end
+		local found = { Milestone = {}, BusStop = {}, MudHut = {}, RowBoat = {}, NetRack = {} }
+		for _, d in workspace:GetDescendants() do
+			if d:IsA("Model") and found[d.Name] then
+				table.insert(found[d.Name], d)
+			end
+		end
+		-- milestones stand just off the zone roads, facing them, with the distance on them
+		local roadside, written = 0, 0
+		for _, stone in found.Milestone do
+			local pos = stone.WorldPivot.Position
+			local d = Biomes.roadDistance(pos)
+			local ahead = pos + stone.WorldPivot.LookVector * 4
+			if d > 0 and d < 4 and Biomes.roadDistance(ahead) < d then
+				roadside += 1
+			end
+			for _, t in stone.Parent:GetChildren() do
+				if t.Name == "SignText" and (t.Position - pos).Magnitude < 3 then
+					local label = t:FindFirstChildWhichIsA("TextLabel", true)
+					if label and label.Text:match("^%d+ KM$") then
+						written += 1
+					end
+				end
+			end
+		end
+		check(
+			#found.Milestone >= 8 and roadside == #found.Milestone and written == #found.Milestone,
+			("milestones along the zone roads, facing them, with the distance: %d (%d by the road, %d written)"):format(
+				#found.Milestone,
+				roadside,
+				written
+			)
+		)
+		-- a bus stop on the pavement by each road out of town
+		local byRoad = 0
+		for _, stop in found.BusStop do
+			local pos = stop.WorldPivot.Position
+			local r = (pos * FLAT).Magnitude
+			if r > Biomes.HUB_RADIUS and r < Biomes.TOWN_RADIUS and Biomes.roadDistance(pos) > 0 then
+				byRoad += 1
+			end
+		end
+		check(#found.BusStop == #Biomes.REGIONS and byRoad == #found.BusStop, "a bus stop by every road out of town")
+		local huts = {}
+		for _, hut in found.MudHut do
+			huts[zoneOf(hut)] = (huts[zoneOf(hut)] or 0) + 1
+		end
+		check(
+			(huts.MangoBagh or 0) >= 1 and (huts.SarsonFields or 0) >= 1,
+			"mud houses in Mango Bagh and Sarson Fields"
+		)
+		local beach = 0
+		for _, list in { found.RowBoat, found.NetRack } do
+			for _, m in list do
+				beach += if zoneOf(m) == "SahilBeach" then 1 else 0
+			end
+		end
+		check(
+			#found.RowBoat >= 1 and #found.NetRack >= 1 and beach == #found.RowBoat + #found.NetRack,
+			"row boats and drying nets on Sahil Beach"
+		)
+	end)()
 
 	-- every Blender prop builds from parts
 	local scratch = M.Instance.new("Folder")

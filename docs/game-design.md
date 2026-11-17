@@ -128,8 +128,13 @@ One big circle, about 1,500 studs across.
 - **No straight runs:** the gate into ring 2 is turned 30 degrees one way and the gate into ring 3 30 degrees the other way, so you zigzag through each zone.
 - **Shortcut doors** between neighbouring regions open once you have unlocked both sides.
 - **Hazards** knock you back and knock time off eggs, but never hurt: the train in Railway Junction (watch the crossing light), waves at Sahil Beach, falling salt rocks in the Namak Caves, slippery frozen lakes and snowballs in Barfani Pahar, sandstorms in the Thar Desert and Mohenjo-daro, mud in Mango Bagh and Sarson Fields, and water at the beach, port and fort moat.
-- **Roads** run from the Chowk through every gate, with **petrol pumps** by the gates and a **rickshaw stand** at the far end of each ring 3 zone that takes you back to the Chowk for free (people only: no eggs, no vehicles).
+- **Roads** run from the Chowk through every gate, with **petrol pumps** by the gates and a **rickshaw stand** at the far end of each ring 3 zone that takes you back to the Chowk for free (people only: no eggs, no vehicles). Milestones stand along the zone roads with the distance back to the Chowk painted on them (a kilometre for every 100 studs), and there is a bus stop by every road out of town.
+- **Village life:** mud houses in Mango Bagh and Sarson Fields, and row boats pulled up on the sand at Sahil Beach with nets drying behind them.
 - **Wild brainrots** wander between open spots in their zone and show on everyone's radar.
+
+### Art style
+
+Every prop and vehicle follows the Chowk's reference picture (`reference-chowk.jpg`): warm wood, rosy brick and cream stone, teal shutters and doors, bands of diamonds, striped awnings with a scalloped edge, and warm bulbs on a dark wire. Each zone keeps its own colours (snow and slate up north, sandstone in the desert, red sandstone at the fort, terracotta at Mohenjo-daro) and adds that finish. Tree crowns, bushes and rocks are faceted, built from turned and crossed blocks rather than smooth balls, and roadside trees have whitewashed trunks like those in Pakistani towns. The building blocks are in `blender/style.py`, and there is a close-up of every model in `docs/models/`.
 
 ## Vehicles
 
