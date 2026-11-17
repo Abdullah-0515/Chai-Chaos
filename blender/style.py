@@ -86,20 +86,58 @@ def side_diamonds(p, x, y0, y1, z, height=0.7, band="dhabateal", colors=("gold",
               "SmoothPlastic", D)
 
 
-def canopy(p, radius, pos, scale=(1, 1, 1), color="leaf", seed=0, blocks=2, mat="Grass", flags=D, jitter=0.18):
+def canopy(p, radius, pos, scale=(1, 1, 1), color="leaf", seed=0, blocks=2, mat="Grass", flags=D, jitter=0.18,
+           turns=None):
     """A faceted tree top like the Chowk's trees: the mesh is a lumpy low-poly
     ball, and the parts version is blocks turned different ways (a plain ball
-    would look smooth and round in the game)."""
+    would look smooth and round in the game). One block on its own is tipped
+    over, so it does not read as a plain box; flat crowns pass turns that only
+    spin about z."""
     p.blob(radius, pos, scale, color, mat, flags, seed=seed, jitter=jitter, fallback="None")
-    turns = ((0, 0, 20 + seed * 7 % 40), (35, 0, 55 + seed * 11 % 30), (-30, 40, seed * 13 % 60))
     size = radius * 1.4
+    if turns is None and blocks == 1:
+        # a block standing on one corner has a rounded, six-sided outline
+        size = radius * 1.15
+        turns = ((45, 35.26, seed * 37 % 120),)
+    elif turns is None:
+        turns = ((0, 0, 20 + seed * 7 % 40), (35, 0, 55 + seed * 11 % 30), (-30, 40, seed * 13 % 60))
     for turn in turns[:blocks]:
         p.box((size * scale[0], size * scale[1], size * scale[2]), pos, turn, color, mat, flags | PARTSONLY)
 
 
-def rock(p, radius, pos, scale=(1, 1, 0.75), color="stone", seed=0, mat="Slate", flags=0):
-    """A chunky faceted rock: lumpy in the mesh, two turned blocks as parts."""
-    canopy(p, radius, pos, scale, color, seed, 2, mat, flags, jitter=0.3)
+def flat_crown(p, radius, pos, scale, color, seed=0, spin=None, thickness=None, tilt=(0, 0), cross=False):
+    """A flat, wide tree crown (acacia, a moss or snow cap): the mesh is a lumpy
+    disc, the parts version one slab spun about z (two crossed slabs, an
+    eight-sided umbrella, with cross=True)."""
+    p.blob(radius, pos, scale, color, "Grass", D, seed=seed, fallback="None")
+    size = radius * (1.25 if cross else 1.4)
+    spin = 15 + seed * 17 % 50 if spin is None else spin
+    height = thickness or size * scale[2]
+    p.box((size * scale[0], size * scale[1], height), pos, (tilt[0], tilt[1], spin), color, "Grass", D | PARTSONLY)
+    if cross:
+        x, y, z = pos
+        p.box((size * scale[0] * 0.92, size * scale[1] * 0.92, height), (x, y, z + 0.04), (tilt[0], tilt[1], spin + 45),
+              color, "Grass", D | PARTSONLY)
+
+
+def bush(p, radius, pos, scale=(1.2, 1.2, 0.8), color="leaf", seed=0, mat="Grass"):
+    """A low, rounded bush: a lumpy mesh, and as parts two blocks crossed at 45
+    degrees (an eight-sided dome, the top block a little taller)."""
+    p.blob(radius, pos, scale, color, mat, D, seed=seed, fallback="None")
+    w, h = radius * 1.5, radius * 1.15 * scale[2]
+    spin = seed * 23 % 45
+    p.box((w * scale[0], w * scale[1], h), pos, (0, 0, spin), color, mat, D | PARTSONLY)
+    p.box((w * scale[0] * 0.72, w * scale[1] * 0.72, h * 1.35), pos, (0, 0, spin + 45), color, mat, D | PARTSONLY)
+
+
+def rock(p, radius, pos, scale=(1, 1, 0.75), color="stone", seed=0, mat="Slate", flags=0, blocks=2):
+    """A chunky faceted rock: lumpy in the mesh, turned blocks as parts."""
+    canopy(p, radius, pos, scale, color, seed, blocks, mat, flags, jitter=0.3)
+
+
+def whitewash(p, radius, height=1.4, x=0.0, y=0.0):
+    """The whitewashed foot of a roadside tree trunk, as in every Pakistani town."""
+    p.cyl(radius, height, (x, y, height / 2), None, "whitewash", "Concrete", D, verts=8)
 
 
 def flags_along(p, points, x, drop=0.55, size=0.6, colors=("red", "gold", "dhabateal", "cream")):
