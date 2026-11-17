@@ -41,15 +41,16 @@ def awning(p, x0, x1, y_back, y_front, z_back, z_front, colors=("red", STRIPE), 
               "Fabric", D, verts=12)
 
 
-def diamonds(p, x0, x1, y, z, height=0.8, band=GOLD, colors=(TEAL, "red"), step=None):
-    """A band with a row of diamonds along it, on a face looking towards -y."""
+def diamonds(p, x0, x1, y, z, height=0.8, band=GOLD, colors=(TEAL, "red"), step=None, facing=-1):
+    """A band with a row of diamonds along it, on a face looking towards -y
+    (or towards +y with facing=1)."""
     p.box((x1 - x0, 0.12, height), ((x0 + x1) / 2, y, z), None, band, "SmoothPlastic", D)
     size = height * 0.62
     step = step or height * 1.9
     n = max(1, int((x1 - x0 - size) / step) + 1)
     start = (x0 + x1) / 2 - (n - 1) * step / 2
     for i in range(n):
-        p.box((size, 0.14, size), (start + i * step, y - 0.03, z), (0, 45, 0), colors[i % len(colors)],
+        p.box((size, 0.14, size), (start + i * step, y + facing * 0.03, z), (0, 45, 0), colors[i % len(colors)],
               "SmoothPlastic", D)
 
 
@@ -71,3 +72,15 @@ def signboard(p, x, y, z, width, height, color=TEAL, frame=CREAM):
     p.box((width + 0.6, 0.25, height + 0.6), (x, y + 0.15, z), None, frame, "WoodPlanks", D)
     p.box((width, 0.25, height), (x, y, z), None, color, "WoodPlanks", D)
     return (x, y - 0.14, z)
+
+
+def side_diamonds(p, x, y0, y1, z, height=0.7, band="dhabateal", colors=("gold", "red")):
+    """A band of diamonds on a side face (looking along +x or -x)."""
+    p.box((0.12, y1 - y0, height), (x, (y0 + y1) / 2, z), None, band, "SmoothPlastic", D)
+    size, step = height * 0.62, height * 1.9
+    n = max(1, int((y1 - y0 - size) / step) + 1)
+    start = (y0 + y1) / 2 - (n - 1) * step / 2
+    out = 0.03 if x > 0 else -0.03
+    for i in range(n):
+        p.box((0.14, size, size), (x + out, start + i * step, z), (45, 0, 0), colors[i % len(colors)],
+              "SmoothPlastic", D)

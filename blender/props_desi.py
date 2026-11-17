@@ -223,18 +223,6 @@ def gola_cart(p):
     canopy(p, 4.2, 2.4, 5.6, top, ("pink", "cream2"))
 
 
-def side_diamonds(p, x, y0, y1, z, height=0.7, band="dhabateal", colors=("gold", "red")):
-    """A band of diamonds on a side face (looking along +x or -x)."""
-    p.box((0.12, y1 - y0, height), (x, (y0 + y1) / 2, z), None, band, "SmoothPlastic", NOCOLLIDE)
-    size, step = height * 0.62, height * 1.9
-    n = max(1, int((y1 - y0 - size) / step) + 1)
-    start = (y0 + y1) / 2 - (n - 1) * step / 2
-    out = 0.03 if x > 0 else -0.03
-    for i in range(n):
-        p.box((0.14, size, size), (x + out, start + i * step, z), (45, 0, 0), colors[i % len(colors)],
-              "SmoothPlastic", NOCOLLIDE)
-
-
 @prop("TruckArt", "desi", "A painted Bedford truck with its wooden crown")
 def truck(p):
     p.box((5.6, 18, 0.7), (0, 0.5, 1.7), color="darkmetal", mat="Metal")
@@ -268,7 +256,7 @@ def truck(p):
         for k, color in enumerate(stripes):
             p.box((0.1, 12.6, 0.45), (x * 1.02, 2.8, 2.85 + k * 0.6), color=color, mat="SmoothPlastic",
                   flags=NOCOLLIDE)
-        side_diamonds(p, x * 1.035, -3.2, 8.8, 5.25, height=0.8)
+        style.side_diamonds(p, x * 1.035, -3.2, 8.8, 5.25, height=0.8)
         p.box((0.4, 13.4, 0.3), (x, 2.8, 6.2), None, "cream", "WoodPlanks")
     p.box((6.6, 0.25, 3.6), (0, 9.3, 4.25), color="blue", mat="WoodPlanks")
     for k, color in enumerate(("yellow", "pink", "green")):
@@ -327,7 +315,7 @@ def tractor(p):
     p.box((5.6, 9.0, 0.4), (0, 7.2, 2.6), color="warmwood", mat="WoodPlanks")
     for x in (-2.7, 2.7):
         p.box((0.25, 9.0, 1.6), (x, 7.2, 3.6), color="blue", mat="WoodPlanks")
-        side_diamonds(p, x * 1.04, 3.2, 11.2, 3.6, height=0.6, band="yellow", colors=("red", "dhabateal"))
+        style.side_diamonds(p, x * 1.04, 3.2, 11.2, 3.6, height=0.6, band="yellow", colors=("red", "dhabateal"))
         p.box((0.35, 9.2, 0.25), (x, 7.2, 4.5), None, "cream", "WoodPlanks")
     for y in (2.8, 11.6):
         p.box((5.6, 0.25, 1.6), (0, y, 3.6), color="blue", mat="WoodPlanks")

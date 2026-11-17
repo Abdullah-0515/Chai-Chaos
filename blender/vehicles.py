@@ -9,6 +9,7 @@ builds vehicles from parts, so they can be painted.
 """
 
 from kit import GLASS, LIGHT, NOCOLLIDE, PAINT, prop
+import style
 
 D = NOCOLLIDE  # vehicles never collide (the driver's character does)
 P = NOCOLLIDE | PAINT
@@ -30,6 +31,9 @@ def motorbike(p):
     p.rod((0, -2.3, 1.0), (0, -1.6, 3.0), 0.12, "metal", "Metal", D)  # front fork
     p.box((1.1, 2.6, 1.1), (0, -0.2, 2.0), None, "red", "SmoothPlastic", P)  # the tank and body
     p.box((0.9, 1.4, 0.7), (0, -0.9, 2.75), None, "red", "SmoothPlastic", P)
+    for x in (-0.56, 0.56):  # a cream stripe and a gold diamond on the tank
+        p.box((0.06, 2.4, 0.25), (x, -0.2, 2.2), None, "cream", "SmoothPlastic", D)
+        p.box((0.08, 0.45, 0.45), (x * 1.05, -0.9, 2.2), (45, 0, 0), "gold", "SmoothPlastic", D)
     p.box((0.95, 2.2, 0.35), (0, 0.8, 2.75), None, "black", "Fabric", D)  # seat
     p.box((0.8, 1.6, 0.6), (0, 0.3, 1.2), None, "darkmetal", "Metal", D)  # engine
     p.rod((0.45, 0.6, 1.0), (0.45, 2.6, 1.4), 0.14, "metal", "Metal", D)  # exhaust
@@ -37,6 +41,10 @@ def motorbike(p):
     p.rod((-0.9, -1.7, 3.3), (0.9, -1.7, 3.3), 0.08, "black", "Metal", D)  # handlebar
     headlight(p, (0, -1.95, 3.0), 0.28)
     p.box((1.6, 1.6, 0.2), (0, 2.2, 2.4), None, "darkmetal", "Metal", D)  # rack
+    for x in (-0.75, 0.75):  # a wooden crate on the rack for the egg
+        p.box((0.12, 1.6, 0.5), (x, 2.2, 2.75), None, "warmwood", "WoodPlanks", D)
+    for y in (1.45, 2.95):  # the ends fit between the sides, so no faces overlap
+        p.box((1.36, 0.12, 0.48), (0, y, 2.75), None, "warmwood", "WoodPlanks", D)
     p.anchor("Seat", (0, 0.9, 2.95))
     p.anchor("Seat1", (0, 1.9, 2.95))
     p.anchor("Boot1", (0, 2.4, 2.5))
@@ -53,7 +61,11 @@ def rickshaw(p):
     p.box((3.4, 1.6, 0.5), (0, 2.0, 2.1), None, "black", "Fabric", D)  # back seat
     p.box((3.4, 0.4, 1.6), (0, 2.85, 2.9), None, "black", "Fabric", D)
     p.box((3.8, 0.3, 2.0), (0, 3.3, 2.6), None, "yellow", "SmoothPlastic", P)
-    p.box((4.2, 5.6, 0.3), (0, 0.4, 5.5), None, "black", "Fabric", D)  # canopy
+    style.diamonds(p, -1.7, 1.7, 3.5, 2.1, height=0.55, facing=1)  # on the back, for whoever is behind
+    p.box((3.85, 5.45, 0.2), (0, 0.6, 1.62), None, "cream", "SmoothPlastic", D)  # a cream trim
+    # a yellow canopy over green, like the rickshaw in the reference picture
+    p.box((4.2, 5.6, 0.35), (0, 0.4, 5.55), None, "yellow", "Fabric", P)
+    p.box((4.3, 5.7, 0.18), (0, 0.4, 5.3), None, "rickshawgreen", "Fabric", D)
     for x in (-1.9, 1.9):
         for y in (-2.2, 3.2):
             p.rod((x, y, 1.6), (x, y, 5.4), 0.09, "black", "Metal", D)
@@ -82,7 +94,13 @@ def taxi(p):
     p.box((3.9, 0.12, 1.1), (0, 2.75, 3.15), (18, 0, 0), "skyblue", "Glass", D | GLASS)
     for x in (-2.12, 2.12):
         p.box((0.12, 3.6, 1.0), (x, 0.5, 3.2), None, "skyblue", "Glass", D | GLASS)
-        p.box((0.1, 8.2, 0.3), (x * 1.03, 0, 1.75), None, "black", "SmoothPlastic", D)  # chequered belt
+        for k in range(10):  # a chequered belt down each side
+            # just outside the body (half of 4.6), so it shows
+            side = 2.35 if x > 0 else -2.35
+            p.box((0.1, 0.82, 0.3), (side, -3.7 + k * 0.82, 1.75 + (0.3 if k % 2 else 0)), None,
+                  "black", "SmoothPlastic", D)
+            p.box((0.1, 0.82, 0.3), (side, -3.7 + k * 0.82, 2.05 - (0.3 if k % 2 else 0)), None,
+                  "white", "SmoothPlastic", D)
     p.box((1.6, 0.6, 0.5), (0, 0.5, 4.2), None, "white", "SmoothPlastic", D)  # TAXI sign
     p.box((1.4, 0.65, 0.3), (0, 0.5, 4.2), None, "yellow", "Neon", D | LIGHT)
     for x in (-1.5, 1.5):
@@ -116,9 +134,12 @@ def truck(p):
     p.box((5.4, 0.5, 0.9), (0, -7.3, 2.0), None, "red", "Metal", P)
     for x in (-1.8, 1.8):
         headlight(p, (x, -7.25, 2.9), 0.4)
+    for i in range(11):  # jingling chains along the bumper
+        p.box((0.14, 0.14, 0.8), (-2.5 + i * 0.5, -7.6, 1.3), None, "gold", "Metal", D)
     # the wooden crown over the cab
     p.box((6.2, 0.6, 2.8), (0, -4.4, 7.0), None, "red", "WoodPlanks", P)
     p.box((5.2, 0.65, 1.8), (0, -4.45, 7.2), None, "green", "WoodPlanks", P)
+    style.diamonds(p, -2.4, 2.4, -4.85, 7.2, height=0.75, band="yellow", colors=("pink", "blue"))
     p.box((6.8, 0.7, 0.4), (0, -4.4, 8.5), None, "gold", "Metal", D)
     for x, color in zip((-2.6, -1.3, 0, 1.3, 2.6), ("pink", "blue", "pink", "blue", "pink")):
         p.ball(0.3, (x, -4.75, 8.8), color, "SmoothPlastic", D, segments=6, rings=4)
@@ -127,8 +148,10 @@ def truck(p):
     stripes = ("red", "yellow", "green", "blue")
     for x in (-3.0, 3.0):
         p.box((0.25, 8.4, 2.6), (x, 3.6, 3.6), None, "orange", "WoodPlanks", P)
-        for k, color in enumerate(stripes):
-            p.box((0.1, 8.0, 0.45), (x * 1.03, 3.6, 2.7 + k * 0.6), None, color, "SmoothPlastic", D)
+        for k, color in enumerate(stripes[:3]):
+            p.box((0.1, 8.0, 0.45), (x * 1.03, 3.6, 2.7 + k * 0.5), None, color, "SmoothPlastic", D)
+        style.side_diamonds(p, x * 1.045, -0.4, 7.6, 4.4, height=0.65)
+        p.box((0.4, 8.6, 0.25), (x, 3.6, 5.0), None, "cream", "WoodPlanks", D)
     p.box((6.2, 0.25, 2.6), (0, 7.7, 3.6), None, "blue", "WoodPlanks", P)
     for k in range(10):  # bells along the back
         p.ball(0.18, (-2.7 + k * 0.6, 7.95, 2.2), "gold", "Metal", D, segments=6, rings=4)
