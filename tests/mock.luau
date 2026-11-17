@@ -1064,7 +1064,7 @@ function Methods.FillCylinder(_, cf, height, radius, mat)
 	)
 	table.insert(
 		M.terrainFills,
-		{ kind = "Cylinder", position = cf.Position, radius = radius, material = material(mat) }
+		{ kind = "Cylinder", position = cf.Position, radius = radius, height = height, material = material(mat) }
 	)
 end
 function Methods.FillWedge(_, cf, size, mat)
