@@ -405,8 +405,8 @@ def sharbat_rhino(p):
     p.box((0.38, 0.38, 0.22), (0, -2.73, 2.66), (35, 0, 0), "gold", "Metal", D)
     for side in (-1, 1):
         p.box((0.2, 0.12, 0.35), (side * 0.45, -1.4, 2.55), (0, side * -20, 0), "rhinored", "SmoothPlastic", D)
-    eyes(p, 0, -2.22, 2.12, 0.8, 0.21)
-    smile(p, 0, -2.36, 1.62, 0.4)
+    eyes(p, 0, -2.38, 2.12, 0.8, 0.21)  # on the front of the head (further in, they were hidden)
+    smile(p, 0, -2.42, 1.65, 0.4)
     for x in (-0.65, 0.65):
         for y in (-0.8, 0.9):
             block_leg(p, x, y, 0.8, 0.6, "rhinored")

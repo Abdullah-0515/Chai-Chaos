@@ -848,7 +848,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.8 studs tall.
 ```
 
-**In the game:** id `LoadSheddingLattoo` · Rs 3,000 · +Rs 40/s · 4.8 studs tall, 3.2 x 3.4 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves).
+**In the game:** id `LoadSheddingLattoo` · Rs 3,000 · +Rs 40/s · 4.8 studs tall, 2.8 x 3.2 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves).
 
 </details>
 
@@ -880,10 +880,10 @@ Colours: willow bat #E6CD96, jersey #1E8C46, number #FAFAFA, cap #326EDC, grip #
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.2 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.0 studs tall.
 ```
 
-**In the game:** id `CricketBatBhaijaan` · Rs 4,000 · +Rs 55/s · 5.2 studs tall, 2.3 x 1.3 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
+**In the game:** id `CricketBatBhaijaan` · Rs 4,000 · +Rs 55/s · 5.0 studs tall, 2.4 x 1.3 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -915,10 +915,10 @@ Colours: rhino grey #8C8C96, generator #FFCD28, exhaust #50555A, fairy lights #F
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.5 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.6 studs tall.
 ```
 
-**In the game:** id `GeneratorGainda` · Rs 5,000 · +Rs 65/s · 4.5 studs tall, 2.3 x 4.5 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Sarson Fields (Punjab Mustard Fields), Namak Caves (Pink Salt Caves), Karachi Port (The Big Harbour).
+**In the game:** id `GeneratorGainda` · Rs 5,000 · +Rs 65/s · 4.6 studs tall, 2.8 x 4.6 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Sarson Fields (Punjab Mustard Fields), Namak Caves (Pink Salt Caves), Karachi Port (The Big Harbour).
 
 </details>
 
@@ -951,10 +951,10 @@ Colours: copper degh #BE6E3C, rice #FAF5E6, saffron #F5961E, crown #F0BE3C, pota
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.8 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.7 studs tall.
 ```
 
-**In the game:** id `BiryaniBadshah` · Rs 6,000 · +Rs 75/s · 3.8 studs tall, 4.4 x 3.7 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Thar Desert (Thar Sand Dunes), Lahore Qila (The Old Fort of Lahore).
+**In the game:** id `BiryaniBadshah` · Rs 6,000 · +Rs 75/s · 3.7 studs tall, 4.6 x 4.0 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Thar Desert (Thar Sand Dunes), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -987,10 +987,10 @@ Colours: dragon red #CD3728, wings #821E32, tandoor clay #BE6941, fire glow #FF9
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.2 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
 ```
 
-**In the game:** id `DhabaDragon` · Rs 8,000 · +Rs 100/s · 4.2 studs tall, 4.4 x 5.8 studs wide · Hatches in Camel Mela (Thar Camel Fair), Sahil Beach (Arabian Sea Beach), Thar Desert (Thar Sand Dunes).
+**In the game:** id `DhabaDragon` · Rs 8,000 · +Rs 100/s · 4.3 studs tall, 4.4 x 5.8 studs wide · Hatches in Camel Mela (Thar Camel Fair), Sahil Beach (Arabian Sea Beach), Thar Desert (Thar Sand Dunes).
 
 </details>
 
@@ -1026,7 +1026,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.1 studs tall.
 ```
 
-**In the game:** id `ShaadiShehnaiShark` · Rs 10,000 · +Rs 120/s · 5.1 studs tall, 2.4 x 3.9 studs wide · Hatches in Sahil Beach (Arabian Sea Beach), Karachi Port (The Big Harbour).
+**In the game:** id `ShaadiShehnaiShark` · Rs 10,000 · +Rs 120/s · 5.1 studs tall, 2.4 x 4.0 studs wide · Hatches in Sahil Beach (Arabian Sea Beach), Karachi Port (The Big Harbour).
 
 </details>
 

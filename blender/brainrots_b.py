@@ -2,136 +2,151 @@
 
 import math
 
-from brainrot_kit import D, Frame, arm, blush, brows, cap, crown, eyes, leg, moustache, puffs, rope_ring, smile, wing
-from kit import GLASS, KEEP, LIGHT, prop
+import style
+from brainrot_kit import block_arm, block_cap, block_leg, chunk, cube_puff, D, Frame, arm, blush, brows, cap, crown, eyes, leg, moustache, puffs, rope_ring, smile, wing
+from kit import GLASS, KEEP, LIGHT, PARTSONLY, prop
 
 
 # -------------------------------------------------------------------- Rares
 @prop("LoadSheddingLattoo", "brainrot")
 def lattoo(p):
-    # a striped wooden spinning top with a light bulb for a head
-    p.cone(0.3, 0.45, (0, 0, 0.22), (180, 0, 0), "metal", "Metal", D, verts=8, fallback="Cylinder")
+    # a striped wooden spinning top with a light bulb for a head. The top is a stack
+    # of chunky square slabs; the glowing bulb head stays round.
+    p.box((0.4, 0.4, 0.25), (0, 0, 0.12), (0, 0, 45), "metal", "Metal", D)
+    p.box((0.62, 0.62, 0.22), (0, 0, 0.34), (0, 0, 45), "metal", "Metal", D)
     radii = (0.55, 0.85, 1.15, 1.4, 1.55, 1.55, 1.3, 0.9)
     z = 0.45
     for k, r in enumerate(radii):
         h = 0.32
-        p.cyl(r, h, (0, 0, z + h / 2), None, "red" if k % 2 == 0 else "yellow", "Wood", D, verts=16)
+        p.box((r * 1.8, r * 1.8, h), (0, 0, z + h / 2), None, "red" if k % 2 == 0 else "yellow", "Wood", D)
         z += h
     for k in range(3):
-        p.cyl(1.58, 0.06, (0, 0, 1.35 + k * 0.14), None, "rope", "Fabric", D, verts=16)
-    p.cyl(0.4, 0.45, (0, 0, z + 0.2), None, "metal", "Metal", D, verts=10)
+        p.box((2.56, 2.56, 0.06), (0, 0, 1.35 + k * 0.14), None, "rope", "Fabric", D)
+    style.diamonds(p, -1.25, 1.25, -1.43, 2.33, height=0.24, band="dhabateal", colors=("gold", "white"))
+    p.box((0.7, 0.7, 0.45), (0, 0, z + 0.2), (0, 0, 45), "metal", "Metal", D)
     p.ball(0.75, (0, 0, z + 1.0), "bulb", "Neon", D | LIGHT)
-    p.rod((0, 0, z + 0.6), (0, 0, z + 1.2), 0.04, "darkmetal", "Metal", D, verts=4)
+    p.box((0.08, 0.08, 0.6), (0, 0, z + 0.9), None, "darkmetal", "Metal", D)
     eyes(p, 0, -1.48, 2.0, 0.85, 0.27)
     brows(p, 0, -1.48, 2.0, 0.85, 0.27, tilt=-15)
-    smile(p, 0, -1.55, 1.55, 0.55, open_mouth=True)
+    smile(p, 0, -1.32, 1.55, 0.55, open_mouth=True)
 
 
 @prop("BiryaniBadshah", "brainrot")
 def biryani(p):
-    # a copper biryani degh with rice hair, a crown with a potato jewel and a ladle sceptre
-    p.cyl(1.4, 0.3, (0, 0, 0.25), None, "copper", "Metal", D, verts=16)
-    p.cyl(1.62, 1.6, (0, 0, 1.2), None, "copper", "Metal", D, verts=16)
-    p.cyl(1.72, 0.2, (0, 0, 2.0), None, "gold", "Metal", D, verts=16)
+    # a copper biryani degh with rice hair, a crown with a potato jewel and a ladle
+    # sceptre. The degh is a chunky square pot with a gold band of diamonds.
+    p.box((2.5, 2.5, 0.3), (0, 0, 0.25), None, "copper", "Metal", D)
+    p.box((3.1, 3.1, 1.6), (0, 0, 1.2), None, "copper", "Metal", D)
+    p.box((3.3, 3.3, 0.2), (0, 0, 2.0), None, "gold", "Metal", D)
+    style.diamonds(p, -1.4, 1.4, -1.6, 0.55, height=0.3, band="gold", colors=("red", "dhabateal"))
     for side in (-1, 1):
-        p.box((0.25, 0.5, 0.5), (side * 1.75, 0, 1.6), None, "copper", "Metal", D)
-    p.blob(1.55, (0, 0, 2.2), (1, 1, 0.6), "rice", "SmoothPlastic", D, seed=100, jitter=0.12, fallback="Disc")
+        p.box((0.25, 0.5, 0.5), (side * 1.68, 0, 1.6), None, "copper", "Metal", D)
+    p.blob(1.55, (0, 0, 2.2), (1, 1, 0.6), "rice", "SmoothPlastic", D, seed=100, jitter=0.12, fallback="None")
+    for spin in (0, 45):
+        p.box((2.8, 2.8, 0.5), (0, 0, 2.3 + spin * 0.001), (0, 0, spin), "rice", "SmoothPlastic", D | PARTSONLY)
     for i in range(5):
         a = i * 1.25
-        p.blob(0.32, (math.cos(a) * 0.8, math.sin(a) * 0.8, 2.6), (1, 1, 0.35), "saffron", "SmoothPlastic", D,
-               seed=101 + i, fallback="None")
+        p.box((0.4, 0.4, 0.14), (math.cos(a) * 0.8, math.sin(a) * 0.8, 2.6), (0, 0, i * 30), "saffron",
+              "SmoothPlastic", D)
     crown(p, 0, 0, 2.95, 0.75, "gold", "red")
-    p.blob(0.26, (0, -0.72, 3.25), (1.2, 0.8, 1), "potato", "SmoothPlastic", D, seed=107, fallback="Ball")
+    p.box((0.4, 0.32, 0.36), (0, -0.72, 3.25), (0, 0, 45), "potato", "SmoothPlastic", D)
     eyes(p, 0, -1.6, 1.45, 0.9, 0.3)
     moustache(p, 0, -1.68, 1.0, 1.7, "black", thick=0.28)
-    smile(p, 0, -1.66, 0.75, 0.5)
+    smile(p, 0, -1.66, 0.82, 0.5)
     for side in (-1, 1):
-        p.ball(0.25, (side * 0.6, -1.0, 0.18), "copper", "Metal", D)
-    arm(p, (1.6, -0.2, 1.3), (1.9, -0.45, 1.45), 0.14, "copper", "gold", 0.2)
-    p.rod((1.95, -0.45, 0.3), (1.95, -0.45, 3.3), 0.07, "steel", "Metal", D)
-    p.ball(0.3, (1.95, -0.45, 3.45), "steel", "Metal", D)
-    arm(p, (-1.6, -0.2, 1.3), (-1.95, -0.6, 1.1), 0.14, "copper", "gold", 0.2)
+        p.box((0.45, 0.55, 0.36), (side * 0.6, -1.0, 0.18), None, "copper", "Metal", D)
+    block_arm(p, (1.6, -0.2, 1.3), (1.9, -0.45, 1.45), 0.28, "copper", "gold", 0.38)
+    p.box((0.14, 0.14, 3.0), (1.95, -0.45, 1.8), None, "steel", "Metal", D)
+    p.box((0.55, 0.55, 0.3), (1.95, -0.45, 3.4), (0, 0, 45), "steel", "Metal", D)
+    block_arm(p, (-1.6, -0.2, 1.3), (-1.95, -0.6, 1.1), 0.28, "copper", "gold", 0.38)
 
 
 @prop("CricketBatBhaijaan", "brainrot")
 def cricket_bat(p):
-    # a cricket bat in a green jersey, cap on its handle, commentating into a mic
+    # a cricket bat in a green jersey with a gold band, a blocky cap on its handle,
+    # commentating into a mic
     p.box((1.45, 0.45, 2.6), (0, 0, 2.2), None, "willow", "Wood", D)
     p.box((0.9, 0.2, 2.4), (0, 0.3, 2.2), None, "willow", "Wood", D)
     p.box((1.55, 0.6, 1.25), (0, 0, 1.55), None, "jersey", "Fabric", D)
     p.box((0.6, 0.62, 0.15), (0, 0, 2.1), None, "white", "Fabric", D)
+    style.diamonds(p, -0.72, 0.72, -0.36, 1.08, height=0.22, band="gold", colors=("white", "jersey"), step=0.38)
     p.box((0.1, 0.05, 0.5), (-0.18, -0.32, 1.55), None, "white", "Fabric", D)
     p.cyl(0.2, 0.05, (0.18, -0.32, 1.55), (90, 0, 0), "white", "Fabric", D, verts=12)
     p.cyl(0.11, 0.06, (0.18, -0.34, 1.55), (90, 0, 0), "jersey", "Fabric", D, verts=10)
-    p.cyl(0.2, 1.1, (0, 0, 4.05), None, "willow", "Wood", D, verts=10)
-    p.cyl(0.24, 0.85, (0, 0, 4.15), None, "red", "Fabric", D, verts=10)
-    cap(p, 0, 0, 4.75, 0.42, "blue", "navy")
+    p.box((0.38, 0.38, 1.1), (0, 0, 4.05), None, "willow", "Wood", D)
+    p.box((0.46, 0.46, 0.85), (0, 0, 4.15), None, "red", "Fabric", D)
+    block_cap(p, 0, 0, 4.75, 0.42, "blue", "navy", band="gold")
     eyes(p, 0, -0.25, 3.05, 0.7, 0.24)
     smile(p, 0, -0.3, 2.6, 0.45, open_mouth=True)
-    arm(p, (-0.75, 0, 1.8), (-0.55, -0.7, 2.45), 0.12, "jersey", "white", 0.18)
-    p.rod((-0.55, -0.7, 2.45), (-0.4, -0.65, 2.8), 0.07, "black", "SmoothPlastic", D)
-    p.ball(0.18, (-0.38, -0.65, 2.88), "darkmetal", "Metal", D)
-    arm(p, (0.75, 0, 1.8), (1.25, -0.2, 1.35), 0.12, "jersey", "white", 0.18)
+    block_arm(p, (-0.75, 0, 1.8), (-0.55, -0.7, 2.45), 0.24, "jersey", "white", 0.34)
+    p.box((0.12, 0.12, 0.4), (-0.47, -0.67, 2.65), (0, 20, 0), "black", "SmoothPlastic", D)
+    p.box((0.34, 0.34, 0.34), (-0.38, -0.65, 2.9), (45, 35.26, 0), "darkmetal", "Metal", D)
+    block_arm(p, (0.75, 0, 1.8), (1.25, -0.2, 1.35), 0.24, "jersey", "white", 0.34)
     for side in (-1, 1):
-        leg(p, side * 0.35, 0, 0.95, 0.14, "white", "black")
+        block_leg(p, side * 0.35, 0, 0.95, 0.28, "white", "black")
 
 
 @prop("DhabaDragon", "brainrot")
 def dhaba_dragon(p):
-    # a chubby red dragon with a glowing tandoor belly, breathing a naan
-    p.blob(1.25, (0, 0.2, 1.7), (1, 1.05, 1.05), "dragon", "SmoothPlastic", D, seed=110, jitter=0.03,
-           fallback="Ball")
-    p.cone(0.95, 1.1, (0, -0.85, 1.55), (90, 0, 0), "clay", "Slate", D, verts=12, top=0.75, fallback="Cylinder",
-           fallback_scale=(0.9, 0.9, 1))
-    p.cyl(0.55, 0.1, (0, -1.45, 1.55), (90, 0, 0), "flame", "Neon", D | LIGHT, verts=12)
+    # a chubby red dragon with a glowing tandoor belly, breathing a naan. A chunky
+    # body with a stepped clay tandoor ringed in gold diamonds; its head stays round.
+    chunk(p, 1.25, (0, 0.2, 1.7), (1, 1.05, 1.05), "dragon", seed=110)
+    p.cone(0.95, 1.1, (0, -0.85, 1.55), (90, 0, 0), "clay", "Slate", D, verts=12, top=0.75, fallback="None")
+    p.box((1.7, 0.5, 1.7), (0, -1.05, 1.55), None, "clay", "Slate", D | PARTSONLY)
+    p.box((1.4, 0.4, 1.4), (0, -1.4, 1.55), None, "clay", "Slate", D | PARTSONLY)
+    style.diamonds(p, -0.8, 0.8, -1.35, 2.3, height=0.24, band="gold", colors=("red", "dhabateal"), step=0.45)
+    p.box((0.95, 0.1, 0.95), (0, -1.62, 1.55), None, "flame", "Neon", D | LIGHT)
     p.blob(0.8, (0, -0.4, 3.15), (1, 1.05, 0.95), "dragon", "SmoothPlastic", D, seed=111, jitter=0.03,
            fallback="Ball")
     p.box((0.7, 0.55, 0.45), (0, -1.05, 3.0), None, "dragon", "SmoothPlastic", D)
     for side in (-1, 1):
-        p.cone(0.16, 0.55, (side * 0.4, -0.2, 3.95), (0, side * 20, 0), "cream2", "SmoothPlastic", D, verts=6,
-               fallback="Cylinder")
+        p.box((0.24, 0.24, 0.55), (side * 0.4, -0.2, 3.95), (0, side * 20, 0), "cream2", "SmoothPlastic", D)
         wing(p, (side * 0.8, 0.6, 2.4), side, 1.2, 1.0, "maroon", angle=35, style="bat")
     eyes(p, 0, -1.0, 3.35, 0.62, 0.22)
     smile(p, 0, -1.34, 2.95, 0.4)
     p.box((0.5, 1.4, 0.12), (0.75, 0.0, 2.55), (0, 30, 0), "white", "Fabric", D)
-    for a, b, r in (((0, 1.3, 1.2), (0, 2.2, 0.8), 0.3), ((0, 2.2, 0.8), (0, 2.9, 0.6), 0.2)):
-        p.rod(a, b, r, "dragon", "SmoothPlastic", D)
+    p.box((0.52, 0.16, 0.14), (0.75, -0.7, 2.55), (0, 30, 0), "dhabateal", "Fabric", D)
+    for a, b, r in (((0, 1.3, 1.2), (0, 2.2, 0.8), 0.55), ((0, 2.2, 0.8), (0, 2.9, 0.6), 0.38)):
+        p.beam(a, b, r, r, "dragon", "SmoothPlastic", D)
     p.box((0.45, 0.45, 0.12), (0, 3.05, 0.6), (0, 0, 45), "maroon", "SmoothPlastic", D)
     for side in (-1, 1):
-        leg(p, side * 0.55, 0.1, 0.6, 0.28, "dragon", "maroon")
-    p.blob(0.32, (0, -1.6, 2.95), (1, 1, 0.8), "flame", "Neon", D | KEEP, seed=112, fallback="Ball")
-    p.blob(0.45, (0, -2.25, 3.15), (1, 0.35, 0.8), "naan", "SmoothPlastic", D, seed=113, fallback="Ball",
-           fallback_scale=(1, 1, 0.6))
+        block_leg(p, side * 0.55, 0.1, 0.6, 0.54, "dragon", "maroon")
+    p.box((0.5, 0.5, 0.5), (0, -1.6, 2.95), (45, 35.26, 0), "flame", "Neon", D | KEEP)
+    p.blob(0.45, (0, -2.25, 3.15), (1, 0.35, 0.8), "naan", "SmoothPlastic", D, seed=113, fallback="None")
+    p.box((0.85, 0.28, 0.65), (0, -2.25, 3.15), (0, 0, 8), "naan", "SmoothPlastic", D | PARTSONLY)
 
 
 @prop("GeneratorGainda", "brainrot")
 def generator_rhino(p):
-    # a grey rhino with a yellow generator on its back and fairy lights on its horn
-    p.blob(1.3, (0, 0.2, 1.45), (1, 1.4, 0.9), "rhinogrey", "SmoothPlastic", D, seed=120, jitter=0.04,
-           fallback="Ball")
+    # a grey rhino with a truck-art painted yellow generator on its back and fairy
+    # lights on its horn. A chunky body; its head stays round.
+    chunk(p, 1.3, (0, 0.2, 1.45), (1, 1.4, 0.9), "rhinogrey", seed=120)
     p.blob(0.8, (0, -1.55, 1.65), (1, 1.05, 0.95), "rhinogrey", "SmoothPlastic", D, seed=121, jitter=0.03,
            fallback="Ball")
-    p.cone(0.25, 0.8, (0, -2.25, 2.3), (-30, 0, 0), "cream2", "SmoothPlastic", D, verts=8, fallback="Cylinder")
-    p.cone(0.15, 0.4, (0, -1.95, 2.35), (-15, 0, 0), "cream2", "SmoothPlastic", D, verts=6, fallback="None")
+    p.box((0.4, 0.4, 0.5), (0, -2.25, 2.35), (-30, 0, 45), "cream2", "SmoothPlastic", D)  # the horns
+    p.box((0.26, 0.26, 0.45), (0, -2.42, 2.7), (-30, 0, 45), "cream2", "SmoothPlastic", D)
+    p.box((0.22, 0.22, 0.4), (0, -1.95, 2.45), (-15, 0, 45), "cream2", "SmoothPlastic", D)
     for side in (-1, 1):
         p.box((0.2, 0.12, 0.35), (side * 0.45, -1.3, 2.4), (0, side * -20, 0), "rhinogrey", "SmoothPlastic", D)
-    eyes(p, 0, -2.05, 1.95, 0.75, 0.2)
-    smile(p, 0, -2.25, 1.45, 0.4)
+    eyes(p, 0, -2.36, 1.95, 0.75, 0.2)  # on the front of the head (further in, they were hidden)
+    smile(p, 0, -2.4, 1.5, 0.4)
     for x in (-0.65, 0.65):
         for y in (-0.8, 1.0):
-            p.cyl(0.33, 0.8, (x, y, 0.4), None, "rhinogrey", "SmoothPlastic", D, verts=10)
+            block_leg(p, x, y, 0.8, 0.6, "rhinogrey")
     p.box((1.6, 1.3, 0.95), (0, 0.4, 2.55), None, "yellow", "Metal", D)
+    for side in (-1, 1):
+        style.side_diamonds(p, side * 0.83, -0.1, 0.9, 2.3, height=0.3, band="red", colors=("dhabateal", "white"))
     for x in (-0.85, 0.85):
         p.box((0.1, 1.4, 0.1), (x, 0.4, 3.05), None, "black", "Metal", D)
         p.box((0.1, 0.1, 1.0), (x, -0.25, 2.55), None, "black", "Metal", D)
     p.box((0.9, 0.08, 0.4), (0, -0.28, 2.55), None, "darkmetal", "Metal", D)
-    p.rod((0.6, 1.0, 2.9), (0.6, 1.0, 3.7), 0.12, "darkmetal", "Metal", D)
-    puffs(p, [(0.6, 1.1, 3.95), (0.7, 1.4, 4.3)], 0.25, "stone", seed=122)
-    p.rod((-0.5, 0.0, 2.7), (-0.75, -0.3, 2.95), 0.05, "darkmetal", "Metal", D)
+    p.box((0.24, 0.24, 0.8), (0.6, 1.0, 3.3), None, "darkmetal", "Metal", D)
+    cube_puff(p, [(0.6, 1.1, 3.95), (0.7, 1.4, 4.3)], 0.42, "stone")
+    p.beam((-0.5, 0.0, 2.7), (-0.75, -0.3, 2.95), 0.1, 0.1, "darkmetal", "Metal", D)
     p.box((0.35, 0.12, 0.12), (-0.8, -0.35, 2.98), None, "red", "SmoothPlastic", D)
     wire = [(0.3, -0.2, 2.9), (0.25, -1.0, 2.55), (0.1, -1.7, 2.45), (0, -2.35, 2.6)]
     for a, b in zip(wire, wire[1:]):
-        p.rod(a, b, 0.04, "black", "SmoothPlastic", D, verts=4)
+        p.beam(a, b, 0.07, 0.07, "black", "SmoothPlastic", D)
     for i, color in enumerate(("yellow", "pink", "skyblue", "lime")):
         q = wire[min(i, 3)]
         p.ball(0.11, (q[0], q[1], q[2] - 0.12), color, "Neon", D | KEEP | (LIGHT if i == 0 else 0), segments=6,
@@ -140,38 +155,41 @@ def generator_rhino(p):
 
 @prop("ShaadiShehnaiShark", "brainrot")
 def wedding_shark(p):
-    # a friendly blue shark standing on its tail, in a wedding jacket and marigold garland, playing the shehnai
-    p.blob(1.05, (0, 0, 2.75), (0.95, 0.92, 1.7), "shark", "SmoothPlastic", D, seed=130, jitter=0.0,
-           fallback="Cylinder")
+    # a friendly blue shark standing on its tail, in a maroon sherwani with a gold
+    # band of embroidered diamonds and a marigold garland, playing the shehnai. A
+    # chunky body; the rounded snout on top stays round.
+    chunk(p, 1.05, (0, 0, 2.75), (0.95, 0.92, 1.7), "shark", seed=130)
     p.blob(0.85, (0, -0.32, 2.95), (0.85, 0.62, 1.55), "sharkbelly", "SmoothPlastic", D, seed=131, jitter=0.0,
            fallback="None")
+    p.box((1.2, 0.2, 1.2), (0, -0.82, 3.5), None, "sharkbelly", "SmoothPlastic", D | PARTSONLY)
     p.blob(0.72, (0, 0.05, 4.3), (0.95, 0.95, 1.1), "shark", "SmoothPlastic", D, seed=132, jitter=0.0,
            fallback="Ball")  # the rounded snout on top
     for side in (-1, 1):  # the tail it stands on
         p.box((1.2, 0.42, 0.22), (side * 0.62, 0.15, 0.35), (0, side * -28, 0), "shark", "SmoothPlastic", D)
     p.box((0.7, 0.5, 0.5), (0, 0.15, 0.55), None, "shark", "SmoothPlastic", D)
     p.box((0.2, 1.1, 1.1), (0, 0.95, 3.15), (45, 0, 0), "shark", "SmoothPlastic", D)  # the big back fin
-    p.cone(1.05, 1.4, (0, 0, 2.0), None, "maroon", "Fabric", D, verts=14, top=0.92, fallback="Cylinder")
-    p.cyl(0.97, 0.15, (0, 0, 2.75), None, "gold", "Metal", D, verts=14)
-    for z in (1.5, 1.85, 2.2):
-        p.ball(0.08, (0, -1.0 + (z - 1.5) * 0.12, z), "gold", "Metal", D, segments=6, rings=4)
+    p.box((2.05, 1.95, 1.4), (0, 0, 2.0), None, "maroon", "Fabric", D)  # the sherwani
+    p.box((2.1, 2.0, 0.15), (0, 0, 2.75), None, "gold", "Metal", D)
+    style.diamonds(p, -0.9, 0.9, -1.03, 1.45, height=0.28, band="gold", colors=("dhabateal", "red"), step=0.45)
+    for z in (1.85, 2.2, 2.5):
+        p.box((0.14, 0.1, 0.14), (0, -1.02, z), (0, 45, 0), "gold", "Metal", D)
     for i in range(12):  # the marigold garland
         a = i * 2 * math.pi / 12
-        p.ball(0.16, (math.cos(a) * 0.92, math.sin(a) * 0.86, 2.92 - (0.25 if math.sin(a) < -0.5 else 0)),
+        p.ball(0.16, (math.cos(a) * 0.98, math.sin(a) * 0.92, 2.92 - (0.25 if math.sin(a) < -0.5 else 0)),
                "marigold" if i % 2 else "orange", "SmoothPlastic", D, segments=6, rings=4)
     eyes(p, 0, -0.8, 3.85, 0.66, 0.23)
-    blush(p, 0, -0.84, 3.5, 1.15, 0.13)
-    p.box((0.75, 0.1, 0.12), (0, -0.92, 3.3), None, "black", "SmoothPlastic", D)  # a wide grin with little teeth
+    blush(p, 0, -0.9, 3.5, 1.15, 0.13)
+    p.box((0.75, 0.1, 0.12), (0, -0.93, 3.3), None, "black", "SmoothPlastic", D)  # a wide grin with little teeth
     for side in (-1, 1):
-        p.box((0.22, 0.1, 0.12), (side * 0.45, -0.88, 3.38), (0, side * -30, 0), "black", "SmoothPlastic", D)
+        p.box((0.22, 0.1, 0.12), (side * 0.45, -0.92, 3.38), (0, side * -30, 0), "black", "SmoothPlastic", D)
     for x in (-0.24, -0.08, 0.08, 0.24):
-        p.cone(0.06, 0.12, (x, -0.95, 3.2), (180, 0, 0), "white", "SmoothPlastic", D, verts=4, fallback="Block")
+        p.cone(0.06, 0.12, (x, -0.96, 3.2), (180, 0, 0), "white", "SmoothPlastic", D, verts=4, fallback="Block")
     for side in (-1, 1):  # gills
         for k in range(3):
-            p.box((0.06, 0.25, 0.04), (side * 0.9, -0.15, 3.45 + k * 0.17), (0, 0, side * 30), "navy",
+            p.box((0.06, 0.25, 0.04), (side * 0.92, -0.15, 3.45 + k * 0.17), (0, 0, side * 30), "navy",
                   "SmoothPlastic", D)
-    p.cone(0.09, 1.1, (0.25, -1.35, 3.0), (60, 0, 0), "wood", "Wood", D, verts=6, top=0.09, fallback="Cylinder")
-    p.cone(0.28, 0.4, (0.25, -1.95, 2.65), (60, 0, 0), "gold", "Metal", D, verts=10, top=0.1, fallback="Cylinder")
+    p.beam((0.25, -1.0, 3.2), (0.25, -1.75, 2.75), 0.18, 0.18, "wood", "Wood", D)  # the shehnai
+    p.box((0.5, 0.3, 0.5), (0.25, -1.95, 2.65), (30, 0, 45), "gold", "Metal", D)
     for side in (-1, 1):
         p.box((0.75, 0.3, 0.15), (side * 0.7, -0.6, 2.6), (0, side * -40, side * 20), "shark", "SmoothPlastic", D)
 
