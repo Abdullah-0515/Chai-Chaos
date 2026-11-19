@@ -1756,7 +1756,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.5 studs tall.
 ```
 
-**In the game:** id `MithaiMamu` · Rs 4,000 · +Rs 60/s · 3.5 studs tall, 2.9 x 4.0 studs wide · Collection Book reward for finishing every COLLECTION_REWARDS brainrot (never hatches, cannot be stolen).
+**In the game:** id `MithaiMamu` · Rs 4,000 · +Rs 60/s · 3.5 studs tall, 3.1 x 4.0 studs wide · Collection Book reward for finishing every COLLECTION_REWARDS brainrot (never hatches, cannot be stolen).
 
 </details>
 
@@ -1828,7 +1828,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.4 studs tall.
 ```
 
-**In the game:** id `ChowkidarChoocha` · Rs 60,000 · +Rs 800/s · 3.4 studs tall, 3.2 x 2.9 studs wide · Collection Book reward for finishing every Rare brainrot (never hatches, cannot be stolen).
+**In the game:** id `ChowkidarChoocha` · Rs 60,000 · +Rs 800/s · 3.4 studs tall, 3.2 x 3.0 studs wide · Collection Book reward for finishing every Rare brainrot (never hatches, cannot be stolen).
 
 </details>
 
@@ -1861,10 +1861,10 @@ Colours: peacock blue #1E5AC8, teal #14A096, crown #F0BE3C, tail red #DC3232, ta
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.1 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.2 studs tall.
 ```
 
-**In the game:** id `RangeelaRaja` · Rs 240,000 · +Rs 3,000/s · 5.1 studs tall, 6.2 x 2.8 studs wide · Collection Book reward for finishing every Epic brainrot (never hatches, cannot be stolen).
+**In the game:** id `RangeelaRaja` · Rs 240,000 · +Rs 3,000/s · 5.2 studs tall, 6.2 x 2.9 studs wide · Collection Book reward for finishing every Epic brainrot (never hatches, cannot be stolen).
 
 </details>
 
@@ -1897,10 +1897,10 @@ Colours: marble #FAFAFA, face #FFF0CD, turban #28A050, turban band #F0BE3C, wate
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.8 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.9 studs tall.
 ```
 
-**In the game:** id `ShalimarSultan` · Rs 1,000,000 · +Rs 11,000/s · 4.8 studs tall, 3.4 x 3.4 studs wide, floats · Collection Book reward for finishing every Legendary brainrot (never hatches, cannot be stolen).
+**In the game:** id `ShalimarSultan` · Rs 1,000,000 · +Rs 11,000/s · 4.9 studs tall, 3.4 x 3.4 studs wide, floats · Collection Book reward for finishing every Legendary brainrot (never hatches, cannot be stolen).
 
 </details>
 
@@ -1935,7 +1935,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.3 studs tall.
 ```
 
-**In the game:** id `TaaronWalaTonga` · Rs 4,000,000 · +Rs 40,000/s · 3.3 studs tall, 2.9 x 7.4 studs wide, floats · Collection Book reward for finishing every Mythic brainrot (never hatches, cannot be stolen).
+**In the game:** id `TaaronWalaTonga` · Rs 4,000,000 · +Rs 40,000/s · 3.3 studs tall, 3.0 x 7.4 studs wide, floats · Collection Book reward for finishing every Mythic brainrot (never hatches, cannot be stolen).
 
 </details>
 
