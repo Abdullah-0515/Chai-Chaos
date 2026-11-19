@@ -1065,7 +1065,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 2.9 studs tall.
 ```
 
-**In the game:** id `ChipaSahab` · Rs 16,000 · +Rs 180/s · 2.9 studs tall, 4.5 x 2.5 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves), Barfani Pahar (The Snowy North).
+**In the game:** id `ChipaSahab` · Rs 16,000 · +Rs 180/s · 2.9 studs tall, 4.7 x 2.5 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1096,10 +1096,10 @@ Colours: bandages #F0E4C8, henna #964B23, eyes gap #232328, blush #FF96A0.
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.0 studs tall.
 ```
 
-**In the game:** id `MehndiMummy` · Rs 20,000 · +Rs 230/s · 4.3 studs tall, 2.2 x 4.2 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Mohenjo-daro (The Ancient Brick City).
+**In the game:** id `MehndiMummy` · Rs 20,000 · +Rs 230/s · 4.0 studs tall, 2.2 x 4.2 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1135,7 +1135,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.5 studs tall.
 ```
 
-**In the game:** id `TikkaTiger` · Rs 24,000 · +Rs 270/s · 4.5 studs tall, 3.1 x 2.8 studs wide · Hatches in Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
+**In the game:** id `TikkaTiger` · Rs 24,000 · +Rs 270/s · 4.5 studs tall, 3.2 x 2.8 studs wide · Hatches in Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -1168,10 +1168,10 @@ Colours: jalebi orange #FA9119, syrup shine #F0AA28, mithai box #FF69B4, moustac
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.5 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.4 studs tall.
 ```
 
-**In the game:** id `JalebiJinn` · Rs 30,000 · +Rs 320/s · 5.5 studs tall, 3.7 x 3.6 studs wide, floats · Hatches in Sahil Beach (Arabian Sea Beach), Lahore Qila (The Old Fort of Lahore), Mohenjo-daro (The Ancient Brick City).
+**In the game:** id `JalebiJinn` · Rs 30,000 · +Rs 320/s · 5.4 studs tall, 3.7 x 3.6 studs wide, floats · Hatches in Sahil Beach (Arabian Sea Beach), Lahore Qila (The Old Fort of Lahore), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1206,7 +1206,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.6 studs tall.
 ```
 
-**In the game:** id `DholakDino` · Rs 40,000 · +Rs 400/s · 4.6 studs tall, 2.4 x 4.8 studs wide · Hatches in Camel Mela (Thar Camel Fair), Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
+**In the game:** id `DholakDino` · Rs 40,000 · +Rs 400/s · 4.6 studs tall, 2.7 x 4.8 studs wide · Hatches in Camel Mela (Thar Camel Fair), Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore).
 
 </details>
 
@@ -1276,7 +1276,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `TongaTornado` · Rs 60,000 · +Rs 600/s · 4.1 studs tall, 3.2 x 3.7 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Thar Desert (Thar Sand Dunes), Karachi Port (The Big Harbour).
+**In the game:** id `TongaTornado` · Rs 60,000 · +Rs 600/s · 4.1 studs tall, 3.4 x 3.8 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Thar Desert (Thar Sand Dunes), Karachi Port (The Big Harbour).
 
 </details>
 
