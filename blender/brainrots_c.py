@@ -195,7 +195,10 @@ def cylinder_cycle(p):
 # ------------------------------------------------------------------- Mythics
 @prop("AmmiKiUdtiChappal", "brainrot")
 def udti_chappal(p):
-    # the legendary flying blue hawai chappal: sole to the front with stern-cute eyes, wings, whoosh lines, a glow
+    # the legendary flying blue hawai chappal: sole to the front with stern-cute eyes,
+    # wings, whoosh lines, a glow. The rounded toe and heel are eight-pointed stars
+    # of two crossed squares as parts (smooth discs before); a gold diamond badge on
+    # the strap.
     f = Frame((0, 0, 3.3), (0, 14, -10))
     stand = (90, 0, 0)  # the sole's shapes are built flat, then stood up facing the front
     layers = (  # blue sole in front, the white top layer behind it, a glow around the edge
@@ -204,19 +207,22 @@ def udti_chappal(p):
         (0.48, 0.17, "lightning", "Neon", D | KEEP),
     )
     for k, (dy, grow, color, mat, flags) in enumerate(layers):
-        p.blob(1.05 + grow, f.p(0, dy, 1.05), (0.92, 0.92, 0.17), color, mat, flags, seed=230 + k, jitter=0.0,
-               subdiv=2, fallback="Disc", rot=f.r(stand))
-        p.blob(0.85 + grow, f.p(0, dy, -1.15), (0.92, 0.92, 0.17), color, mat, flags, seed=233 + k, jitter=0.0,
-               subdiv=2, fallback="Disc", rot=f.r(stand))
+        for z, r, seed in ((1.05, 1.05, 230), (-1.15, 0.85, 233)):
+            p.blob(r + grow, f.p(0, dy, z), (0.92, 0.92, 0.17), color, mat, flags, seed=seed + k, jitter=0.0,
+                   subdiv=2, fallback="None", rot=f.r(stand))
+            w = (r + grow) * 0.92 * 1.62
+            for spin, s in ((0, 1.0), (45, 0.92)):
+                p.box((w * s, 0.3, w * s), f.p(0, dy, z), f.r((0, spin, 0)), color, mat, flags | PARTSONLY)
         p.box((1.45 + grow * 2, 0.32, 1.6), f.p(0, dy, -0.05), f.r(), color, mat, flags)
-    p.cyl(0.14, 0.1, f.p(0, -0.19, 1.6), f.r(stand), "white", "SmoothPlastic", D, verts=10)  # the strap plugs
+    p.box((0.26, 0.1, 0.26), f.p(0, -0.19, 1.6), f.r((0, 45, 0)), "white", "SmoothPlastic", D)  # the strap plugs
     for side in (-1, 1):
-        p.cyl(0.13, 0.1, f.p(side * 0.6, -0.19, -0.3), f.r(stand), "white", "SmoothPlastic", D, verts=10)
+        p.box((0.24, 0.1, 0.24), f.p(side * 0.6, -0.19, -0.3), f.r((0, 45, 0)), "white", "SmoothPlastic", D)
     for z in (-1.2, -1.5, -1.8):  # tread on the heel
         p.box((1.0 - abs(z + 1.5) * 0.6, 0.06, 0.07), f.p(0, -0.18, z), f.r(), "navy", "SmoothPlastic", D)
     for side in (-1, 1):  # the white V strap on the back
-        p.rod(f.p(0, 0.4, 1.6), f.p(side * 0.45, 0.85, 0.65), 0.14, "white", "SmoothPlastic", D)
-        p.rod(f.p(side * 0.45, 0.85, 0.65), f.p(side * 0.65, 0.4, -0.3), 0.14, "white", "SmoothPlastic", D)
+        p.beam(f.p(0, 0.4, 1.6), f.p(side * 0.45, 0.85, 0.65), 0.28, 0.28, "white", "SmoothPlastic", D)
+        p.beam(f.p(side * 0.45, 0.85, 0.65), f.p(side * 0.65, 0.4, -0.3), 0.28, 0.28, "white", "SmoothPlastic", D)
+    p.box((0.34, 0.12, 0.34), f.p(0, 0.62, 1.55), f.r((0, 45, 0)), "gold", "Metal", D)
     eyes(p, 0, -0.2, 0.85, 0.8, 0.3, f=f)
     brows(p, 0, -0.2, 0.85, 0.8, 0.3, "navy", tilt=24, f=f)
     p.box((0.45, 0.08, 0.1), f.p(0, -0.22, 0.05), f.r((0, 8, 0)), "black", "SmoothPlastic", D)
@@ -231,23 +237,26 @@ def udti_chappal(p):
 
 @prop("KiteKaptaan", "brainrot")
 def kite_kaptaan(p):
-    # a giant red-and-yellow patang in a captain's hat, its string running to a spool
+    # a giant red-and-yellow patang in a blocky captain's hat, gold diamonds on its
+    # tips, its string running to a square spool
     f = Frame((0, 0, 4.4), (0, 8, 0))
     q = 1.3
     for k, (dx, dz, color) in enumerate(((0, q, "red"), (q, 0, "yellow"), (0, -q, "red"), (-q, 0, "yellow"))):
         p.box((1.84, 0.1, 1.84), f.p(dx, 0, dz), f.r((0, 45, 0)), color, "Fabric", D)
-    p.rod(f.p(0, 0.08, 2.65), f.p(0, 0.08, -2.65), 0.06, "bamboo", "Wood", D, verts=4)
+    for dx, dz in ((0, 2.3), (2.3, 0), (0, -2.3), (-2.3, 0)):
+        p.box((0.42, 0.14, 0.42), f.p(dx, -0.04, dz), f.r((0, 45, 0)), "gold", "Fabric", D)
+    p.beam(f.p(0, 0.08, 2.65), f.p(0, 0.08, -2.65), 0.12, 0.12, "bamboo", "Wood", D)
     bow = [(-2.5, 0.3), (-1.6, 0.9), (0, 1.15), (1.6, 0.9), (2.5, 0.3)]
     for (x0, z0), (x1, z1) in zip(bow, bow[1:]):
-        p.rod(f.p(x0, 0.08, z0), f.p(x1, 0.08, z1), 0.05, "bamboo", "Wood", D, verts=4)
+        p.beam(f.p(x0, 0.08, z0), f.p(x1, 0.08, z1), 0.1, 0.1, "bamboo", "Wood", D)
     eyes(p, 0, -0.12, 0.35, 0.85, 0.3, f=f)
     smile(p, 0, -0.1, -0.45, 0.6, f=f)
     blush(p, 0, -0.08, -0.1, 1.4, 0.16, f=f)
     hat = Frame((0, 0, 4.4), (0, 8, 0))
-    p.cyl(0.55, 0.45, hat.p(0, 0, 2.8), hat.r(), "white", "Fabric", D, verts=12)
-    p.cyl(0.58, 0.15, hat.p(0, 0, 2.65), hat.r(), "navy", "Fabric", D, verts=12)
-    p.box((0.9, 0.5, 0.08), hat.p(0, -0.45, 2.58), hat.r(), "black", "SmoothPlastic", D)
-    p.ball(0.12, hat.p(0, -0.56, 2.78), "gold", "Metal", D, segments=6, rings=4)
+    p.box((1.05, 1.05, 0.45), hat.p(0, 0, 2.8), hat.r(), "white", "Fabric", D)
+    p.box((1.1, 1.1, 0.15), hat.p(0, 0, 2.65), hat.r(), "navy", "Fabric", D)
+    p.box((0.9, 0.5, 0.08), hat.p(0, -0.55, 2.58), hat.r(), "black", "SmoothPlastic", D)
+    p.box((0.2, 0.08, 0.2), hat.p(0, -0.57, 2.82), hat.r((0, 45, 0)), "gold", "Metal", D)
     tail = [f.p(0, 0, -2.6), (0.4, 0, 1.0), (-0.2, 0, 0.0)]
     for k, (a, b) in enumerate(zip(tail, tail[1:])):
         p.beam(a, b, 0.25, 0.06, ("pink", "skyblue")[k], "Fabric", D)
@@ -255,9 +264,9 @@ def kite_kaptaan(p):
         p.box((0.35, 0.06, 0.2), (0.25 - k * 0.2, 0, 1.6 - k * 0.55), (0, 45, 0), ("green", "orange", "purple")[k],
               "Fabric", D)
     p.rope(f.p(0, 0.1, 0), (1.6, 0.6, 0.6), 0.6, 0.03, "white", 6)
-    p.cyl(0.4, 0.8, (1.6, 0.6, 0.45), (0, 90, 0), "wood", "Wood", D, verts=10)
+    p.box((0.8, 0.7, 0.7), (1.6, 0.6, 0.45), None, "wood", "Wood", D)
     for side in (-1, 1):
-        p.cyl(0.6, 0.08, (1.6 + side * 0.4, 0.6, 0.45), (0, 90, 0), "red", "Wood", D, verts=10)
+        p.box((0.08, 1.1, 1.1), (1.6 + side * 0.4, 0.6, 0.45), (45, 0, 0), "red", "Wood", D)
     for i in range(5):
         a = i * 1.2
         p.box((0.14, 0.14, 0.14), (math.cos(a) * 2.6, 0.3, 4.4 + math.sin(a) * 2.2), (45, 45, 0), "gold", "Neon",
@@ -266,7 +275,8 @@ def kite_kaptaan(p):
 
 @prop("ChandRaatCheetah", "brainrot")
 def bangle_cheetah(p):
-    # a sleek golden cheetah with glowing spots, glass bangles, mehndi paws and a moon charm
+    # a sleek golden cheetah with glowing square spots, square glass bangles, mehndi
+    # paws, a gold collar with diamonds and a moon charm. Its head stays round.
     p.blob(1.0, (0, 0.2, 2.05), (0.8, 1.9, 0.85), "cheetah", "SmoothPlastic", D, seed=240, jitter=0.02,
            fallback="Block", fallback_scale=(0.8, 0.85, 0.8))
     p.blob(0.88, (0, -1.75, 2.95), (1, 1.0, 0.95), "cheetah", "SmoothPlastic", D, seed=241, jitter=0.02,
@@ -278,24 +288,28 @@ def bangle_cheetah(p):
         p.box((0.06, 0.04, 0.5), (side * 0.4, -2.5, 2.9), (0, side * -15, 0), "spots", "SmoothPlastic", D)
     eyes(p, 0, -2.45, 3.2, 0.7, 0.25, pupil="spots")
     smile(p, 0, -2.86, 2.5, 0.32)
-    spots = [(-0.6, -0.6, 2.4), (0.6, -0.2, 2.5), (-0.55, 0.6, 2.3), (0.6, 0.9, 2.2), (0, -0.2, 2.85), (0, 1.0, 2.75),
+    spots = [(-0.6, -0.6, 2.4), (0.6, -0.2, 2.5), (-0.55, 0.6, 2.3), (0.6, 0.9, 2.2), (0, -0.2, 2.75), (0, 1.0, 2.7),
              (-0.5, 1.6, 2.1), (0.5, -1.1, 2.3)]
     for i, (x, y, z) in enumerate(spots):
-        p.ball(0.15, (x, y, z), "spots", "SmoothPlastic", D, segments=6, rings=4)
+        p.box((0.26, 0.26, 0.26), (x * 1.1, y, z), (45, 35.26, i * 20), "spots", "SmoothPlastic", D)
     colours = ("red", "green", "blue", "gold", "pink", "purple")
     for x in (-0.45, 0.45):
         for y in (-1.0, 1.3):
-            p.cyl(0.18, 1.6, (x, y, 0.85), None, "cheetah", "SmoothPlastic", D, verts=8)
-            p.box((0.36, 0.5, 0.15), (x, y - 0.12, 0.07), None, "henna", "SmoothPlastic", D)
+            p.box((0.36, 0.36, 1.6), (x, y, 0.85), None, "cheetah", "SmoothPlastic", D)
+            p.box((0.42, 0.55, 0.15), (x, y - 0.12, 0.07), None, "henna", "SmoothPlastic", D)
             if y < 0:
                 for k in range(4):
-                    p.cyl(0.26, 0.09, (x, y, 0.55 + k * 0.14), None, colours[(k + (x > 0) * 2) % 6], "Glass", D, verts=12)
+                    p.box((0.5, 0.5, 0.09), (x, y, 0.55 + k * 0.14), (0, 0, 45 * (k % 2)),
+                          colours[(k + (x > 0) * 2) % 6], "Glass", D)
     tail = [(0, 1.9, 2.1), (0, 2.6, 2.6), (0, 2.9, 3.4)]
     for a, b in zip(tail, tail[1:]):
-        p.rod(a, b, 0.14, "cheetah", "SmoothPlastic", D)
+        p.beam(a, b, 0.28, 0.28, "cheetah", "SmoothPlastic", D)
     for k in range(4):
-        p.cyl(0.22, 0.08, (0, 2.45 + k * 0.12, 2.45 + k * 0.2), (-35, 0, 0), colours[k + 1], "Glass", D, verts=10)
-    p.cyl(0.62, 0.14, (0, -1.25, 2.45), (60, 0, 0), "gold", "Metal", D, verts=12)
+        p.box((0.42, 0.42, 0.08), (0, 2.45 + k * 0.12, 2.45 + k * 0.2), (-35, 0, 45 * (k % 2)), colours[k + 1],
+              "Glass", D)
+    p.box((1.15, 1.15, 0.16), (0, -1.25, 2.45), (60, 0, 0), "gold", "Metal", D)  # the collar
+    for k, x in enumerate((-0.32, 0, 0.32)):
+        p.box((0.16, 0.08, 0.16), (x, -1.62, 2.18), (60, 45, 0), "red" if k == 1 else "dhabateal", "SmoothPlastic", D)
     p.cyl(0.3, 0.06, (0, -1.75, 1.95), (90, 0, 0), "gold", "Neon", D | KEEP | LIGHT, verts=12)
     p.cyl(0.25, 0.07, (0.1, -1.8, 2.05), (90, 0, 0), "cheetah", "SmoothPlastic", D, verts=12)
     for i in range(4):

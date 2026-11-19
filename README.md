@@ -1497,7 +1497,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 6.0 studs tall.
 ```
 
-**In the game:** id `AmmiKiUdtiChappal` · Rs 500,000 · +Rs 4,000/s · 6.0 studs tall, 4.8 x 1.9 studs wide, floats · Hatches in Namak Caves (Pink Salt Caves), Karachi Port (The Big Harbour), Mohenjo-daro (The Ancient Brick City).
+**In the game:** id `AmmiKiUdtiChappal` · Rs 500,000 · +Rs 4,000/s · 6.0 studs tall, 4.8 x 2.0 studs wide, floats · Hatches in Namak Caves (Pink Salt Caves), Karachi Port (The Big Harbour), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
@@ -1533,7 +1533,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.5 studs tall.
 ```
 
-**In the game:** id `ChandRaatCheetah` · Rs 800,000 · +Rs 6,500/s · 5.5 studs tall, 5.1 x 6.7 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Mohenjo-daro (The Ancient Brick City), Barfani Pahar (The Snowy North).
+**In the game:** id `ChandRaatCheetah` · Rs 800,000 · +Rs 6,500/s · 5.5 studs tall, 5.1 x 6.8 studs wide · Hatches in Thar Desert (Thar Sand Dunes), Mohenjo-daro (The Ancient Brick City), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1569,7 +1569,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.6 studs tall.
 ```
 
-**In the game:** id `KiteKaptaan` · Rs 1,000,000 · +Rs 8,000/s · 7.6 studs tall, 5.3 x 1.9 studs wide, floats · Hatches in Sahil Beach (Arabian Sea Beach), Lahore Qila (The Old Fort of Lahore), Barfani Pahar (The Snowy North).
+**In the game:** id `KiteKaptaan` · Rs 1,000,000 · +Rs 8,000/s · 7.6 studs tall, 5.2 x 2.1 studs wide, floats · Hatches in Sahil Beach (Arabian Sea Beach), Lahore Qila (The Old Fort of Lahore), Barfani Pahar (The Snowy North).
 
 </details>
 
