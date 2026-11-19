@@ -264,7 +264,7 @@ Where each prop goes in the world is in [`BiomeBuilder.luau`](src/server/BiomeBu
 
 ## The 46 brainrots
 
-Every brainrot has a chunky, cute Blender model with big eyes, in the same flat-colour style as the props. The game builds it from parts by itself (or uses its mesh if you imported the FBX). It is shrunk if needed so it always fits on an 8 x 8 plot. If you make your own model for a brainrot, the game uses yours instead (see [Making it yours](#making-it-yours)).
+Every brainrot has a chunky, cute Blender model with big eyes, in the same style as the map: round heads and faces (with the big cartoon eyes), and bodies, limbs and accessories built from chunky blocks, each with a touch of the Chowk's finish (a truck-art band of diamonds, a striped scarf or awning, gold trims, teal and cream details). The helpers are `chunk`, `block_arm`, `block_leg`, `block_cap` and `cube_puff` in [`blender/brainrot_kit.py`](blender/brainrot_kit.py), and there is a close-up of each one in [`docs/models/`](docs/models/). The game builds it from parts by itself (or uses its mesh if you imported the FBX). It is shrunk if needed so it always fits on an 8 x 8 plot. If you make your own model for a brainrot, the game uses yours instead (see [Making it yours](#making-it-yours)).
 
 Each character sheet below has:
 
@@ -1608,7 +1608,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.5 studs tall.
 ```
 
-**In the game:** id `KahwaYeti` · Rs 2,400,000 · +Rs 15,000/s · 7.5 studs tall, 5.0 x 6.1 studs wide · Hatches in Barfani Pahar (The Snowy North).
+**In the game:** id `KahwaYeti` · Rs 2,400,000 · +Rs 15,000/s · 7.5 studs tall, 5.2 x 6.2 studs wide · Hatches in Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1641,10 +1641,10 @@ Colours: crushed ice #BEE1F5, red syrup #DC3232, orange syrup #FA8C28, green syr
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.6 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.5 studs tall.
 ```
 
-**In the game:** id `GolaGandaGolem` · Rs 3,600,000 · +Rs 21,000/s · 7.6 studs tall, 7.0 x 3.4 studs wide · Hatches in Barfani Pahar (The Snowy North).
+**In the game:** id `GolaGandaGolem` · Rs 3,600,000 · +Rs 21,000/s · 7.5 studs tall, 7.4 x 3.6 studs wide · Hatches in Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1677,10 +1677,10 @@ Colours: white barfi #FAFAFA, pistachio barfi #AACD78, silver warq #DCDCE6, pako
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.4 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.6 studs tall.
 ```
 
-**In the game:** id `BarfiBarfaniBagh` · Rs 5,000,000 · +Rs 28,000/s · 5.4 studs tall, 4.9 x 7.4 studs wide · Hatches in Barfani Pahar (The Snowy North).
+**In the game:** id `BarfiBarfaniBagh` · Rs 5,000,000 · +Rs 28,000/s · 5.6 studs tall, 5.0 x 7.4 studs wide · Hatches in Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1716,7 +1716,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 7.6 studs tall.
 ```
 
-**In the game:** id `JalebiMarkhor` · Rs 7,000,000 · +Rs 36,000/s · 7.6 studs tall, 2.8 x 5.2 studs wide · Hatches in Barfani Pahar (The Snowy North).
+**In the game:** id `JalebiMarkhor` · Rs 7,000,000 · +Rs 36,000/s · 7.6 studs tall, 2.8 x 5.1 studs wide · Hatches in Barfani Pahar (The Snowy North).
 
 </details>
 
