@@ -786,9 +786,7 @@ do
 		end
 	end
 	print("    parts in the world: " .. parts)
-	check(parts < 16000, "parts in the whole world: " .. parts)
-	-- the village props placed round the world
-;
+	check(parts < 16000, "parts in the whole world: " .. parts); -- the village props placed round the world
 	(function()
 		local function zoneOf(model)
 			local folder = model.Parent
@@ -1363,7 +1361,7 @@ PPS.PromptTriggered:Fire(gateOf("RailwayJunction").GatePrompt, A)
 M.advance(0.1)
 check(pa.data.zones.RailwayJunction and pa.data.rupees == 1_985_000, "Railway Junction unlocked for Rs 15,000")
 check(A:GetAttribute("OpenZones") == "MangoBagh,RailwayJunction" and notified("Ali", "unlocked"), "open zones sent")
-check(soundsFor("Ali", "Purchase") >= 1, "unlock sound")
+check(soundsFor("Ali", "GateOpen") >= 1, "the gate opens with its own sound")
 check(not gateOf("RailwayJunction").GatePrompt.Enabled, "Ali's screen hides the prompt on an open gate")
 check(not gateOf("RailwayJunction").CanCollide, "and lets Ali through the barrier")
 check(gateOf("SahilBeach").CanCollide, "locked gates stay solid")
@@ -1868,7 +1866,7 @@ local beforeSale = pa.data.rupees
 sellButton.Activated:Fire()
 M.advance(0.2)
 check(pa.data.rupees == beforeSale + math.floor(mostValuable * Config.SELL_RATE), "sold for half its value")
-check(#pa.owned == ownedBefore - 1 and soundsFor("Ali", "Coin") >= 1, "sold, with a coin sound")
+check(#pa.owned == ownedBefore - 1 and soundsFor("Ali", "Sell") >= 1, "sold, with a cha-ching")
 Remotes.SellBrainrot:FireServer(-5)
 Remotes.SellBrainrot:FireServer("abc")
 M.advance(0.1)
@@ -2005,26 +2003,26 @@ do
 	M.advance(0.1)
 	hud.Dashboard.Horn.Activated:Fire()
 	M.advance(0.1)
-	check(soundsFor("Ali", "Horn") == 1, "honk! (and not again straight away)")
+	check(soundsFor("Ali", "HornBike") == 1, "honk! (and not again straight away)")
 	local hornEvent = nil
 	for i = mark + 1, #M.log do
 		local e = M.log[i]
-		if e.remote == "PlaySound" and e.player == "Ali" and e.args[1] == "Horn" then
+		if e.remote == "PlaySound" and e.player == "Ali" and e.args[1] == "HornBike" then
 			hornEvent = e
 		end
 	end
 	check(
-		hornEvent and M.typeof(hornEvent.args[2]) == "Vector3" and hornEvent.args[3] == Vehicles.byId.Motorbike.horn,
+		hornEvent and M.typeof(hornEvent.args[2]) == "Vector3" and Vehicles.byId.Motorbike.sound == "Bike",
 		"everyone nearby hears the motorbike's own horn"
 	)
 	M.advance(1)
 	local inputService = game:GetService("UserInputService")
 	M.signalOf(inputService, "InputBegan"):Fire({ KeyCode = M.Enum.KeyCode.H }, true)
 	M.advance(0.1)
-	check(soundsFor("Ali", "Horn") == 1, "typing an H in the chat doesn't honk")
+	check(soundsFor("Ali", "HornBike") == 1, "typing an H in the chat doesn't honk")
 	M.signalOf(inputService, "InputBegan"):Fire({ KeyCode = M.Enum.KeyCode.H }, false)
 	M.advance(0.1)
-	check(soundsFor("Ali", "Horn") == 2, "H sounds the horn too")
+	check(soundsFor("Ali", "HornBike") == 2, "H sounds the horn too")
 	-- fuel: every stud uses fuel, a rickshaw ride or teleport does not
 	local fuel0 = pa.data.vehicles.Motorbike.fuel
 	local mango = Biomes.byId.MangoBagh
@@ -2188,7 +2186,7 @@ do
 	markLog()
 	Remotes.Honk:FireServer()
 	M.advance(0.1)
-	check(soundsFor("Ali", "Horn") == 0, "no horn without a vehicle")
+	check(soundsFor("Ali", "HornBike") + soundsFor("Ali", "HornRickshaw") == 0, "no horn without a vehicle")
 	-- the rickshaw home at the end of a ring 3 road only takes people
 	do
 		local pad = map.Biomes.LahoreQila.RickshawHome
@@ -2770,7 +2768,10 @@ do
 	markLog()
 	Remotes.Honk:FireServer()
 	M.advance(0.6)
-	check(soundsFor("Ali", "Horn") == 2 and soundsFor("Bilal", "Horn") == 2, "the rickshaw goes pon pon, for everyone")
+	check(
+		soundsFor("Ali", "HornRickshaw") == 2 and soundsFor("Bilal", "HornRickshaw") == 2,
+		"the rickshaw goes pon pon, for everyone"
+	)
 	-- no stealing from a vehicle
 	local bilalRot = pb.owned[1]
 	if bilalRot then
@@ -3731,6 +3732,50 @@ do
 		end
 	end
 	check(playing and playing.Name == "MusicBazaar" and playing.Looped, "bazaar music plays once it has an id")
+	-- the sound sheet: every sound has its part of the one uploaded file
+;
+	(function()
+		local SoundSheet = requireModule(shared:FindFirstChild("SoundSheet"), "client")
+		local missing = {}
+		for name in clientSounds.list do
+			local region = SoundSheet[name]
+			if not region or region.length <= 0 then
+				table.insert(missing, name)
+			end
+		end
+		for name in SoundSheet do
+			if not clientSounds.list[name] then
+				table.insert(missing, name .. " (not in Sounds.luau)")
+			end
+		end
+		check(#missing == 0, "every sound is in the sound sheet: " .. table.concat(missing, ", "))
+		local horns, engines = 0, 0
+		for _, def in Vehicles.list do
+			horns += if clientSounds.list["Horn" .. def.sound] then 1 else 0
+			engines += if clientSounds.list["Engine" .. def.sound] and SoundSheet["Engine" .. def.sound].looped
+				then 1
+				else 0
+		end
+		check(horns == #Vehicles.list and engines == #Vehicles.list, "every vehicle has its own horn and engine")
+		-- once the sheet is uploaded, a sound plays just its part of it
+		local player = requireModule(client:FindFirstChild("SoundPlayer"), "client")
+		check(player.get("Sea") == nil, "the sea is quiet until the sheet is uploaded")
+		clientSounds.SHEET = "rbxassetid://5555"
+		local sea = player.get("Sea")
+		local region = sea and sea.PlaybackRegion
+		check(
+			sea
+				and sea.SoundId == "rbxassetid://5555"
+				and sea.PlaybackRegionsEnabled
+				and sea.Looped
+				and region.args[1] == SoundSheet.Sea.start
+				and math.abs(region.args[2] - SoundSheet.Sea.start - SoundSheet.Sea.length) < 1e-6,
+			"the sea plays its own part of the sound sheet, on a loop"
+		)
+		local id = player.source("MusicBazaar")
+		check(id == "rbxassetid://1234", "your own music still wins over the sheet")
+		clientSounds.SHEET = ""
+	end)()
 end
 
 do

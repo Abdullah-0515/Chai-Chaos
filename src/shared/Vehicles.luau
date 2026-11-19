@@ -10,7 +10,7 @@
 -- eggs  : eggs it carries in the boot
 -- grip  : 0-3. 1 drives through mud, 2 through sand, 3 on ice without sliding
 -- seats : friends who can ride along
--- horn  : how high its horn sounds (the rickshaw goes "pon pon")
+-- sound : its horn and engine (Horn<sound> and Engine<sound> in Sounds.luau); the rickshaw goes "pon pon"
 
 local Vehicles = {}
 
@@ -23,7 +23,7 @@ export type Def = {
 	eggs: number,
 	grip: number,
 	seats: number,
-	horn: number,
+	sound: string,
 	honks: number,
 	upgradeBase: number,
 	text: string,
@@ -49,7 +49,7 @@ Vehicles.list = {
 		eggs = 1,
 		grip = 0,
 		seats = 1,
-		horn = 1.5,
+		sound = "Bike",
 		honks = 1,
 		upgradeBase = 1_500,
 		text = "Cheap and quick. Carries 1 egg and a friend on the back.",
@@ -63,7 +63,7 @@ Vehicles.list = {
 		eggs = 2,
 		grip = 0,
 		seats = 2,
-		horn = 1.15,
+		sound = "Rickshaw",
 		honks = 2,
 		upgradeBase = 8_000,
 		text = "Pon pon! Carries 2 eggs and 2 friends.",
@@ -77,7 +77,7 @@ Vehicles.list = {
 		eggs = 3,
 		grip = 1,
 		seats = 3,
-		horn = 0.9,
+		sound = "Taxi",
 		honks = 1,
 		upgradeBase = 40_000,
 		text = "A yellow city taxi. Fast, 3 eggs, 3 friends, drives through mud.",
@@ -91,7 +91,7 @@ Vehicles.list = {
 		eggs = 6,
 		grip = 2,
 		seats = 1,
-		horn = 0.6,
+		sound = "Truck",
 		honks = 3,
 		upgradeBase = 250_000,
 		text = "A painted truck with bells. 6 eggs, a huge tank, drives through sand.",

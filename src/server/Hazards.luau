@@ -215,7 +215,7 @@ end
 
 function Hazards.snowball()
 	for _, id in zoneWith("snowballs") do
-		strike(id, nil, "ice", "Hit", "THWACK! A snowball hit you!")
+		strike(id, nil, "ice", "Snowball", "THWACK! A snowball hit you!")
 	end
 end
 
@@ -257,6 +257,12 @@ function Hazards.salt()
 				rock.CFrame = CFrame.new(spot + Vector3.new(0, 3, 0))
 				rock.Parent = rockFolder
 				Debris:AddItem(rock, 1.5)
+				for other in State.profiles do -- a rumble for everyone close by
+					local r = State.rootPart(other)
+					if r and (r.Position - spot).Magnitude < 60 then
+						State.sound(other, "Rumble", spot)
+					end
+				end
 				for other, profile in State.profiles do
 					local r = State.rootPart(other)
 					if r and ((r.Position - spot) * Vector3.new(1, 0, 1)).Magnitude < Config.SALT_RADIUS then

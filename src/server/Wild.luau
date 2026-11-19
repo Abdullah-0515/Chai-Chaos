@@ -227,7 +227,7 @@ function Wild.catch(player: Player, model: Model?)
 	local def, mutation = info.def, info.mutation
 	remove(model)
 	Havelis.adopt(profile, def, mutation)
-	State.sound(player, "EggHatch")
+	State.sound(player, "Catch")
 	State.notify(
 		player,
 		"rare",

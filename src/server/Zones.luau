@@ -60,7 +60,7 @@ function Zones.unlock(player: Player, barrier: Instance?)
 	State.addRupees(profile, -biome.price)
 	data.zones[biome.id] = true
 	State.syncZones(profile)
-	State.sound(player, "Purchase")
+	State.sound(player, "GateOpen")
 	State.track(profile, "zone")
 	State.notify(player, "rare", ("%s unlocked! %s"):format(biome.name, biome.blurb))
 end
@@ -90,7 +90,7 @@ function Zones.rideHome(player: Player, pad: Instance?)
 	local character = player.Character
 	if character then
 		character:PivotTo(CFrame.new(Vector3.new(24, Biomes.GROUND_Y + 4, 0)))
-		State.sound(player, "Purchase")
+		State.sound(player, "HornRickshaw")
 		State.notify(player, "good", "Pon pon! The rickshaw dropped you at the Chowk.")
 	end
 end

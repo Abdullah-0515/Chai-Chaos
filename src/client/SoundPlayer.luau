@@ -2,6 +2,9 @@
 --
 -- One Sound instance per name lives in SoundService. A sound with a position
 -- (an egg hatching, a treasure chest) gets quieter the further away it is.
+-- Once the sound sheet is uploaded (Sounds.SHEET), each sound plays its own
+-- part of that one file (SoundSheet.luau says where); until then the built-in
+-- ids in Sounds.luau are used.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,6 +12,7 @@ local SoundService = game:GetService("SoundService")
 
 local Shared = ReplicatedStorage:WaitForChild("ChaiChaos")
 local Sounds = require(Shared:WaitForChild("Sounds"))
+local SoundSheet = require(Shared:WaitForChild("SoundSheet"))
 
 local SoundPlayer = {}
 
@@ -19,23 +23,49 @@ folder.Name = "ChaiChaosSounds"
 folder.Parent = SoundService
 
 local made: { [string]: Sound } = {}
+local pitchOf: { [string]: number } = {} -- the base pitch each made sound plays at
+local startOf: { [string]: number } = {} -- where each sound starts in the sheet
+
+-- Where a name plays from: its part of the sound sheet once that is uploaded
+-- (unless the name has its own id), otherwise its own id.
+function SoundPlayer.source(name: string): (string, { start: number, length: number }?, number)
+	local info = Sounds.list[name]
+	local region = SoundSheet[name]
+	local own = info.id ~= "" and (info.own == true or string.sub(name, 1, 5) == "Music")
+	if Sounds.SHEET ~= "" and region and not own then
+		return Sounds.SHEET, region, 1
+	end
+	return info.id, nil, info.pitch or 1
+end
 
 -- The Sound for a name, or nil if the name is unknown or has no id yet.
 function SoundPlayer.get(name: string): Sound?
 	local info = Sounds.list[name]
-	if not info or info.id == "" then
+	if not info then
 		return nil
 	end
 	local sound = made[name]
 	if not sound then
+		local id, region, pitch = SoundPlayer.source(name)
+		if id == "" then
+			return nil
+		end
 		local created = Instance.new("Sound")
 		created.Name = name
-		created.SoundId = info.id
+		created.SoundId = id
 		created.Volume = info.volume
-		created.PlaybackSpeed = info.pitch or 1
+		created.PlaybackSpeed = pitch
 		created.Looped = info.looped == true
+		if region then
+			local range = NumberRange.new(region.start, region.start + region.length)
+			created.PlaybackRegionsEnabled = true
+			created.PlaybackRegion = range
+			created.LoopRegion = range
+			startOf[name] = region.start
+		end
 		created.Parent = folder
 		made[name] = created
+		pitchOf[name] = pitch
 		sound = created
 	end
 	return sound
@@ -75,10 +105,18 @@ function SoundPlayer.play(name: string, position: Vector3?, pitch: number?)
 	if fade <= 0 then
 		return
 	end
-	sound.PlaybackSpeed = (Sounds.list[name].pitch or 1) * (pitch or 1)
+	sound.PlaybackSpeed = (pitchOf[name] or 1) * (pitch or 1)
 	sound.Volume = Sounds.list[name].volume * fade
-	sound.TimePosition = 0
+	sound.TimePosition = startOf[name] or 0
 	sound:Play()
+end
+
+-- Bends a playing sound's pitch (an engine revving with your speed).
+function SoundPlayer.setPitch(name: string, pitch: number)
+	local sound = made[name]
+	if sound then
+		sound.PlaybackSpeed = (pitchOf[name] or 1) * pitch
+	end
 end
 
 -- Starts or stops a looping sound (wind, music).
@@ -89,6 +127,7 @@ function SoundPlayer.loop(name: string, on: boolean)
 	end
 	on = on and SoundPlayer.allowed(name)
 	if on and not sound.IsPlaying then
+		sound.TimePosition = startOf[name] or 0
 		sound:Play()
 	elseif not on and sound.IsPlaying then
 		sound:Stop()

@@ -100,7 +100,7 @@ function Upgrades.sell(player: Player, uid: any)
 	Havelis.remove(profile, entry)
 	entry.model:Destroy()
 	State.addRupees(profile, amount)
-	State.sound(player, "Coin")
+	State.sound(player, "Sell")
 	State.notify(
 		player,
 		"good",

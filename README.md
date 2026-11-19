@@ -142,7 +142,7 @@ Walking speed is 20 (more with Joggers or a Peshawari Chappal).
 
 **Crashes.** Every vehicle has a solid bumper the size of the vehicle, raised a little off the road so kerbs don't stop it. It stops at walls, trees, buildings, fences, lasers and other vehicles, but never shoves other players. Hit something at speed and you hear a crunch, bounce back and stop for a moment.
 
-**The horn.** Press **H** or the **Horn** button on the dashboard. Every vehicle sounds different: the motorbike beeps high, the rickshaw goes *pon pon*, the taxi honks once and the truck blares three times. Everyone nearby hears it, and wild brainrots run away from it. (The horn uses a built-in beep until you paste a real horn sound's id into `Sounds.luau`.)
+**The horn.** Press **H** or the **Horn** button on the dashboard. Every vehicle sounds different: the motorbike beeps high, the rickshaw goes *pon pon*, the taxi honks once and the truck blares three times. Everyone nearby hears it, and wild brainrots run away from it. Each vehicle also has its own engine that revs up with your speed, from the motorbike's buzz to the rickshaw's two-stroke putt-putt and the truck's deep diesel (see [Sounds](#sounds)).
 
 **Upgrades at Ustad's Workshop** (Chai Dhaba Bazaar). Each level costs 1.8 times more than the last; prices grow with the vehicle.
 
@@ -209,9 +209,24 @@ Every zone hides treasure chests. Buried ones (under a red X) need a **Belcha**;
 
 ## Sounds
 
-The game uses sounds that come with Roblox for buttons, coins, eggs (pick up, home, crack, hatch), treasure, bonks, the Chor alert, splashes, wind in the snowy mountains and in sandstorms, vehicle horns and crashes, upgrades, events and the Kismat Roll. They are all listed in [`src/shared/Sounds.luau`](src/shared/Sounds.luau).
+Every sound in the game is original, made from scratch by [`tools/make_sounds.py`](tools/make_sounds.py) (nothing sampled, so there is nothing to license):
 
-There are three music slots, `MusicBazaar`, `MusicBiome` and `MusicEvent`, empty until you add your own: find a track in the Creator Store (Toolbox > Audio, try "dhol", "tabla" or "bazaar"), copy its id and paste it as `"rbxassetid://123456789"`. The right track plays for where you are. You can swap any other sound the same way, for example to add voice lines.
+- **Money and buttons:** a click, coins, a cha-ching at the BECHO stall, a purchase chime, an error buzz.
+- **Eggs and finds:** a pop when you pick one up, a chime when it gets home, a crack, a sparkly hatch, a creaking treasure chest, a boing when you catch a wild brainrot, a jingle when a zone's gate opens, glug-glug at the petrol pump.
+- **Trouble:** a chappal slap, the chowkidar's trilling whistle when a chor comes, splashes and waves, snowballs, salt rocks rumbling down, bumps and crashes, the crossing bell and the train's horn at Railway Junction.
+- **Vehicles:** a horn for each one (beep, *pon pon*, honk and an air horn) and an engine for each one that revs with your speed.
+- **All around you:** the fountain in the Chowk, birds in the green zones, the sea at the beach and the port, wind in the mountains and in sandstorms.
+- **Music:** three dhol and tumbi loops, a relaxed bhangra beat in the bazaar, a calm tabla groove out in the zones and a fast dhol beat during events.
+
+**One file to upload.** Roblox only plays audio uploaded to your account, so every sound is packed into one file, [`assets/sounds/ChaiChaosSounds.ogg`](assets/sounds/ChaiChaosSounds.ogg) (a "sound sheet", about a minute and a half). Upload it once and the game plays just the right part of it for each sound, so it uses one upload, not forty:
+
+1. In Studio, open **View > Asset Manager**, click **Import** (the up arrow) and pick `ChaiChaosSounds.ogg`. (Or upload it on the Creator Hub: **Creations > Audio > Upload Asset**.)
+2. Right-click the new audio and **Copy Asset ID**.
+3. Paste it into [`src/shared/Sounds.luau`](src/shared/Sounds.luau) as `Sounds.SHEET = "rbxassetid://123456789"` (in Studio: `ReplicatedStorage > ChaiChaos > Sounds`).
+
+Until then the game uses sounds that come with Roblox for the effects, and the engines, ambience and music stay quiet. Each sound is also in [`assets/sounds/sfx/`](assets/sounds/sfx/) on its own, to listen to or to upload one at a time.
+
+**Your own sounds.** To swap one sound for your own, paste its id as that sound's `id` in `Sounds.luau` and set `own = true`. For music, paste a track's id (try the Creator Store: Toolbox > Audio, "dhol", "tabla" or "bazaar") and it plays instead of the loop. To change the sounds themselves, edit `tools/make_sounds.py` and run it again (it needs Python with `numpy`, and `ffmpeg`); it rewrites the sheet and [`src/shared/SoundSheet.luau`](src/shared/SoundSheet.luau), which says where each sound is in it. Then upload the new sheet.
 
 ## 3D models (Blender)
 
@@ -1984,6 +1999,8 @@ The code uses the [Rojo](https://rojo.space) layout, but you can use it without 
 
 A ready-to-play place file, [`ChaiChaos.rbxlx`](ChaiChaos.rbxlx), is in the repo. Download it, open it in Roblox Studio and press **Play**. The world builds itself when the game starts (it takes a few seconds; the terrain is big).
 
+Or download [`dist/ChaiChaos-Studio.zip`](dist/ChaiChaos-Studio.zip): the place file, the sound sheet to upload, every sound on its own and a short `HOW-TO-TEST.txt`, all in one download.
+
 After changing the code, rebuild it with [Rojo](https://rojo.space):
 
 ```bash
@@ -2002,7 +2019,7 @@ Create these in Roblox Studio, then paste in each file's code. The name in Studi
 
 | File | Create in Studio | Type |
 | --- | --- | --- |
-| All 14 `src/shared/*.luau` files (Biomes, Brainrots, Config, Events, Format, Gear, Motion, Mutations, Quests, Remotes, Sounds, Themes, Tutorial, Vehicles) | `ReplicatedStorage > ChaiChaos` (a Folder) | ModuleScript |
+| All 15 `src/shared/*.luau` files (Biomes, Brainrots, Config, Events, Format, Gear, Motion, Mutations, Quests, Remotes, Sounds, SoundSheet, Themes, Tutorial, Vehicles) | `ReplicatedStorage > ChaiChaos` (a Folder) | ModuleScript |
 | `src/server/Main.server.luau` | `ServerScriptService > ChaiChaosServer` (a Folder), named `Main` | Script |
 | The other 31 `src/server/*.luau` files | `ServerScriptService > ChaiChaosServer` | ModuleScript |
 | The 16 `src/client/*.client.luau` files (Driving, Events, Garage, Haveli, Hud, Kismat, Menu, Prompts, Quests, Radar, Shops, Smooth, Sounds, Tutorial, Weather, Zones) | `StarterPlayer > StarterPlayerScripts > ChaiChaosClient` (a Folder) | LocalScript |
@@ -2044,7 +2061,7 @@ Other settings in `Config.luau`: `STEAL_COSTS_ROBUX = false` makes stealing free
 
 ## Not built yet
 
-The kite-flying minigame became the **Basant Kite Festival** event instead. Brainrots stand still apart from bobbing and hopping (no walk cycles or animations yet), and wild and lane brainrots glide along their paths. Vehicles are still driven by moving your character (with car-like steering and a solid bumper that crashes), not by Roblox's physics car parts, so there is no suspension, drifting or rolling over. Still to come: an all-time leaderboard across servers, trading, real horn and engine sounds and other cosmetics, special behaviours for individual brainrots, and real music (the slots are ready).
+The kite-flying minigame became the **Basant Kite Festival** event instead. Brainrots stand still apart from bobbing and hopping (no walk cycles or animations yet), and wild and lane brainrots glide along their paths. Vehicles are still driven by moving your character (with car-like steering and a solid bumper that crashes), not by Roblox's physics car parts, so there is no suspension, drifting or rolling over. Still to come: an all-time leaderboard across servers, trading, more cosmetics, special behaviours for individual brainrots, and voice lines.
 
 ## For developers
 
@@ -2057,7 +2074,8 @@ python blender/build.py --no-render   # rebuild the props and brainrots without 
 python blender/characters.py          # rewrite the brainrot character sheets in this README
 python blender/chowk_preview.py       # render the Chowk, haveli and spawn pictures in docs/
 python blender/model_preview.py Name  # a close-up of one model in docs/models/
+python tools/make_sounds.py           # make every sound and the sound sheet (numpy and ffmpeg)
 tests/run.sh worlddump > world.txt && python blender/world_preview.py world.txt   # the whole map from above
 ```
 
-`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game (2035 checks): the world (havelis facing the Chowk, the stalls and bazaar shops, 12 zones in 4 regions and 3 rings with terrain, eggs, chests, hazard areas and their landmarks, prices that grow outward, zigzag gates, shortcut doors, roads, petrol pumps, the train schedule, the bazaar, the Mandi lane and its arch, milestones, bus stops, mud houses and row boats, every Blender prop as parts and as an imported mesh, and a part budget), every brainrot's Blender model (eyes, size limits, welds, mutation tints, imported meshes, custom models first, the parrot's tail lettering, and old saves with renamed brainrots), joining, picking up eggs, locked zones and unlocking gates, the egg timer and the radar, carrying eggs home, incubators, hatching from each zone's pool, cracking, dropping eggs, every hazard (including the train, waves and salt rocks that push you back) and the gear that stops it, the Gear shop, radar upgrades, golden eggs, egg rushes, hatch odds and luck (including Secret brainrots), selling at the stall, vehicles (the showroom, driving and steering, the solid bumper and crashes, horns, fuel, the boot, driving home, free refills, running out of petrol, petrol pumps, workshop upgrades, grip on mud and sand, paint jobs, friends riding along, parking, dying, and the rickshaw home that only takes people), wild brainrots (wandering, the radar, getting scared by vehicles and horns, catching, locked zones, full havelis, wandering off), the Mandi lane (walking round, prices, buying, walking off), the new-player guide (every step, skipping, starting again, the card and the beacon), the Menu (settings, promo codes, game passes, the daily streak, offline earnings), badges, safe saving (waiting for another server, never saving over a newer save, crashed servers) and the egg speed check, treasure (digging, climbing, cooldowns), haveli levels and incubators, themes, the galla, quests, Collection Book rewards, Kismat Rolls with their odds and pity, stealing with every rule (including eggs), the Chowkidar, the Laser Darwaza, chappal bonks on thieves and egg carriers, events and their boosts (with the Basant kites), Robux receipts (including retries and failed saves), the paid random item restriction, Chor Passes, Naya Safar at the Chowk, saving and loading (including eggs, zones and vehicles, and old saves), sounds and music slots, every theme at every level, the leaderboard and smooth movement. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.
+`tests/run.sh` loads the real scripts into the Luau VM with a mock of the Roblox engine. It checks every class, property, method, event and enum they touch against Roblox's API dump. Then it plays through the game (2059 checks): the world (havelis facing the Chowk, the stalls and bazaar shops, 12 zones in 4 regions and 3 rings with terrain, eggs, chests, hazard areas and their landmarks, prices that grow outward, zigzag gates, shortcut doors, roads, petrol pumps, the train schedule, the bazaar, the Mandi lane and its arch, milestones, bus stops, mud houses and row boats, every Blender prop as parts and as an imported mesh, and a part budget), every brainrot's Blender model (eyes, size limits, welds, mutation tints, imported meshes, custom models first, the parrot's tail lettering, and old saves with renamed brainrots), joining, picking up eggs, locked zones and unlocking gates, the egg timer and the radar, carrying eggs home, incubators, hatching from each zone's pool, cracking, dropping eggs, every hazard (including the train, waves and salt rocks that push you back) and the gear that stops it, the Gear shop, radar upgrades, golden eggs, egg rushes, hatch odds and luck (including Secret brainrots), selling at the stall, vehicles (the showroom, driving and steering, the solid bumper and crashes, horns, fuel, the boot, driving home, free refills, running out of petrol, petrol pumps, workshop upgrades, grip on mud and sand, paint jobs, friends riding along, parking, dying, and the rickshaw home that only takes people), wild brainrots (wandering, the radar, getting scared by vehicles and horns, catching, locked zones, full havelis, wandering off), the Mandi lane (walking round, prices, buying, walking off), the new-player guide (every step, skipping, starting again, the card and the beacon), the Menu (settings, promo codes, game passes, the daily streak, offline earnings), badges, safe saving (waiting for another server, never saving over a newer save, crashed servers) and the egg speed check, treasure (digging, climbing, cooldowns), haveli levels and incubators, themes, the galla, quests, Collection Book rewards, Kismat Rolls with their odds and pity, stealing with every rule (including eggs), the Chowkidar, the Laser Darwaza, chappal bonks on thieves and egg carriers, events and their boosts (with the Basant kites), Robux receipts (including retries and failed saves), the paid random item restriction, Chor Passes, Naya Safar at the Chowk, saving and loading (including eggs, zones and vehicles, and old saves), sounds (every sound in the sound sheet, playing its own part of it, a horn and engine for every vehicle, your own music first), every theme at every level, the leaderboard and smooth movement. It needs Rust, Python 3 and curl. It catches scripting mistakes but is not a substitute for playtesting in Studio.

@@ -519,7 +519,7 @@ function Garage.honk(player: Player)
 	local position = drive.root.Position
 	for i = 1, drive.def.honks do
 		task.delay((i - 1) * HONK_GAP, function()
-			Remotes.PlaySound:FireAllClients("Horn", position, drive.def.horn)
+			Remotes.PlaySound:FireAllClients("Horn" .. drive.def.sound, position)
 		end)
 	end
 	if Garage.onHonk then
@@ -592,7 +592,7 @@ function Garage.refuel(player: Player, pad: Instance?)
 	drive.entry.fuel = math.min(drive.tank, drive.entry.fuel + amount)
 	refreshStats(profile)
 	Garage.syncDrive(profile)
-	State.sound(player, "Purchase")
+	State.sound(player, "Fuel")
 	State.notify(
 		player,
 		"good",
