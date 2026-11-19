@@ -21,16 +21,23 @@ def stepped(p, base_z, top_z, widths, depth, color, mat="SmoothPlastic", y=0.0):
 # ------------------------------------------------------------------ Commons
 @prop("GolGappaGhostu", "brainrot")
 def gol_gappa(p):
-    # a leaky, floating puri with a ghostly tail of imli pani
+    # a leaky, floating puri with a ghostly tail of imli pani, sipping its own pani
+    # through a striped straw. The puri is its face, so it stays round; the tail,
+    # drips and chickpeas are faceted blocks.
     p.blob(1.4, (0, 0, 2.5), (1, 1, 0.92), "puri", "SmoothPlastic", D, seed=1, jitter=0.06, fallback="Ball")
     p.cyl(1.38, 0.18, (0, 0, 2.95), None, "puricrust", "SmoothPlastic", D, verts=16)
     p.cyl(0.5, 0.1, (0, 0, 3.78), None, "imlipani", "SmoothPlastic", D, verts=12)
     for i, (x, y) in enumerate(((-0.18, 0.1), (0.2, 0.05), (0.02, -0.22))):
-        p.ball(0.17, (x, y, 3.82), "chickpea", "SmoothPlastic", D, segments=8, rings=5)
-    for i, (x, y, z, r) in enumerate(((0.15, 0.1, 1.15, 0.85), (-0.25, 0.25, 0.65, 0.58), (0.2, 0.35, 0.28, 0.32))):
-        p.blob(r, (x, y, z), (1, 1, 0.8), "imlipani", "Glass", D | GLASS, seed=10 + i, jitter=0.12, fallback="Ball")
+        p.box((0.28, 0.28, 0.28), (x, y, 3.86), (45, 35.26, i * 30), "chickpea", "SmoothPlastic", D)
+    for i, (x, y, z, r) in enumerate(((0.15, 0.1, 1.15, 0.85), (-0.25, 0.25, 0.6, 0.58), (0.2, 0.35, 0.22, 0.32))):
+        s = r * 1.25
+        p.box((s, s, s * 0.85), (x, y, z), (45, 35.26, i * 40), "imlipani", "Glass", D | GLASS)
     for x, z in ((-1.1, 1.9), (1.2, 2.1), (0.9, 1.6)):
-        p.ball(0.13, (x, -0.4, z), "imlipani", "Glass", D | GLASS, segments=6, rings=4)
+        p.box((0.22, 0.22, 0.22), (x, -0.4, z), (45, 35.26, 0), "imlipani", "Glass", D | GLASS)
+    # a red and cream striped straw
+    p.box((0.18, 0.18, 1.5), (0.42, 0.25, 4.25), (0, 16, 0), "cream2", "SmoothPlastic", D)
+    for k in range(3):
+        p.box((0.2, 0.2, 0.18), (0.36 + k * 0.1, 0.25, 3.9 + k * 0.38), (0, 16, 0), "red", "SmoothPlastic", D)
     eyes(p, 0, -1.22, 2.65, 1.0, 0.34)
     smile(p, 0, -1.3, 2.05, 0.75, open_mouth=True)
     blush(p, 0, -1.2, 2.3, 1.55)
@@ -38,24 +45,28 @@ def gol_gappa(p):
 
 @prop("SamosaSupremo", "brainrot")
 def samosa(p):
-    # a cool boss samosa in shades, arms crossed, on a plate like a stage
-    p.cyl(1.9, 0.2, (0, 0, 0.1), None, "white", "SmoothPlastic", D, verts=20)
-    p.cyl(1.6, 0.22, (0, 0, 0.12), None, "cream2", "SmoothPlastic", D, verts=20)
-    fl, fr, bk, apex = (-1.5, -0.75, 0.22), (1.5, -0.75, 0.22), (0, 1.35, 0.22), (0, 0.1, 3.4)
+    # a cool boss samosa in shades, arms crossed, on a little wooden stage with a
+    # gold band of diamonds along its front
+    p.box((3.6, 3.0, 0.35), (0, 0.1, 0.175), None, "warmwood", "WoodPlanks", D)
+    style.diamonds(p, -1.6, 1.6, -1.46, 0.175, height=0.28, band="gold", colors=("red", "dhabateal"))
+    fl, fr, bk, apex = (-1.5, -0.75, 0.35), (1.5, -0.75, 0.35), (0, 1.35, 0.35), (0, 0.1, 3.5)
     p.poly([fl, fr, bk, apex], [(0, 2, 1), (0, 1, 3), (1, 2, 3), (2, 0, 3)], (0, 0, 0), "samosa", "SmoothPlastic", D)
-    stepped(p, 0.22, 3.4, (2.8, 2.0, 1.2, 0.5), 1.6, "samosa", y=0.2)
-    for t in (0.2, 0.45, 0.7):  # crimped edges
-        for a, b in ((fl, apex), (fr, apex)):
-            q = [a[i] + (b[i] - a[i]) * t for i in range(3)]
-            p.detail((0.32, 0.32, 0.18), (q[0], q[1] - 0.05, q[2]), (0, 0, 45), "samosadark")
+    stepped(p, 0.35, 3.5, (2.8, 2.0, 1.2, 0.5), 1.6, "samosa", y=0.2)
+    for k, x in enumerate((-1.25, -0.65, 0.65, 1.25)):  # crimped edges, as parts too
+        p.box((0.3, 0.3, 0.22), (x, -0.62, 0.62 + (k in (1, 2)) * 0.8), (0, 0, 45), "samosadark", "SmoothPlastic", D)
+    # the shades and smirk: tilted onto the sloping face in the mesh, flat on the
+    # front of the steps as parts (inside the steps they were hidden)
     tilt = math.degrees(math.atan2(0.85, 3.18))
-    for side in (-1, 1):  # the shades
-        p.box((0.78, 0.14, 0.46), (side * 0.42, -0.44, 2.0), (-tilt, 0, 0), "black", "SmoothPlastic", D)
-        p.box((0.16, 0.15, 0.08), (side * 0.55, -0.52, 2.13), (-tilt, 0, 0), "white", "SmoothPlastic", D)
-    p.box((0.25, 0.12, 0.1), (0, -0.46, 2.08), (-tilt, 0, 0), "black", "SmoothPlastic", D)
-    p.box((0.5, 0.1, 0.09), (0.15, -0.6, 1.45), (-tilt, 0, -12), "black", "SmoothPlastic", D)  # smirk
+    for side in (-1, 1):
+        p.detail((0.78, 0.14, 0.46), (side * 0.42, -0.44, 2.1), (-tilt, 0, 0), "black")
+        p.detail((0.16, 0.15, 0.08), (side * 0.55, -0.52, 2.23), (-tilt, 0, 0), "white")
+        p.box((0.52, 0.14, 0.42), (side * 0.32, -0.66, 2.3), None, "black", "SmoothPlastic", D | PARTSONLY)
+        p.box((0.14, 0.1, 0.08), (side * 0.42, -0.74, 2.42), None, "white", "SmoothPlastic", D | PARTSONLY)
+    p.detail((0.25, 0.12, 0.1), (0, -0.46, 2.18), (-tilt, 0, 0), "black")
+    p.detail((0.5, 0.1, 0.09), (0.15, -0.6, 1.55), (-tilt, 0, -12), "black")  # smirk
+    p.box((0.5, 0.1, 0.09), (0.15, -0.65, 1.62), (0, -12, 0), "black", "SmoothPlastic", D | PARTSONLY)
     for side in (-1, 1):  # arms crossed
-        arm(p, (side * 1.0, -0.4, 1.05), (-side * 0.45, -0.85, 0.95), 0.16, "samosadark", "samosa", 0.24)
+        block_arm(p, (side * 1.0, -0.4, 1.15), (-side * 0.45, -0.85, 1.05), 0.3, "samosadark", "samosa", 0.42)
 
 
 @prop("ChaiyooKettlesaurus", "brainrot")
@@ -91,50 +102,62 @@ def kettlesaurus(p):
 
 @prop("ChanaChaatChacha", "brainrot")
 def chana_chaat(p):
-    # a steel katori of chana chaat with a sev moustache and a spoon stick
-    p.cone(1.62, 1.1, (0, 0, 1.45), None, "steel", "Metal", D, verts=16, top=1.15, fallback="Cylinder",
-           fallback_scale=(0.85, 0.85, 1))
-    p.cyl(1.68, 0.12, (0, 0, 1.98), None, "steeldark", "Metal", D, verts=16)
-    p.blob(1.45, (0, 0, 2.05), (1, 1, 0.4), "chickpea", "SmoothPlastic", D, seed=3, jitter=0.12, fallback="Disc")
+    # a steel katori of chana chaat with a sev moustache and a spoon stick. The
+    # katori is two chunky steps with a gold band of diamonds under its rim.
+    p.cone(1.62, 1.1, (0, 0, 1.45), None, "steel", "Metal", D, verts=16, top=1.15, fallback="None")
+    p.box((2.7, 2.7, 0.62), (0, 0, 1.2), None, "steel", "Metal", D | PARTSONLY)
+    p.box((3.0, 3.0, 0.6), (0, 0, 1.78), None, "steel", "Metal", D | PARTSONLY)
+    p.box((3.12, 3.12, 0.14), (0, 0, 2.08), None, "steeldark", "Metal", D)
+    style.diamonds(p, -1.35, 1.35, -1.56, 1.9, height=0.24, band="gold", colors=("red", "dhabateal"))
+    p.blob(1.45, (0, 0, 2.05), (1, 1, 0.4), "chickpea", "SmoothPlastic", D, seed=3, jitter=0.12, fallback="None")
+    for spin in (0, 45):
+        p.box((2.15, 2.15, 0.28), (0, 0, 2.2 + spin * 0.001), (0, 0, spin), "chickpea", "SmoothPlastic", D | PARTSONLY)
     bits = [("onion", 0.6, 0.2), ("tomato", -0.5, 0.4), ("onion", -0.2, -0.6), ("tomato", 0.4, -0.5),
             ("coriander", 0.1, 0.6), ("coriander", -0.7, -0.1), ("chickpea", 0.75, -0.2)]
-    for color, x, y in bits:
-        p.ball(0.17, (x, y, 2.5), color, "SmoothPlastic", D, segments=6, rings=4)
+    for i, (color, x, y) in enumerate(bits):
+        p.box((0.28, 0.28, 0.28), (x, y, 2.45), (45, 35.26, i * 25), color, "SmoothPlastic", D)
     for i in range(8):
-        p.detail((0.9, 0.06, 0.06), (-0.4 + (i % 4) * 0.25, -0.1 + (i // 4) * 0.25, 2.55), (0, 0, i * 37), "sev")
-    eyes(p, 0, -1.42, 1.5, 0.8, 0.28)
+        p.box((0.9, 0.08, 0.08), (-0.4 + (i % 4) * 0.25, -0.1 + (i // 4) * 0.25, 2.4), (0, 0, i * 37), "sev",
+              "SmoothPlastic", D)
+    eyes(p, 0, -1.55, 1.5, 0.8, 0.28)
     moustache(p, 0, -1.5, 1.08, 1.5, "sev", thick=0.24)
-    smile(p, 0, -1.48, 0.88, 0.5)
+    smile(p, 0, -1.48, 0.92, 0.5)
     for x in (-0.5, 0.5):
-        leg(p, x, -0.1, 0.9, 0.18, "steeldark", "black")
-    arm(p, (1.45, -0.1, 1.4), (1.75, -0.35, 1.7), 0.12, "steeldark", "steel", 0.18)
-    p.rod((1.85, -0.35, 0.0), (1.75, -0.35, 2.3), 0.07, "steel", "Metal", D)
-    p.ball(0.24, (1.74, -0.35, 2.45), "steel", "Metal", D)
+        block_leg(p, x, -0.1, 0.95, 0.34, "steeldark", "black")
+    block_arm(p, (1.45, -0.1, 1.4), (1.75, -0.35, 1.7), 0.24, "steeldark", "steel", 0.34)
+    p.box((0.13, 0.13, 2.3), (1.8, -0.35, 1.15), (0, -2.5, 0), "steel", "Metal", D)
+    p.box((0.5, 0.38, 0.2), (1.74, -0.35, 2.4), None, "steel", "Metal", D)
 
 
 @prop("KulfiKangaroo", "brainrot")
 def kulfi(p):
-    # a pistachio kulfi kangaroo, bouncing on its stick
-    p.cone(1.0, 2.3, (0, 0, 2.35), (180, 0, 0), "kulfi", "SmoothPlastic", D, verts=12, top=0.55,
-           fallback="Cylinder", fallback_scale=(0.8, 0.8, 1))
-    p.cyl(1.02, 0.45, (0, 0, 3.55), None, "pistachio", "SmoothPlastic", D, verts=12)
-    p.blob(0.95, (0, 0, 3.8), (1, 1, 0.45), "pistachio", "SmoothPlastic", D, seed=5, jitter=0.1, fallback="Disc")
+    # a pistachio kulfi kangaroo, bouncing on its stick. Its cone is three chunky
+    # steps wrapped in a gold foil band of diamonds; the top is a star of pistachio.
+    p.cone(1.0, 2.3, (0, 0, 2.35), (180, 0, 0), "kulfi", "SmoothPlastic", D, verts=12, top=0.55, fallback="None")
+    for k, w in enumerate((1.2, 1.6, 2.0)):
+        p.box((w, w, 0.78), (0, 0, 1.59 + k * 0.77), None, "kulfi", "SmoothPlastic", D | PARTSONLY)
+    p.box((2.1, 2.1, 0.45), (0, 0, 3.55), None, "pistachio", "SmoothPlastic", D)
+    p.blob(0.95, (0, 0, 3.8), (1, 1, 0.45), "pistachio", "SmoothPlastic", D, seed=5, jitter=0.1, fallback="None")
+    for spin in (0, 45):
+        p.box((1.85, 1.85, 0.32), (0, 0, 3.86 + spin * 0.001), (0, 0, spin), "pistachio", "SmoothPlastic",
+              D | PARTSONLY)
     for i in range(6):
         a = i * math.pi / 3
-        p.detail((0.14, 0.14, 0.08), (math.cos(a) * 0.5, math.sin(a) * 0.5, 4.08), (0, 0, i * 20), "green")
+        p.box((0.2, 0.2, 0.14), (math.cos(a) * 0.5, math.sin(a) * 0.5, 4.06), (0, 0, i * 20), "green",
+              "SmoothPlastic", D)
+    style.diamonds(p, -0.9, 0.9, -1.06, 3.3, height=0.32, band="gold", colors=("dhabateal", "red"))
     for x, z in ((-0.85, 3.2), (0.7, 3.25), (0.0, 3.25)):  # drips frozen into icicles
-        p.cone(0.14, 0.45, (x, -0.55, z - 0.25), (180, 0, 0), "ice", "Glass", D, verts=6, fallback="Cylinder",
-               fallback_scale=(0.8, 0.8, 1))
+        p.box((0.3, 0.3, 0.3), (x, -1.05, z - 0.3), (45, 35.26, 0), "ice", "Glass", D)
     for side in (-1, 1):
         p.box((0.32, 0.18, 1.0), (side * 0.45, 0.1, 4.45), (0, side * -12, 0), "kulfi", "SmoothPlastic", D)
         p.box((0.18, 0.08, 0.7), (side * 0.45, 0.0, 4.45), (0, side * -12, 0), "blush", "SmoothPlastic", D)
-    eyes(p, 0, -0.92, 2.75, 0.75, 0.27)
+    eyes(p, 0, -0.98, 2.75, 0.75, 0.27)
     smile(p, 0, -0.85, 2.2, 0.5)
     blush(p, 0, -0.86, 2.45, 1.15, 0.16)
     for side in (-1, 1):
-        arm(p, (side * 0.75, -0.3, 2.1), (side * 0.75, -0.75, 1.75), 0.12, "kulfi")
+        block_arm(p, (side * 0.8, -0.3, 2.1), (side * 0.8, -0.8, 1.75), 0.24, "kulfi")
         p.box((0.5, 1.3, 0.3), (side * 0.45, -0.35, 0.15), None, "kulfi", "SmoothPlastic", D)
-        p.rod((side * 0.45, -0.1, 0.3), (side * 0.35, 0.0, 1.25), 0.16, "kulfi", "SmoothPlastic", D)
+        p.beam((side * 0.45, -0.1, 0.3), (side * 0.35, 0.0, 1.25), 0.32, 0.32, "kulfi", "SmoothPlastic", D)
     p.box((0.32, 0.16, 1.9), (0, 0.55, 0.85), (25, 0, 0), "kulfistick", "Wood", D)
 
 
@@ -179,53 +202,55 @@ def pakora_panda(p):
 
 @prop("NaanNinja", "brainrot")
 def naan_ninja(p):
-    # a teardrop naan in a black headband and mask, roti stars ready
+    # a teardrop naan in a black headband (with gold diamonds) and mask, roti stars ready
     f = Frame((0, 0, 0), (0, 0, -8))
     p.blob(1.45, f.p(0, 0, 2.15), (0.82, 0.32, 1.22), "naan", "SmoothPlastic", D, seed=12, jitter=0.07,
            fallback="Block", fallback_scale=(0.82, 1, 0.82), rot=f.r())
     for i, (x, z) in enumerate(((-0.5, 1.4), (0.55, 1.7), (-0.2, 3.1), (0.45, 2.75), (0.1, 1.2))):
         p.blob(0.16, f.p(x, -0.42, z), (1, 0.4, 1), "naanchar", "SmoothPlastic", D, seed=20 + i, fallback="None")
+        p.box((0.3, 0.08, 0.3), f.p(x, -0.49, z), f.r((0, 30 + i * 17, 0)), "naanchar", "SmoothPlastic",
+              D | PARTSONLY)
     p.box((1.95, 0.6, 0.32), f.p(0, -0.05, 3.0), f.r(), "black", "Fabric", D)
+    for k, x in enumerate((-0.55, 0, 0.55)):
+        p.box((0.2, 0.08, 0.2), f.p(x, -0.38, 3.0), f.r((0, 45, 0)), "gold" if k != 1 else "red", "SmoothPlastic", D)
     for k in range(2):
         p.box((0.22, 0.08, 1.2), f.p(0.35 + k * 0.3, 0.45, 2.55 - k * 0.15), f.r((10, 0, 25 + k * 15)), "black",
               "Fabric", D)
-    p.box((1.6, 0.12, 0.42), f.p(0, -0.45, 2.45), f.r(), "black", "Fabric", D)
-    eyes(p, 0, -0.55, 2.45, 0.62, 0.22, f=f)
-    brows(p, 0, -0.55, 2.45, 0.62, 0.22, tilt=22, f=f)
-    smile(p, 0, -0.48, 1.85, 0.4, f=f)
-    arm(p, (-0.95, -0.1, 2.0), (-1.55, -0.55, 2.4), 0.11, "naan", f=f)
-    arm(p, (0.95, -0.1, 2.0), (1.5, -0.5, 1.6), 0.11, "naan", f=f)
+    p.box((1.6, 0.12, 0.42), f.p(0, -0.52, 2.45), f.r(), "black", "Fabric", D)
+    eyes(p, 0, -0.6, 2.45, 0.62, 0.22, f=f)
+    brows(p, 0, -0.6, 2.45, 0.62, 0.22, tilt=22, f=f)
+    smile(p, 0, -0.52, 1.85, 0.4, f=f)
+    block_arm(p, (-0.95, -0.1, 2.0), (-1.55, -0.55, 2.4), 0.22, "naan", f=f)
+    block_arm(p, (0.95, -0.1, 2.0), (1.5, -0.5, 1.6), 0.22, "naan", f=f)
     for k in range(2):  # a roti star in hand
-        p.box((0.7, 0.08, 0.14), f.p(-1.6, -0.7, 2.5), f.r((0, k * 90 + 45, 0)), "cream2", "SmoothPlastic", D)
+        p.box((0.7, 0.08, 0.14), f.p(-1.6, -0.75, 2.5), f.r((0, k * 90 + 45, 0)), "cream2", "SmoothPlastic", D)
     for side in (-1, 1):
-        p.rod(f.p(side * 0.35, 0, 1.0), f.p(side * 0.55, -0.15, 0.25), 0.12, "naan", "SmoothPlastic", D)
+        p.beam(f.p(side * 0.35, 0, 1.0), f.p(side * 0.55, -0.15, 0.25), 0.24, 0.24, "naan", "SmoothPlastic", D)
         p.box((0.36, 0.6, 0.22), f.p(side * 0.58, -0.3, 0.11), f.r(), "black", "SmoothPlastic", D)
 
 
 @prop("PyaazPehelwan", "brainrot")
 def pyaaz(p):
-    # a wrestler onion with a curly moustache and a champion's belt
+    # a wrestler onion with a curly moustache and a champion's belt of truck-art
+    # diamonds. The onion is its face, so it stays round; muscles, arms, legs,
+    # trunks and leaves are blocks.
     p.blob(1.35, (0, 0, 1.75), (1, 1, 1.05), "onion", "SmoothPlastic", D, seed=14, jitter=0.05, fallback="Ball")
-    for i in range(6):
-        a = i * math.pi / 3
-        p.detail((0.06, 0.06, 2.4), (math.cos(a) * 1.0, math.sin(a) * 1.0, 1.8), (math.sin(a) * 25, -math.cos(a) * 25, 0),
-                 "onionpale")
     for i, (x, y, lean) in enumerate(((0, 0, 0), (-0.25, 0.1, -20), (0.25, 0.05, 22))):
-        p.cone(0.14, 1.2, (x, y, 3.65), (0, lean, 0), "coriander", "Grass", D, verts=6, fallback="Cylinder",
-               fallback_scale=(1.2, 1.2, 1))
+        p.box((0.24, 0.24, 1.2), (x, y, 3.65), (0, lean, 0), "coriander", "Grass", D)
     eyes(p, 0, -1.25, 2.05, 0.82, 0.27)
     brows(p, 0, -1.25, 2.05, 0.82, 0.27, tilt=20)
     moustache(p, 0, -1.35, 1.6, 1.4, "black", thick=0.24)
     smile(p, 0, -1.33, 1.38, 0.42)
-    p.cyl(1.08, 0.55, (0, 0, 0.85), None, "red", "Fabric", D, verts=14)
-    p.cyl(1.16, 0.26, (0, 0, 1.22), None, "gold", "Metal", D, verts=14)
-    p.box((0.7, 0.2, 0.5), (0, -1.15, 1.22), None, "gold", "Metal", D)
-    p.ball(0.12, (0, -1.27, 1.22), "red", "SmoothPlastic", D)
+    p.box((2.05, 2.05, 0.55), (0, 0, 0.85), None, "red", "Fabric", D)  # the trunks
+    p.box((2.2, 2.2, 0.26), (0, 0, 1.22), None, "gold", "Metal", D)  # the belt
+    style.diamonds(p, -1.0, 1.0, -1.13, 1.22, height=0.24, band="gold", colors=("red", "dhabateal"), step=0.5)
+    p.box((0.62, 0.16, 0.42), (0, -1.2, 1.22), None, "gold", "Metal", D)
+    p.box((0.22, 0.1, 0.22), (0, -1.29, 1.22), (0, 45, 0), "red", "SmoothPlastic", D)
     for side in (-1, 1):
-        p.ball(0.42, (side * 1.25, -0.1, 2.0), "onion", "SmoothPlastic", D)
-        arm(p, (side * 1.25, -0.1, 2.0), (side * 1.85, -0.2, 2.35), 0.2, "onion", "onionpale", 0.3)
-        p.ball(0.34, (side * 1.6, -0.12, 2.25), "onion", "SmoothPlastic", D)
-        leg(p, side * 0.45, 0, 0.75, 0.2, "onion", "black")
+        p.box((0.75, 0.75, 0.75), (side * 1.25, -0.1, 2.0), (45, 35.26, 0), "onion", "SmoothPlastic", D)
+        block_arm(p, (side * 1.25, -0.1, 2.0), (side * 1.85, -0.2, 2.35), 0.36, "onion", "onionpale", 0.5)
+        p.box((0.6, 0.6, 0.6), (side * 1.6, -0.12, 2.25), (45, 35.26, 0), "onion", "SmoothPlastic", D)
+        block_leg(p, side * 0.45, 0, 0.75, 0.38, "onion", "black")
     for side in (-1, 1):
         p.ball(0.12, (side * 2.3, -0.6, 2.4), "skyblue", "Glass", D, segments=6, rings=4)
 

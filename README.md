@@ -312,10 +312,10 @@ Colours: puri gold #E2AA50, crispy edge #BE7D37, imli pani #968C3C, chickpea #E1
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.0 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.1 studs tall.
 ```
 
-**In the game:** id `GolGappaGhostu` · Rs 50 · +Rs 1/s · 4.0 studs tall, 2.8 x 3.0 studs wide, floats · Hatches in Mango Bagh (Punjab Mango Orchards), Qissa Khawani (Peshawar Storytellers' Bazaar), Sahil Beach (Arabian Sea Beach).
+**In the game:** id `GolGappaGhostu` · Rs 50 · +Rs 1/s · 5.1 studs tall, 2.8 x 3.0 studs wide, floats · Hatches in Mango Bagh (Punjab Mango Orchards), Qissa Khawani (Peshawar Storytellers' Bazaar), Sahil Beach (Arabian Sea Beach).
 
 </details>
 
@@ -382,10 +382,10 @@ Colours: samosa gold #D79646, crispy brown #AF6E2D, shades #232328, plate #FAFAF
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.4 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.5 studs tall.
 ```
 
-**In the game:** id `SamosaSupremo` · Rs 100 · +Rs 2/s · 3.4 studs tall, 3.8 x 3.8 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Camel Mela (Thar Camel Fair).
+**In the game:** id `SamosaSupremo` · Rs 100 · +Rs 2/s · 3.5 studs tall, 3.6 x 3.2 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Camel Mela (Thar Camel Fair).
 
 </details>
 
@@ -419,7 +419,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.9 studs tall.
 ```
 
-**In the game:** id `NaanNinja` · Rs 120 · +Rs 2/s · 3.9 studs tall, 3.5 x 1.4 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Camel Mela (Thar Camel Fair).
+**In the game:** id `NaanNinja` · Rs 120 · +Rs 2/s · 3.9 studs tall, 3.7 x 1.5 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Camel Mela (Thar Camel Fair).
 
 </details>
 
@@ -454,7 +454,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.0 studs tall.
 ```
 
-**In the game:** id `KulfiKangaroo` · Rs 150 · +Rs 3/s · 5.0 studs tall, 2.0 x 2.3 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
+**In the game:** id `KulfiKangaroo` · Rs 150 · +Rs 3/s · 5.0 studs tall, 2.6 x 2.6 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
 
 </details>
 
@@ -487,10 +487,10 @@ Colours: onion #A53C78, onion skin #E1AFCD, sprouts #3C9632, shorts #DC3232, cha
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.2 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
 ```
 
-**In the game:** id `PyaazPehelwan` · Rs 180 · +Rs 4/s · 4.2 studs tall, 4.8 x 2.9 studs wide · Hatches in Camel Mela (Thar Camel Fair), Qissa Khawani (Peshawar Storytellers' Bazaar).
+**In the game:** id `PyaazPehelwan` · Rs 180 · +Rs 4/s · 4.3 studs tall, 4.8 x 2.8 studs wide · Hatches in Camel Mela (Thar Camel Fair), Qissa Khawani (Peshawar Storytellers' Bazaar).
 
 </details>
 
