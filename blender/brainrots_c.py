@@ -3,8 +3,8 @@
 import math
 
 import style
-from brainrot_kit import block_arm, block_cap, block_leg, chunk, D, Frame, arm, blush, brows, cap, crown, eyes, leg, moustache, puffs, rope_ring, smile, wing
-from kit import GLASS, KEEP, LIGHT, prop
+from brainrot_kit import block_arm, block_cap, block_leg, chunk, cube_puff, D, Frame, arm, blush, brows, cap, crown, eyes, leg, moustache, puffs, rope_ring, smile, wing
+from kit import GLASS, KEEP, LIGHT, PARTSONLY, prop
 
 
 def wheel_x(p, x, y, z, r, tyre="tyre", hub="metal", spokes=4, width=0.2):
@@ -18,29 +18,30 @@ def wheel_x(p, x, y, z, r, tyre="tyre", hub="metal", spokes=4, width=0.2):
 # --------------------------------------------------------------- Legendaries
 @prop("TruckArtTotaa", "brainrot")
 def truck_art_parrot(p):
-    # a green parrot painted with truck art, bells on its wings and a crown crest
-    p.blob(1.25, (0, 0.15, 2.6), (0.95, 1, 1.35), "parrot", "SmoothPlastic", D, seed=200, jitter=0.02,
-           fallback="Ball")
+    # a green parrot painted with truck art, bells on its wings and a crown crest.
+    # A chunky body with square painted flowers; its head stays round.
+    chunk(p, 1.25, (0, 0.15, 2.5), (0.95, 1, 1.05), "parrot", seed=200)
     p.blob(0.88, (0, -0.25, 4.25), (1, 1, 1), "parrot", "SmoothPlastic", D, seed=201, jitter=0.02, fallback="Ball")
-    p.cone(0.3, 0.75, (0, -1.15, 4.0), (-120, 0, 0), "orange", "SmoothPlastic", D, verts=8, fallback="Cylinder")
-    p.cone(0.18, 0.35, (0, -0.95, 3.75), (-70, 0, 0), "orange", "SmoothPlastic", D, verts=6, fallback="None")
-    eyes(p, 0, -0.98, 4.45, 0.7, 0.24)
+    p.box((0.5, 0.6, 0.4), (0, -1.15, 4.05), (-30, 0, 0), "orange", "SmoothPlastic", D)  # the beak
+    p.box((0.34, 0.4, 0.3), (0, -1.35, 3.85), (-50, 0, 0), "orange", "SmoothPlastic", D)
+    eyes(p, 0, -1.05, 4.45, 0.7, 0.24)
     p.box((1.5, 0.3, 0.95), (0, -0.05, 5.05), (-10, 0, 0), "red", "WoodPlanks", D)
     p.box((1.6, 0.32, 0.2), (0, -0.05, 5.5), (-10, 0, 0), "gold", "Metal", D)
     for k, color in enumerate(("yellow", "skyblue", "pink")):
-        p.ball(0.15, (-0.45 + k * 0.45, -0.25, 5.05), color, "SmoothPlastic", D, segments=6, rings=4)
+        p.box((0.22, 0.1, 0.22), (-0.45 + k * 0.45, -0.25, 5.05), (0, 45, 0), color, "SmoothPlastic", D)
     flowers = [("red", -0.4, 2.9), ("yellow", 0.4, 2.6), ("blue", 0.0, 2.1), ("pink", -0.45, 1.85), ("yellow", 0.45, 3.3)]
-    for color, x, z in flowers:
-        p.cyl(0.22, 0.06, (x, -1.12 + abs(x) * 0.15, z), (90, 0, 0), color, "SmoothPlastic", D, verts=8)
-        p.cyl(0.08, 0.08, (x, -1.15 + abs(x) * 0.15, z), (90, 0, 0), "white", "SmoothPlastic", D, verts=6)
+    for color, x, z in flowers:  # painted square flowers
+        p.box((0.42, 0.06, 0.42), (x, -1.03, z), (0, 45, 0), color, "SmoothPlastic", D)
+        p.box((0.3, 0.07, 0.3), (x, -1.04, z), None, color, "SmoothPlastic", D)
+        p.box((0.14, 0.08, 0.14), (x, -1.06, z), None, "white", "SmoothPlastic", D)
     for side in (-1, 1):
-        p.box((0.28, 1.3, 1.8), (side * 1.12, 0.25, 2.7), (0, side * -10, 0), "blue", "SmoothPlastic", D)
+        p.box((0.28, 1.3, 1.8), (side * 1.2, 0.25, 2.7), (0, side * -10, 0), "blue", "SmoothPlastic", D)
         for k, color in enumerate(("red", "yellow", "green")):
-            p.box((0.06, 1.2, 0.18), (side * 1.27, 0.25, 2.1 + k * 0.5), (0, side * -10, 0), color, "SmoothPlastic", D)
+            p.box((0.06, 1.2, 0.18), (side * 1.35, 0.25, 2.1 + k * 0.5), (0, side * -10, 0), color, "SmoothPlastic", D)
         for k in range(4):
-            p.ball(0.12, (side * 1.3, -0.2 + k * 0.32, 1.7), "gold", "Metal", D, segments=6, rings=4)
+            p.ball(0.12, (side * 1.38, -0.2 + k * 0.32, 1.7), "gold", "Metal", D, segments=6, rings=4)
         p.box((0.25, 0.5, 0.2), (side * 0.4, -0.3, 0.1), None, "orange", "SmoothPlastic", D)
-        p.rod((side * 0.35, 0, 1.3), (side * 0.4, -0.2, 0.15), 0.1, "orange", "SmoothPlastic", D)
+        p.beam((side * 0.35, 0, 1.3), (side * 0.4, -0.2, 0.15), 0.2, 0.2, "orange", "SmoothPlastic", D)
     for k, color in enumerate(("yellow", "red", "blue")):  # the tail, with its lettering panel
         p.box((0.45, 0.12, 2.2), (-0.45 + k * 0.45, 1.5, 1.2), (35, 0, (k - 1) * 8), color, "SmoothPlastic", D)
     p.box((1.3, 0.1, 0.45), (0, 1.62, 1.0), (35, 0, 0), "white", "SmoothPlastic", D)
@@ -88,50 +89,57 @@ def sixer_sher(p):
 
 @prop("ChilgozaChachaChipka", "brainrot")
 def chilgoza(p):
-    # a pine-nut uncle clinging to a spinning ceiling fan, moustache blown sideways
+    # a pine-nut uncle clinging to a spinning ceiling fan, moustache blown sideways.
+    # A chunky nut body, block arms, a square fan hub, red and teal diamonds painted
+    # on the blades.
     hub = (0, 0, 5.2)
-    p.rod((0, 0, 5.4), (0, 0, 6.4), 0.1, "white", "Metal", D)
-    p.cyl(0.45, 0.15, (0, 0, 6.45), None, "white", "Metal", D, verts=12)
-    p.cyl(0.55, 0.5, hub, None, "white", "Metal", D, verts=12)
+    p.box((0.2, 0.2, 1.0), (0, 0, 5.9), None, "white", "Metal", D)
+    p.box((0.8, 0.8, 0.15), (0, 0, 6.45), (0, 0, 45), "white", "Metal", D)
+    p.box((1.0, 1.0, 0.5), hub, (0, 0, 22), "white", "Metal", D)
     for k in range(3):
         a = k * 2 * math.pi / 3 + 0.4
         p.box((2.6, 0.65, 0.08), (math.cos(a) * 1.6, math.sin(a) * 1.6, 5.05), (8, 0, math.degrees(a)), "tin", "Metal",
               D)
+        p.box((0.36, 0.36, 0.1), (math.cos(a) * 2.2, math.sin(a) * 2.2, 5.0), (8, 0, math.degrees(a) + 45),
+              "red" if k % 2 else "dhabateal", "SmoothPlastic", D)
     f = Frame((1.55, -0.55, 3.75), (0, -15, 20))
-    p.blob(0.62, f.p(0, 0, 0), (0.8, 0.8, 1.9), "pinenut", "SmoothPlastic", D, seed=220, jitter=0.03,
-           fallback="Cylinder", rot=f.r())
+    chunk(p, 0.62, (0, 0, 0), (0.8, 0.8, 1.9), "pinenut", seed=220, f=f)
     p.cone(0.25, 0.5, f.p(0, 0, -1.25), f.r((180, 0, 0)), "pinenut", "SmoothPlastic", D, verts=8,
            fallback="None")
-    eyes(p, 0, -0.45, 0.45, 0.5, 0.2, f=f)
-    brows(p, 0, -0.45, 0.45, 0.5, 0.2, tilt=-15, f=f)
+    p.box((0.34, 0.34, 0.4), f.p(0, 0, -1.25), f.r((0, 0, 45)), "pinenut", "SmoothPlastic", D | PARTSONLY)
+    eyes(p, 0, -0.47, 0.45, 0.5, 0.2, f=f)
+    brows(p, 0, -0.47, 0.45, 0.5, 0.2, tilt=-15, f=f)
     for k in range(2):  # moustache blown sideways by the wind
-        p.box((0.75, 0.2, 0.2), f.p(0.35 + k * 0.1, -0.5, 0.05 + k * 0.12), f.r((0, -20 - k * 15, 0)), "black",
+        p.box((0.75, 0.2, 0.2), f.p(0.35 + k * 0.1, -0.52, 0.05 + k * 0.12), f.r((0, -20 - k * 15, 0)), "black",
               "SmoothPlastic", D)
-    smile(p, 0, -0.5, -0.2, 0.3, f=f, open_mouth=True)
-    arm(p, (-0.5, 0, 0.5), (-0.2, 0.3, 1.25), 0.1, "pinenut", f=f)
-    arm(p, (0.5, 0, 0.5), (0.35, 0.3, 1.25), 0.1, "pinenut", f=f)
+    smile(p, 0, -0.52, -0.2, 0.3, f=f, open_mouth=True)
+    block_arm(p, (-0.5, 0, 0.5), (-0.2, 0.3, 1.25), 0.2, "pinenut", f=f)
+    block_arm(p, (0.5, 0, 0.5), (0.35, 0.3, 1.25), 0.2, "pinenut", f=f)
     for k, z in enumerate((2.3, 1.55, 0.6)):  # dripping honey
-        p.ball(0.18 - k * 0.03, (1.45, -0.6, z), "honey", "Glass", D | GLASS, segments=8, rings=5)
+        s = 0.32 - k * 0.05
+        p.box((s, s, s), (1.45, -0.6, z), (45, 35.26, 0), "honey", "Glass", D | GLASS)
 
 
 @prop("MelaMaharaja", "brainrot")
 def mela_maharaja(p):
-    # a laughing Ferris wheel king with a crown, cabins and light bulbs
+    # a laughing Ferris wheel king with a crown, cabins and light bulbs. Square rim
+    # and spokes like the Mela Ground's wheel; his round face stays round.
     cz, r = 3.4, 2.4
     rim = [(math.cos(a) * r, 0, cz + math.sin(a) * r) for a in (i * 2 * math.pi / 16 for i in range(16))]
     for k, (a, b) in enumerate(zip(rim, rim[1:] + rim[:1])):
-        p.rod(a, b, 0.12, "pink" if k % 2 else "yellow", "SmoothPlastic", D, verts=6)
+        p.beam(a, b, 0.24, 0.24, "pink" if k % 2 else "yellow", "SmoothPlastic", D)
     for i in range(0, 16, 2):
-        p.rod((0, 0, cz), rim[i], 0.06, "white", "Metal", D, verts=4)
+        p.beam((0, 0, cz), rim[i], 0.12, 0.12, "white", "Metal", D)
     for i in range(16):
         x, _, z = rim[i]
-        p.ball(0.1, (x, -0.12, z), ("yellow", "pink", "skyblue", "lime")[i % 4], "Neon", D | KEEP | (LIGHT if i == 0 else 0),
+        p.ball(0.12, (x, -0.16, z), ("yellow", "pink", "skyblue", "lime")[i % 4], "Neon", D | KEEP | (LIGHT if i == 0 else 0),
                segments=6, rings=4)
     for i in range(1, 16, 2):
         x, _, z = rim[i]
         p.box((0.45, 0.4, 0.4), (x, 0, z - 0.35), None, ("red", "teal", "orange", "purple")[(i // 2) % 4], "SmoothPlastic",
               D)
         p.box((0.55, 0.45, 0.1), (x, 0, z - 0.1), None, "white", "SmoothPlastic", D)
+        p.box((0.5, 0.06, 0.1), (x, -0.22, z - 0.3), None, "gold", "SmoothPlastic", D)
     p.ball(0.85, (0, -0.1, cz), "cream2", "SmoothPlastic", D, segments=14, rings=8)
     for side in (-1, 1):  # laughing, eyes squeezed shut
         p.box((0.35, 0.08, 0.1), (side * 0.3, -0.92, cz + 0.22), (0, side * -25, 0), "black", "SmoothPlastic", D)
@@ -140,42 +148,47 @@ def mela_maharaja(p):
     blush(p, 0, -0.88, cz, 1.1, 0.14)
     crown(p, 0, 0, cz + r + 0.1, 0.65, "gold", "red")
     for side in (-1, 1):
-        p.rod((0, 0.25, cz), (side * 1.6, 0.25, 0.4), 0.14, "white", "Metal", D)
+        p.beam((0, 0.25, cz), (side * 1.6, 0.25, 0.4), 0.28, 0.28, "white", "Metal", D)
         p.box((0.6, 0.9, 0.35), (side * 1.65, 0.05, 0.18), None, "red", "SmoothPlastic", D)
+        style.side_diamonds(p, side * 1.96, -0.3, 0.4, 0.18, height=0.24, band="gold", colors=("dhabateal", "white"))
 
 
 @prop("CylinderCycleChacha", "brainrot")
 def cylinder_cycle(p):
-    # a living bicycle: headlight eyes, a handlebar moustache and a tower of gas cylinders
+    # a living bicycle: headlight eyes, a handlebar moustache with red tassels and a
+    # tower of gas cylinders on a rack painted with truck-art diamonds
     wheel_x(p, 0, -1.7, 1.0, 1.0)
     wheel_x(p, 0, 1.7, 1.0, 1.0)
     frame = [((0, 1.7, 1.0), (0, 0.6, 2.4)), ((0, 0.6, 2.4), (0, 0.0, 1.0)), ((0, 0.0, 1.0), (0, 1.7, 1.0)),
              ((0, 0.6, 2.4), (0, -1.3, 2.5)), ((0, 0.0, 1.0), (0, -1.3, 2.5)), ((0, -1.3, 2.5), (0, -1.7, 1.0))]
     for a, b in frame:
-        p.rod(a, b, 0.09, "black", "Metal", D, verts=6)
-    p.rod((0, -1.3, 2.5), (0, -1.45, 3.0), 0.09, "black", "Metal", D, verts=6)
+        p.beam(a, b, 0.18, 0.18, "black", "Metal", D)
+    p.beam((0, -1.3, 2.5), (0, -1.45, 3.0), 0.18, 0.18, "black", "Metal", D)
     p.box((0.45, 0.8, 0.18), (0, 0.6, 2.55), None, "leather", "Fabric", D)
     # the handlebar is a big curly moustache
     for side in (-1, 1):
-        p.rod((0, -1.45, 3.0), (side * 0.75, -1.5, 2.9), 0.11, "black", "Metal", D, verts=6)
-        p.rod((side * 0.75, -1.5, 2.9), (side * 0.95, -1.4, 3.25), 0.11, "black", "Metal", D, verts=6)
-        p.ball(0.17, (side * 0.97, -1.38, 3.33), "black", "SmoothPlastic", D)
+        p.beam((0, -1.45, 3.0), (side * 0.75, -1.5, 2.9), 0.22, 0.22, "black", "Metal", D)
+        p.beam((side * 0.75, -1.5, 2.9), (side * 0.95, -1.4, 3.25), 0.22, 0.22, "black", "Metal", D)
+        p.box((0.3, 0.3, 0.3), (side * 0.97, -1.38, 3.33), (45, 35.26, 0), "black", "SmoothPlastic", D)
+        p.box((0.16, 0.16, 0.35), (side * 0.97, -1.38, 3.0), (0, 0, 45), "red", "Fabric", D)
     face = Frame((0, -1.45, 3.45), (0, 0, 35))  # the headlight eyes turn to look at you
     p.box((0.9, 0.3, 0.4), face.p(0, 0.05, 0), face.r(), "steel", "Metal", D)
     for side in (-1, 1):
-        p.cyl(0.34, 0.16, face.p(side * 0.36, -0.12, 0.1), face.r((90, 0, 0)), "steel", "Metal", D, verts=12)
+        p.box((0.6, 0.16, 0.6), face.p(side * 0.36, -0.12, 0.1), face.r(), "steel", "Metal", D)
     eyes(p, 0, -0.22, 0.1, 0.72, 0.28, f=face)
-    p.cyl(0.1, 0.12, (0.45, -1.5, 3.0), None, "steel", "Metal", D, verts=8)
+    p.box((0.18, 0.18, 0.12), (0.45, -1.5, 3.0), None, "steel", "Metal", D)
     p.box((0.9, 1.4, 0.1), (0, 1.5, 2.0), None, "darkmetal", "Metal", D)
+    for side in (-1, 1):
+        style.side_diamonds(p, side * 0.47, 0.85, 2.15, 1.85, height=0.24, band="gold", colors=("red", "dhabateal"))
     for k in range(3):  # the tower of gas cylinders
         n = 3 - k // 2
         for j in range(n):
             x = (j - (n - 1) / 2) * 0.6
             p.cyl(0.27, 0.95, (x, 1.5, 2.55 + k * 1.0), None, "red", "Metal", D, verts=10)
-            p.cyl(0.08, 0.12, (x, 1.5, 3.1 + k * 1.0), None, "steel", "Metal", D, verts=6)
+            p.box((0.16, 0.16, 0.12), (x, 1.5, 3.1 + k * 1.0), None, "steel", "Metal", D)
     for k in range(3):
         p.box((1.95, 0.06, 0.06), (0, 1.22, 2.4 + k * 1.0), None, "rope", "Fabric", D)
-    p.rod((0.15, 0.3, 0.95), (0.6, 0.6, 0.0), 0.05, "black", "Metal", D, verts=4)
+    p.beam((0.15, 0.3, 0.95), (0.6, 0.6, 0.0), 0.1, 0.1, "black", "Metal", D)
     p.transform(1.1, (0, 0, -45))
 
 

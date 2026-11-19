@@ -154,7 +154,7 @@ def chunk(p, radius, pos, scale=(1, 1, 1), color="wood", mat="SmoothPlastic", se
     from kit import PARTSONLY
 
     sx, sy, sz = scale
-    p.blob(radius, f.p(*pos), scale, color, mat, D, seed=seed, jitter=0.12, fallback="None")
+    p.blob(radius, f.p(*pos), scale, color, mat, D, seed=seed, jitter=0.12, fallback="None", rot=f.r())
     # the first block faces the front (so bands and faces sit flat on it); the
     # second, turned 45 degrees, stays inside its sides and bevels the corners
     spin = spin or 0

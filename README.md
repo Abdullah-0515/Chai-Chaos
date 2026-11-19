@@ -1316,7 +1316,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.6 studs tall.
 ```
 
-**In the game:** id `TruckArtTotaa` · Rs 80,000 · +Rs 800/s · 5.6 studs tall, 2.8 x 3.8 studs wide · Hatches in Sahil Beach (Arabian Sea Beach), Karachi Port (The Big Harbour), Barfani Pahar (The Snowy North).
+**In the game:** id `TruckArtTotaa` · Rs 80,000 · +Rs 800/s · 5.6 studs tall, 3.0 x 3.8 studs wide · Hatches in Sahil Beach (Arabian Sea Beach), Karachi Port (The Big Harbour), Barfani Pahar (The Snowy North).
 
 </details>
 
@@ -1384,10 +1384,10 @@ Colours: pine nut #AF7D55, fan #FAFAFA, fan blades #AFB4B9, moustache #232328, h
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 6.0 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 6.1 studs tall.
 ```
 
-**In the game:** id `ChilgozaChachaChipka` · Rs 200,000 · +Rs 1,800/s · 6.0 studs tall, 5.3 x 4.9 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves), Mohenjo-daro (The Ancient Brick City).
+**In the game:** id `ChilgozaChachaChipka` · Rs 200,000 · +Rs 1,800/s · 6.1 studs tall, 5.3 x 4.9 studs wide · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Namak Caves (Pink Salt Caves), Mohenjo-daro (The Ancient Brick City).
 
 </details>
 
