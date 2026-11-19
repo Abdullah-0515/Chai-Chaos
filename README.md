@@ -630,10 +630,10 @@ Colours: llama wool #E8CDA5, lassi #F0F5EB, malai #FFFAE6, glass #B4DCFF, straw 
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.7 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.8 studs tall.
 ```
 
-**In the game:** id `LassiLlama` · Rs 800 · +Rs 13/s · 4.7 studs tall, 2.3 x 2.4 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
+**In the game:** id `LassiLlama` · Rs 800 · +Rs 13/s · 4.8 studs tall, 2.5 x 2.5 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
 
 </details>
 
@@ -669,7 +669,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `GajarHalwaGorilla` · Rs 1,000 · +Rs 15/s · 4.1 studs tall, 4.0 x 2.9 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields), Namak Caves (Pink Salt Caves).
+**In the game:** id `GajarHalwaGorilla` · Rs 1,000 · +Rs 15/s · 4.1 studs tall, 4.2 x 3.1 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields), Namak Caves (Pink Salt Caves).
 
 </details>
 
@@ -704,7 +704,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `RickshawRaptor` · Rs 1,200 · +Rs 18/s · 4.1 studs tall, 2.4 x 6.4 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Thar Desert (Thar Sand Dunes).
+**In the game:** id `RickshawRaptor` · Rs 1,200 · +Rs 18/s · 4.1 studs tall, 2.5 x 6.5 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Thar Desert (Thar Sand Dunes).
 
 </details>
 
@@ -737,10 +737,10 @@ Colours: bun #CD8C46, kebab #7D4628, egg #FAD250, lettuce #28A050, sweatband #DC
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.8 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 3.7 studs tall.
 ```
 
-**In the game:** id `BunKebabBhai` · Rs 1,600 · +Rs 24/s · 3.8 studs tall, 4.3 x 2.7 studs wide · Hatches in Camel Mela (Thar Camel Fair), Thar Desert (Thar Sand Dunes).
+**In the game:** id `BunKebabBhai` · Rs 1,600 · +Rs 24/s · 3.7 studs tall, 4.4 x 2.7 studs wide · Hatches in Camel Mela (Thar Camel Fair), Thar Desert (Thar Sand Dunes).
 
 </details>
 
@@ -775,7 +775,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.1 studs tall.
 ```
 
-**In the game:** id `DoodhPattiDolphin` · Rs 1,800 · +Rs 26/s · 4.1 studs tall, 4.2 x 3.2 studs wide, floats · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Sahil Beach (Arabian Sea Beach).
+**In the game:** id `DoodhPattiDolphin` · Rs 1,800 · +Rs 26/s · 4.1 studs tall, 4.3 x 3.2 studs wide, floats · Hatches in Qissa Khawani (Peshawar Storytellers' Bazaar), Sahil Beach (Arabian Sea Beach).
 
 </details>
 
