@@ -141,3 +141,54 @@ def rope_ring(p, x, y, z, r, color="rope", count=10, size=0.14, f=WORLD):
         a = i * 2 * math.pi / count
         p.ball(size, f.p(x + math.cos(a) * r, y + math.sin(a) * r, z), color, "SmoothPlastic", D, segments=6,
                rings=4)
+
+
+# ----------------------------------------------------------------------------
+# The map's chunky style. Heads and faces stay round (balls read as faces from
+# far away); bodies, limbs and accessories are blocks, like the trees and
+# props. Blobs only exist in the mesh: as parts they are turned blocks.
+# ----------------------------------------------------------------------------
+def chunk(p, radius, pos, scale=(1, 1, 1), color="wood", mat="SmoothPlastic", seed=0, spin=None, f=WORLD):
+    """A chunky faceted body: a lumpy mesh, and as parts two blocks crossed at 45
+    degrees (an eight-sided, bevelled lump) instead of a smooth ball."""
+    from kit import PARTSONLY
+
+    sx, sy, sz = scale
+    p.blob(radius, f.p(*pos), scale, color, mat, D, seed=seed, jitter=0.12, fallback="None")
+    # the first block faces the front (so bands and faces sit flat on it); the
+    # second, turned 45 degrees, stays inside its sides and bevels the corners
+    spin = spin or 0
+    w, h = radius * 1.82, radius * 1.75 * sz
+    p.box((w * sx, w * sy, h), f.p(*pos), f.r((0, 0, spin)), color, mat, D | PARTSONLY)
+    p.box((w * sx * 0.7, w * sy * 0.7, h * 1.14), f.p(*pos), f.r((0, 0, spin + 45)), color, mat, D | PARTSONLY)
+
+
+def block_leg(p, x, y, height, w, color, foot=None, foot_len=None, f=WORLD):
+    """A chunky square leg from the ground up, with a block foot."""
+    p.box((w, w, height), f.p(x, y, height / 2), f.r(), color, "SmoothPlastic", D)
+    fl = foot_len or w * 1.6
+    p.box((w * 1.25, fl, w * 0.55), f.p(x, y - (fl - w) / 2, w * 0.27), f.r(), foot or color, "SmoothPlastic", D)
+
+
+def block_arm(p, a, b, w, color, hand=None, hand_w=None, f=WORLD):
+    """A chunky square arm from shoulder a to hand b, with a faceted block fist."""
+    p.beam(f.p(*a), f.p(*b), w, w, color, "SmoothPlastic", D)
+    hw = hand_w or w * 1.45
+    p.box((hw, hw, hw), f.p(*b), f.r((45, 35.26, 0)), hand or color, "SmoothPlastic", D)
+
+
+def block_cap(p, x, y, z, r, color, brim=None, backwards=False, band=None, f=WORLD):
+    """A blocky cap sitting on top of a head at height z: a bevelled crown and a flat brim."""
+    p.box((r * 1.9, r * 1.9, r * 0.75), f.p(x, y, z - r * 0.15), f.r(), color, "Fabric", D)
+    p.box((r * 1.45, r * 1.45, r * 0.5), f.p(x, y, z + r * 0.35), f.r(), color, "Fabric", D)
+    if band:
+        p.box((r * 1.94, r * 1.94, r * 0.18), f.p(x, y, z - r * 0.38), f.r(), band, "Fabric", D)
+    by = y + (r * 1.25 if backwards else -r * 1.25)
+    p.box((r * 1.5, r * 1.3, r * 0.14), f.p(x, by, z - r * 0.48), f.r(), brim or color, "Fabric", D)
+
+
+def cube_puff(p, points, size, color="steam", f=WORLD):
+    """Puffs of steam as little faceted cubes standing on a corner."""
+    for i, pt in enumerate(points):
+        s = size * (1 - i * 0.12)
+        p.box((s, s, s), f.p(*pt), f.r((45, 35.26, i * 25)), color, "SmoothPlastic", D)

@@ -6,7 +6,8 @@ The look of each one is described in the README (Characters).
 
 import math
 
-from brainrot_kit import D, Frame, arm, blush, brows, cap, eyes, leg, moustache, puffs, smile
+import style
+from brainrot_kit import block_arm, block_leg, chunk, cube_puff, D, Frame, arm, blush, brows, cap, eyes, leg, moustache, puffs, smile
 from kit import GLASS, PARTSONLY, prop
 
 
@@ -59,14 +60,17 @@ def samosa(p):
 
 @prop("ChaiyooKettlesaurus", "brainrot")
 def kettlesaurus(p):
-    # a steel kettle dino: spout neck, lid hat, handle tail, steam roar
-    p.ball(1.3, (0, 0.2, 1.6), "steel", "Metal", D, segments=14, rings=8)
-    p.cyl(1.05, 0.35, (0, 0.2, 0.55), None, "steeldark", "Metal", D, verts=14)
-    p.cyl(0.72, 0.22, (0, 0.2, 2.85), None, "steeldark", "Metal", D, verts=12)
-    p.ball(0.2, (0, 0.2, 3.08), "black", "SmoothPlastic", D)
+    # a steel kettle dino: spout neck, lid hat, handle tail, steam roar.
+    # Chunky style: a faceted kettle body with a dhaba-style band of diamonds round
+    # its belly, a square lid, block neck, tail handle and legs; the head stays round.
+    chunk(p, 1.3, (0, 0.2, 1.6), (1, 1, 0.95), "steel", "Metal", seed=31)
+    p.box((2.1, 2.1, 0.35), (0, 0.2, 0.55), (0, 0, 45), "steeldark", "Metal", D)  # the base
+    p.box((1.15, 1.15, 0.22), (0, 0.2, 2.85), (0, 0, 45), "steeldark", "Metal", D)  # the lid
+    p.box((0.36, 0.36, 0.36), (0, 0.2, 3.1), (0, 0, 45), "black", "SmoothPlastic", D)
+    style.diamonds(p, -1.1, 1.1, -1.03, 1.55, height=0.42, band="gold", colors=("red", "dhabateal"))
     neck = [(0, -0.8, 2.0), (0, -1.35, 2.55), (0, -1.6, 3.1)]
-    p.rod(neck[0], neck[1], 0.3, "steel", "Metal", D)
-    p.rod(neck[1], neck[2], 0.26, "steel", "Metal", D)
+    p.beam(neck[0], neck[1], 0.55, 0.55, "steel", "Metal", D)
+    p.beam(neck[1], neck[2], 0.48, 0.48, "steel", "Metal", D)
     p.ball(0.58, (0, -1.75, 3.35), "steel", "Metal", D, segments=12, rings=7)
     p.box((0.7, 0.6, 0.45), (0, -2.15, 3.22), None, "steel", "Metal", D)
     eyes(p, 0, -2.2, 3.72, 0.56, 0.21)
@@ -74,12 +78,15 @@ def kettlesaurus(p):
     smile(p, 0, -2.46, 3.1, 0.45, open_mouth=True)
     for x in (-0.15, 0.15):
         p.box((0.08, 0.06, 0.12), (x, -2.46, 3.24), None, "white", "SmoothPlastic", D)
-    for a, b in (((0, 1.35, 2.4), (0, 1.9, 1.9)), ((0, 1.9, 1.9), (0, 1.75, 1.0))):
-        p.rod(a, b, 0.14, "black", "SmoothPlastic", D)
+    # the handle tail, wrapped in red and cream cloth like a dhaba kettle's
+    for k, (a, b) in enumerate((((0, 1.35, 2.4), (0, 1.9, 1.9)), ((0, 1.9, 1.9), (0, 1.75, 1.0)))):
+        p.beam(a, b, 0.26, 0.26, "black", "SmoothPlastic", D)
+    for k, color in enumerate(("red", "cream", "red")):
+        p.box((0.34, 0.34, 0.2), (0, 1.88, 1.65 - k * 0.22), None, color, "Fabric", D)
     for x in (-0.6, 0.6):
         for y in (-0.35, 0.75):
-            leg(p, x, y, 0.55, 0.28, "steeldark", "steeldark")
-    puffs(p, [(0, -2.75, 3.4), (0.15, -3.15, 3.75), (-0.1, -3.5, 4.1)], 0.32)
+            block_leg(p, x, y, 0.55, 0.5, "steeldark", "steeldark")
+    cube_puff(p, [(0, -2.75, 3.4), (0.15, -3.15, 3.75), (-0.1, -3.5, 4.1)], 0.5)
 
 
 @prop("ChanaChaatChacha", "brainrot")
@@ -133,28 +140,41 @@ def kulfi(p):
 
 @prop("PakoraPanda", "brainrot")
 def pakora_panda(p):
-    # a crispy pakora panda with a little umbrella, on a paper plate
-    p.cyl(1.8, 0.12, (0, 0, 0.06), None, "white", "SmoothPlastic", D, verts=18)
-    p.blob(0.45, (1.15, 0.85, 0.2), (1.2, 1, 0.35), "chutney", "SmoothPlastic", D, seed=7, fallback="Disc")
+    # a crispy pakora panda with a little striped umbrella, served on a sheet of
+    # newspaper the way pakoras are. Its round body is its face, so it stays round;
+    # crispy bits, feet, arm and umbrella are blocks.
+    turn = math.radians(12)
+    p.box((3.0, 3.0, 0.1), (0, 0, 0.05), (0, 0, 12), "newspaper", "SmoothPlastic", D)
+    for k in range(4):  # lines of print, turned with the sheet
+        lx, ly = -0.15, -1.05 + k * 0.42
+        p.box((2.0 - (k % 2) * 0.6, 0.1, 0.02), (lx * math.cos(turn) - ly * math.sin(turn),
+              lx * math.sin(turn) + ly * math.cos(turn), 0.11), (0, 0, 12), "darkmetal", "SmoothPlastic", D)
+    p.box((0.7, 0.55, 0.3), (1.15, 0.85, 0.2), (0, 0, 30), "chutney", "SmoothPlastic", D)
     p.blob(1.35, (0, 0, 1.45), (1, 0.95, 0.95), "pakora", "SmoothPlastic", D, seed=8, jitter=0.22, fallback="Ball")
-    for i in range(7):
+    for i in range(7):  # crispy bits that now show as parts too
         a = i * 0.9
-        p.detail((0.3, 0.3, 0.2), (math.cos(a) * 1.1, math.sin(a) * 0.9 + 0.2, 1.4 + (i % 3) * 0.35), (i * 20, i * 30, 0),
-                 "pakoradark")
+        p.box((0.32, 0.32, 0.26), (math.cos(a) * 1.18, math.sin(a) * 0.95 + 0.25, 1.35 + (i % 3) * 0.38),
+              (i * 20, i * 30, 0), "pakoradark", "SmoothPlastic", D)
     for side in (-1, 1):
         p.ball(0.42, (side * 0.95, 0.15, 2.55), "pakoradark", "SmoothPlastic", D)
+        # flat eye patches behind the eyes (as a ball they covered the eyes)
         p.blob(0.42, (side * 0.38, -1.12, 1.75), (1.1, 0.4, 1.25), "pakoradark", "SmoothPlastic", D, seed=9 + side,
-               fallback="Ball")
+               fallback="None")
+        p.box((0.82, 0.2, 0.95), (side * 0.4, -1.13, 1.76), (0, side * -12, 0), "pakoradark", "SmoothPlastic",
+              D | PARTSONLY)
     eyes(p, 0, -1.3, 1.78, 0.76, 0.24)
     p.ball(0.14, (0, -1.38, 1.42), "black", "SmoothPlastic", D)
     smile(p, 0, -1.33, 1.2, 0.45)
     for x in (-0.55, 0.55):
-        p.ball(0.3, (x, -0.6, 0.35), "pakoradark", "SmoothPlastic", D)
-    arm(p, (1.1, -0.4, 1.35), (1.35, -0.55, 1.7), 0.12, "pakoradark")
-    p.rod((1.35, -0.55, 1.4), (1.35, -0.55, 3.9), 0.06, "darkmetal", "Metal", D)
-    p.cone(1.25, 0.6, (1.35, -0.55, 3.95), None, "blue", "Fabric", D, verts=8, fallback="Disc",
-           fallback_scale=(1, 1, 0.4))
-    p.cone(0.6, 0.32, (1.35, -0.55, 4.12), None, "white", "Fabric", D, verts=8, fallback="None")
+        p.box((0.55, 0.7, 0.4), (x, -0.65, 0.3), None, "pakoradark", "SmoothPlastic", D)
+    block_arm(p, (1.1, -0.4, 1.35), (1.35, -0.55, 1.7), 0.24, "pakoradark")
+    p.box((0.12, 0.12, 2.5), (1.35, -0.55, 2.65), None, "darkmetal", "Metal", D)
+    # a striped umbrella: two squares turned 45 degrees apart make an eight-pointed
+    # star of blue and cream points, with a blue cap
+    p.box((1.85, 1.85, 0.12), (1.35, -0.55, 3.95), (0, 0, 0), "blue", "Fabric", D)
+    p.box((1.85, 1.85, 0.12), (1.35, -0.55, 3.99), (0, 0, 45), "cream2", "Fabric", D)
+    p.box((0.95, 0.95, 0.14), (1.35, -0.55, 4.06), (0, 0, 22.5), "blue", "Fabric", D)
+    p.box((0.35, 0.35, 0.3), (1.35, -0.55, 4.25), (0, 0, 45), "blue", "Fabric", D)
 
 
 @prop("NaanNinja", "brainrot")

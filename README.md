@@ -521,10 +521,10 @@ Colours: steel #C8CDD4, dark steel #8C919B, lid knob #232328, steam #F0F0F5.
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.4 studs tall.
 ```
 
-**In the game:** id `ChaiyooKettlesaurus` · Rs 200 · +Rs 4/s · 4.3 studs tall, 2.5 x 5.8 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Sahil Beach (Arabian Sea Beach).
+**In the game:** id `ChaiyooKettlesaurus` · Rs 200 · +Rs 4/s · 4.4 studs tall, 3.0 x 5.8 studs wide · Hatches in Railway Junction (Sindh Railway Junction), Sahil Beach (Arabian Sea Beach).
 
 </details>
 
@@ -556,10 +556,10 @@ Colours: pakora gold #C38232, crispy patches #6E411E, umbrella #326EDC, paper pl
 
 Show one character only, full body, front three-quarter view, on a plain white background with soft light. No text, no logos, no real brands.
 
-If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.3 studs tall.
+If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 4.4 studs tall.
 ```
 
-**In the game:** id `PakoraPanda` · Rs 240 · +Rs 5/s · 4.3 studs tall, 4.4 x 3.6 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
+**In the game:** id `PakoraPanda` · Rs 240 · +Rs 5/s · 4.4 studs tall, 4.4 x 3.6 studs wide · Hatches in Mango Bagh (Punjab Mango Orchards), Sarson Fields (Punjab Mustard Fields).
 
 </details>
 
@@ -1352,7 +1352,7 @@ Show one character only, full body, front three-quarter view, on a plain white b
 If you can make a 3D model: a game-ready low-poly mesh (under 10,000 triangles), flat colours, facing forward, standing with its base on the ground, about 5.7 studs tall.
 ```
 
-**In the game:** id `SixerSher` · Rs 150,000 · +Rs 1,400/s · 5.7 studs tall, 3.7 x 4.0 studs wide · Hatches in Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore), Barfani Pahar (The Snowy North).
+**In the game:** id `SixerSher` · Rs 150,000 · +Rs 1,400/s · 5.7 studs tall, 3.8 x 4.1 studs wide · Hatches in Sarson Fields (Punjab Mustard Fields), Lahore Qila (The Old Fort of Lahore), Barfani Pahar (The Snowy North).
 
 </details>
 

@@ -2,7 +2,8 @@
 
 import math
 
-from brainrot_kit import D, Frame, arm, blush, brows, cap, crown, eyes, leg, moustache, puffs, rope_ring, smile, wing
+import style
+from brainrot_kit import block_arm, block_cap, block_leg, chunk, D, Frame, arm, blush, brows, cap, crown, eyes, leg, moustache, puffs, rope_ring, smile, wing
 from kit import GLASS, KEEP, LIGHT, prop
 
 
@@ -48,12 +49,19 @@ def truck_art_parrot(p):
 
 @prop("SixerSher", "brainrot")
 def sixer_sher(p):
-    # a street-cricket lion with a taped bat on its shoulder and a taped tennis ball
-    p.blob(1.3, (0, 0.15, 2.3), (1, 0.95, 1.1), "lion", "SmoothPlastic", D, seed=210, jitter=0.03, fallback="Ball")
-    p.cone(1.35, 1.4, (0, 0.1, 2.4), None, "red", "Fabric", D, verts=14, top=1.15, fallback="Cylinder")
-    p.cyl(1.38, 0.15, (0, 0.1, 2.5), None, "white", "Fabric", D, verts=14)
-    p.blob(1.45, (0, 0.2, 4.05), (1.1, 0.8, 1.1), "mane", "SmoothPlastic", D, seed=211, jitter=0.15,
-           fallback="Ball")
+    # a street-cricket lion with a taped bat on its shoulder and a taped tennis ball.
+    # Chunky style: a round head and face, a block body in a red jersey with a gold
+    # band of diamonds, a faceted spiky mane, block arms and legs, a blocky cap.
+    p.box((2.5, 2.2, 2.0), (0, 0.1, 2.3), None, "red", "Fabric", D)  # the body, in its jersey
+    p.box((1.75, 1.75, 2.2), (0, 0.1, 2.3), (0, 0, 45), "red", "Fabric", D)
+    p.box((2.56, 2.26, 0.22), (0, 0.1, 3.2), None, "white", "Fabric", D)  # the collar
+    style.diamonds(p, -1.1, 1.1, -1.03, 2.35, height=0.42, band="gold", colors=("dhabateal", "white"))
+    # the mane: a flat back with spikes all round the head
+    p.box((2.1, 0.6, 2.1), (0, 0.45, 4.05), (0, 45, 0), "mane", "SmoothPlastic", D)
+    for i in range(8):
+        a = i * math.pi / 4
+        p.box((0.75, 0.7, 0.75), (math.cos(a) * 1.15, 0.15, 4.05 + math.sin(a) * 1.15), (0, 45 + i * 45, 0),
+              "mane" if i % 2 else "orange", "SmoothPlastic", D)
     p.ball(1.0, (0, -0.35, 4.0), "lion", "SmoothPlastic", D, segments=14, rings=8)
     p.blob(0.5, (0, -1.15, 3.7), (1.2, 0.7, 0.8), "cream2", "SmoothPlastic", D, seed=212, fallback="Ball")
     p.ball(0.15, (0, -1.5, 3.85), "pakoradark", "SmoothPlastic", D)
@@ -62,19 +70,20 @@ def sixer_sher(p):
     eyes(p, 0, -1.25, 4.2, 0.7, 0.24)
     brows(p, 0, -1.25, 4.2, 0.7, 0.24, "mane", tilt=12)
     smile(p, 0, -1.55, 3.55, 0.45)
-    cap(p, 0, -0.2, 4.95, 0.55, "blue", "navy", backwards=True)
+    block_cap(p, 0, -0.2, 4.95, 0.55, "blue", "navy", backwards=True, band="gold")
     for side in (-1, 1):
-        leg(p, side * 0.5, 0.1, 0.9, 0.26, "lion", "white")
-    arm(p, (1.25, 0, 2.8), (0.9, -0.6, 3.6), 0.18, "lion", "lion", 0.26)
+        block_leg(p, side * 0.5, 0.1, 1.0, 0.5, "lion", "white")
+    block_arm(p, (1.25, 0, 2.8), (0.9, -0.6, 3.6), 0.36, "lion", "lion", 0.5)
     p.box((0.55, 0.18, 2.3), (0.85, 0.3, 4.1), (0, 0, 35), "willow", "Wood", D)
     p.cyl(0.13, 0.9, (0.25, -0.55, 3.15), (0, -35, 0), "black", "Fabric", D, verts=8)
     for k, color in enumerate(("black", "red", "black")):
         p.box((0.58, 0.2, 0.12), (1.0 + k * 0.25, 0.3, 4.3 + k * 0.35), (0, 0, 35), color, "Fabric", D)
-    arm(p, (-1.25, 0, 2.8), (-1.6, -0.6, 2.4), 0.18, "lion", "lion", 0.26)
+    block_arm(p, (-1.25, 0, 2.8), (-1.6, -0.6, 2.4), 0.36, "lion", "lion", 0.5)
+    p.box((0.38, 0.38, 0.38), (-1.62, -0.62, 2.88), None, "red", "Fabric", D)  # a sweatband
     p.ball(0.3, (-1.65, -0.95, 2.45), "tennisball", "Fabric", D)
     p.cyl(0.31, 0.12, (-1.65, -0.95, 2.45), (30, 0, 0), "black", "Fabric", D, verts=10)
-    p.rod((0, 1.1, 1.5), (0, 2.0, 1.8), 0.1, "lion", "SmoothPlastic", D)
-    p.ball(0.25, (0, 2.1, 1.85), "mane", "SmoothPlastic", D)
+    p.beam((0, 1.1, 1.5), (0, 2.0, 1.8), 0.2, 0.2, "lion", "SmoothPlastic", D)
+    p.box((0.45, 0.45, 0.45), (0, 2.1, 1.85), (45, 35.26, 0), "mane", "SmoothPlastic", D)
 
 
 @prop("ChilgozaChachaChipka", "brainrot")
