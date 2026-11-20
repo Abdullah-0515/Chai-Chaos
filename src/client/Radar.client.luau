@@ -170,7 +170,7 @@ local areaTitle = label({
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.fromScale(0.5, 0.2),
 	Size = UDim2.new(0.8, 0, 0, 54),
-	TextTransparency = 1,
+	Visible = false,
 	Parent = gui,
 })
 local areaBlurb = label({
@@ -179,7 +179,7 @@ local areaBlurb = label({
 	Position = UDim2.new(0.5, 0, 0.2, 56),
 	Size = UDim2.new(0.8, 0, 0, 26),
 	TextColor3 = rgb(255, 240, 200),
-	TextTransparency = 1,
+	Visible = false,
 	Parent = gui,
 })
 for _, item in { areaTitle, areaBlurb, rushLabel, hazardLabel, eggText } do
@@ -350,16 +350,39 @@ end
 ---------------------------------------------------------------------------
 local shownArea: string? = nil
 
+local shownTitle = 0
+
+-- Shows the title for a few seconds, then fades it out (letters and their dark
+-- outline together, so nothing is left behind) and hides it.
 local function showAreaTitle(title: string, blurb: string, color: Color3)
+	shownTitle += 1
+	local mine = shownTitle
 	areaTitle.Text = title
 	areaTitle.TextColor3 = color
 	areaBlurb.Text = blurb
-	areaTitle.TextTransparency = 0
-	areaBlurb.TextTransparency = 0
+	for _, item in { areaTitle, areaBlurb } do
+		item.TextTransparency = 0
+		item.Visible = true
+		local stroke = item:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			stroke.Transparency = 0
+		end
+	end
 	task.delay(3, function()
-		if areaTitle.Text == title then
-			TweenService:Create(areaTitle, TweenInfo.new(0.8), { TextTransparency = 1 }):Play()
-			TweenService:Create(areaBlurb, TweenInfo.new(0.8), { TextTransparency = 1 }):Play()
+		if shownTitle ~= mine then
+			return
+		end
+		for _, item in { areaTitle, areaBlurb } do
+			TweenService:Create(item, TweenInfo.new(0.8), { TextTransparency = 1 }):Play()
+			local stroke = item:FindFirstChildOfClass("UIStroke")
+			if stroke then
+				TweenService:Create(stroke, TweenInfo.new(0.8), { Transparency = 1 }):Play()
+			end
+		end
+		task.wait(0.9)
+		if shownTitle == mine then
+			areaTitle.Visible = false
+			areaBlurb.Visible = false
 		end
 	end)
 end
@@ -396,11 +419,14 @@ local function refreshLabels()
 	areaLabel.Text = area
 	local areaId = if biome then biome.id else area
 	if areaId ~= shownArea then
+		local previous = shownArea
 		shownArea = areaId
 		if biome then
 			showAreaTitle(("%s · %s"):format(biome.name:upper(), biome.title), biome.blurb, biome.color)
 		elseif sector then
 			showAreaTitle(sector.name:upper(), "Lahore bazaar", Ui.GOLD)
+		elseif previous ~= nil then
+			showAreaTitle("CHOWK", "Home: the havelis and the fountain", Ui.GOLD)
 		end
 	end
 

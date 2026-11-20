@@ -965,11 +965,11 @@ do
 		local loose = 0
 		for _, p in model:GetDescendants() do
 			if p:IsA("BasePart") then
-				loose += if p ~= root and p:FindFirstChild("Hold") == nil then 1 else 0
+				loose += if not p.Anchored then 1 else 0
 				loose += if p.CanCollide then 1 else 0
 			end
 		end
-		check(loose == 0, def.id .. " parts are welded and never collide")
+		check(loose == 0, def.id .. " parts are anchored and never collide")
 		model:Destroy()
 	end
 	-- mutated brainrots are tinted, but their eyes keep their colour
@@ -994,8 +994,54 @@ do
 	local tail = totaa:FindFirstChild("SignText")
 	check(tail and tail.Gui.Text.Text == "Dekh magar pyar se", "truck art lettering on the parrot's tail")
 	check(tail and tail.CFrame.LookVector.Z > 0.5 and tail.CFrame.LookVector.Y > 0.3, "the lettering faces back")
-	check(tail and tail:FindFirstChild("Hold") ~= nil, "and moves with the parrot")
-	totaa:Destroy()
+	totaa:Destroy(); -- moving parts: arms, legs, wings and tails, each with a pivot the client turns them about
+	(function()
+		local sher = Models.create(Brainrots.byId.SixerSher)
+		local rigged, groups = 0, {}
+		for _, p in sher:GetDescendants() do
+			local name = p:IsA("BasePart") and p:GetAttribute("Rig")
+			if name then
+				rigged += 1
+				groups[name] = true
+			end
+		end
+		local pivots = 0
+		for name in groups do
+			pivots += if M.typeof(sher:GetAttribute("Rig_" .. name)) == "Vector3" then 1 else 0
+		end
+		check(
+			groups.armL and groups.armR and groups.legLF and groups.legRF and groups.tail and pivots == 5,
+			"Sixer Sher's arms, legs and tail move, each about its own pivot"
+		)
+		check(rigged >= 12, "its bat and ball move with its arms: " .. rigged)
+		local rigCount = 0
+		for _, def in Brainrots.list do
+			local pivotsOf = Props.rig(def.id)
+			rigCount += if next(pivotsOf) then 1 else 0
+		end
+		check(rigCount >= 30, "most brainrots have moving parts: " .. rigCount)
+		-- standing still nothing is welded; carried, every part is (moving parts with a Weld to swing)
+		local thief = M.Instance.new("Part")
+		thief.Parent = workspace
+		Models.attach(sher, thief, CFrame.new(0, 2, 0))
+		local unwelded, swinging = 0, 0
+		for _, p in sher:GetDescendants() do
+			if p:IsA("BasePart") and p ~= sher.PrimaryPart then
+				local hold = p:FindFirstChild("Hold")
+				unwelded += if hold == nil then 1 else 0
+				swinging += if hold and hold:IsA("Weld") and p:GetAttribute("Rig") then 1 else 0
+			end
+		end
+		check(unwelded == 0 and swinging == rigged, "carried, every part is welded on, the moving ones with a Weld")
+		Models.detach(sher)
+		local left = 0
+		for _, d in sher:GetDescendants() do
+			left += if d.Name == "Hold" then 1 else 0
+		end
+		check(left == 0, "put down, the welds come off again")
+		sher:Destroy()
+		thief:Destroy()
+	end)()
 	-- an imported mesh is used for normal brainrots; mutated ones stay parts so they can be tinted
 	local meshes = M.Instance.new("Folder")
 	meshes.Name = "ChaiChaosProps"
@@ -3731,9 +3777,7 @@ do
 			playing = sound
 		end
 	end
-	check(playing and playing.Name == "MusicBazaar" and playing.Looped, "bazaar music plays once it has an id")
-	-- the sound sheet: every sound has its part of the one uploaded file
-;
+	check(playing and playing.Name == "MusicBazaar" and playing.Looped, "bazaar music plays once it has an id"); -- the sound sheet: every sound has its part of the one uploaded file
 	(function()
 		local SoundSheet = requireModule(shared:FindFirstChild("SoundSheet"), "client")
 		local missing = {}

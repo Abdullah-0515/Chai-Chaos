@@ -56,8 +56,9 @@ def biryani(p):
     for side in (-1, 1):
         p.box((0.45, 0.55, 0.36), (side * 0.6, -1.0, 0.18), None, "copper", "Metal", D)
     block_arm(p, (1.6, -0.2, 1.3), (1.9, -0.45, 1.45), 0.28, "copper", "gold", 0.38)
-    p.box((0.14, 0.14, 3.0), (1.95, -0.45, 1.8), None, "steel", "Metal", D)
-    p.box((0.55, 0.55, 0.3), (1.95, -0.45, 3.4), (0, 0, 45), "steel", "Metal", D)
+    with p.rigged("armR"):  # the ladle
+        p.box((0.14, 0.14, 3.0), (1.95, -0.45, 1.8), None, "steel", "Metal", D)
+        p.box((0.55, 0.55, 0.3), (1.95, -0.45, 3.4), (0, 0, 45), "steel", "Metal", D)
     block_arm(p, (-1.6, -0.2, 1.3), (-1.95, -0.6, 1.1), 0.28, "copper", "gold", 0.38)
 
 
@@ -79,8 +80,9 @@ def cricket_bat(p):
     eyes(p, 0, -0.25, 3.05, 0.7, 0.24)
     smile(p, 0, -0.3, 2.6, 0.45, open_mouth=True)
     block_arm(p, (-0.75, 0, 1.8), (-0.55, -0.7, 2.45), 0.24, "jersey", "white", 0.34)
-    p.box((0.12, 0.12, 0.4), (-0.47, -0.67, 2.65), (0, 20, 0), "black", "SmoothPlastic", D)
-    p.box((0.34, 0.34, 0.34), (-0.38, -0.65, 2.9), (45, 35.26, 0), "darkmetal", "Metal", D)
+    with p.rigged("armL"):  # the mic
+        p.box((0.12, 0.12, 0.4), (-0.47, -0.67, 2.65), (0, 20, 0), "black", "SmoothPlastic", D)
+        p.box((0.34, 0.34, 0.34), (-0.38, -0.65, 2.9), (45, 35.26, 0), "darkmetal", "Metal", D)
     block_arm(p, (0.75, 0, 1.8), (1.25, -0.2, 1.35), 0.24, "jersey", "white", 0.34)
     for side in (-1, 1):
         block_leg(p, side * 0.35, 0, 0.95, 0.28, "white", "black")
@@ -106,9 +108,10 @@ def dhaba_dragon(p):
     smile(p, 0, -1.34, 2.95, 0.4)
     p.box((0.5, 1.4, 0.12), (0.75, 0.0, 2.55), (0, 30, 0), "white", "Fabric", D)
     p.box((0.52, 0.16, 0.14), (0.75, -0.7, 2.55), (0, 30, 0), "dhabateal", "Fabric", D)
-    for a, b, r in (((0, 1.3, 1.2), (0, 2.2, 0.8), 0.55), ((0, 2.2, 0.8), (0, 2.9, 0.6), 0.38)):
-        p.beam(a, b, r, r, "dragon", "SmoothPlastic", D)
-    p.box((0.45, 0.45, 0.12), (0, 3.05, 0.6), (0, 0, 45), "maroon", "SmoothPlastic", D)
+    with p.rigged("tail", (0, 1.3, 1.2)):
+        for a, b, r in (((0, 1.3, 1.2), (0, 2.2, 0.8), 0.55), ((0, 2.2, 0.8), (0, 2.9, 0.6), 0.38)):
+            p.beam(a, b, r, r, "dragon", "SmoothPlastic", D)
+        p.box((0.45, 0.45, 0.12), (0, 3.05, 0.6), (0, 0, 45), "maroon", "SmoothPlastic", D)
     for side in (-1, 1):
         block_leg(p, side * 0.55, 0.1, 0.6, 0.54, "dragon", "maroon")
     p.box((0.5, 0.5, 0.5), (0, -1.6, 2.95), (45, 35.26, 0), "flame", "Neon", D | KEEP)
@@ -218,7 +221,8 @@ def chipa_sahab(p):
     p.ball(0.18, (0, -1.15, 1.8), "uncle", "SmoothPlastic", D)
     for side in (-1, 1):
         block_arm(p, (side * 0.95, 0, 1.3), (side * 1.45, -0.3, 0.9), 0.24, "vest", "uncle", 0.3)
-        p.box((0.55, 0.14, 0.55), (side * 1.5, -0.4, 0.85), (0, 0, 45), "red", "SmoothPlastic", D)
+        with p.rigged("armL" if side < 0 else "armR"):
+            p.box((0.55, 0.14, 0.55), (side * 1.5, -0.4, 0.85), (0, 0, 45), "red", "SmoothPlastic", D)
         p.box((0.24, 0.24, 0.5), (side * 0.42, 0, 0.36), None, "vest", "SmoothPlastic", D)
         p.box((0.6, 0.6, 0.12), (side * 0.45, -0.05, 0.06), (0, 0, 45), "red", "SmoothPlastic", D)
     p.box((1.0, 0.14, 1.25), (-1.2, 0.1, 1.2), (0, -15, 0), "newspaper", "Fabric", D)
@@ -254,7 +258,7 @@ def jalebi_jinn(p):
     moustache(p, 0, -0.7, 3.95, 0.95, "black", thick=0.18)
     smile(p, 0, -0.7, 3.78, 0.36)
     for side in (-1, 1):  # arms crossed
-        block_arm(p, (side * 0.95, 0.1, 3.3), (-side * 0.35, -1.0, 3.05), 0.32, "jalebi", "saffron", 0.42)
+        block_arm(p, (side * 0.95, 0.1, 3.3), (-side * 0.35, -1.0, 3.05), 0.32, "jalebi", "saffron", 0.42, still=True)
         p.box((0.2, 0.2, 0.2), (side * 0.72, -0.1, 4.25), (45, 35.26, 0), "gold", "Metal", D)
     sweets = [("laddoo", "ball"), ("barfi", "box"), ("gulabjamun", "ball"), ("laddoo", "ball"), ("barfi", "box")]
     for i, (color, kind) in enumerate(sweets):
@@ -286,7 +290,8 @@ def mehndi_mummy(p):
     for side in (-1, 1):
         block_arm(p, (side * 0.9, -0.2, 2.25), (side * 0.75, -1.2, 2.3), 0.36, "bandage", "bandage", 0.42)
         block_leg(p, side * 0.38, 0, 0.5, 0.4, "bandage", "bandage")
-    p.box((0.22, 0.22, 0.75), (0.75, -1.45, 2.1), (-55, 0, 45), "henna", "SmoothPlastic", D)
+    with p.rigged("armR"):  # the henna cone
+        p.box((0.22, 0.22, 0.75), (0.75, -1.45, 2.1), (-55, 0, 45), "henna", "SmoothPlastic", D)
     for k in range(3):  # the trailing bandage
         p.box((0.25, 0.7, 0.06), (-0.5 - k * 0.1, 1.0 + k * 0.55, 1.6 - k * 0.45), (-30 - k * 10, 0, 10), "bandage",
               "Fabric", D)
@@ -318,8 +323,9 @@ def dholak_dino(p):
     block_leg(p, -0.5, 0.2, 1.0, 0.6, "dino", "dino")
     p.beam((0.5, 0.2, 1.2), (0.55, -0.2, 0.75), 0.6, 0.6, "dino", "SmoothPlastic", D)
     p.box((0.65, 0.8, 0.32), (0.55, -0.45, 0.6), (-15, 0, 0), "dino", "SmoothPlastic", D)
-    for a, b, r in (((0, 1.35, 1.7), (0, 2.3, 1.2), 0.55), ((0, 2.3, 1.2), (0, 3.0, 0.9), 0.34)):
-        p.beam(a, b, r, r, "dino", "SmoothPlastic", D)
+    with p.rigged("tail", (0, 1.35, 1.7)):
+        for a, b, r in (((0, 1.35, 1.7), (0, 2.3, 1.2), 0.55), ((0, 2.3, 1.2), (0, 3.0, 0.9), 0.34)):
+            p.beam(a, b, r, r, "dino", "SmoothPlastic", D)
 
 
 @prop("TongaTornado", "brainrot")
@@ -397,12 +403,13 @@ def tikka_tiger(p):
         t = 0.2 + k * 0.15
         q = tuple(a[i] + (b[i] - a[i]) * t for i in range(3))
         p.box((0.36, 0.36, 0.36), q, (k * 20, k * 35, 0), "tikka" if k % 2 == 0 else "chutney", "SmoothPlastic", D)
-    block_arm(p, (-0.9, -0.2, 2.4), (-1.3, -0.95, 2.7), 0.32, "tiger", "cream2", 0.42)
-    block_arm(p, (0.9, -0.2, 2.4), (1.25, -1.1, 2.8), 0.32, "tiger", "cream2", 0.42)
-    tail = [(0, 1.2, 1.4), (0.9, 1.2, 1.3), (1.3, 0.2, 1.4), (1.0, -0.9, 1.8)]
-    for k, (x, y) in enumerate(zip(tail, tail[1:])):
-        p.beam(x, y, 0.3, 0.3, "tiger" if k % 2 == 0 else "kebab", "SmoothPlastic", D)
-    p.box((0.5, 0.5, 0.6), (1.0, -1.0, 2.15), (45, 35.26, 0), "flame", "Neon", D | KEEP | LIGHT)
+    block_arm(p, (-0.9, -0.2, 2.4), (-1.3, -0.95, 2.7), 0.32, "tiger", "cream2", 0.42, still=True)
+    block_arm(p, (0.9, -0.2, 2.4), (1.25, -1.1, 2.8), 0.32, "tiger", "cream2", 0.42, still=True)
+    with p.rigged("tail", (0, 1.2, 1.4)):
+        tail = [(0, 1.2, 1.4), (0.9, 1.2, 1.3), (1.3, 0.2, 1.4), (1.0, -0.9, 1.8)]
+        for k, (x, y) in enumerate(zip(tail, tail[1:])):
+            p.beam(x, y, 0.3, 0.3, "tiger" if k % 2 == 0 else "kebab", "SmoothPlastic", D)
+        p.box((0.5, 0.5, 0.6), (1.0, -1.0, 2.15), (45, 35.26, 0), "flame", "Neon", D | KEEP | LIGHT)
 
 
 @prop("RishtaAuntyRobot", "brainrot")
@@ -433,9 +440,11 @@ def aunty_robot(p):
         p.box((0.45, 0.12, 1.6), (side * 0.6, -1.12, 2.3), (side * 8, side * -10, 0), "pink", "Fabric", D)
     p.box((1.6, 0.12, 0.4), (0, 1.1, 2.8), (10, 0, 0), "pink", "Fabric", D)
     block_arm(p, (-1.1, 0, 2.2), (-0.8, -0.95, 2.0), 0.24, "steeldark", "robot", 0.34)
-    p.box((0.75, 0.08, 1.0), (-0.75, -1.15, 2.25), (-15, 0, 0), "wood", "Wood", D)
-    p.box((0.6, 0.09, 0.75), (-0.75, -1.18, 2.2), (-15, 0, 0), "white", "SmoothPlastic", D)
+    with p.rigged("armL"):  # the clipboard
+        p.box((0.75, 0.08, 1.0), (-0.75, -1.15, 2.25), (-15, 0, 0), "wood", "Wood", D)
+        p.box((0.6, 0.09, 0.75), (-0.75, -1.18, 2.2), (-15, 0, 0), "white", "SmoothPlastic", D)
     block_arm(p, (1.1, 0, 2.2), (0.45, -1.05, 2.35), 0.24, "steeldark", "robot", 0.34)
-    p.beam((0.45, -1.1, 2.35), (0.25, -1.2, 2.75), 0.08, 0.08, "blue", "SmoothPlastic", D)
+    with p.rigged("armR"):  # the pen
+        p.beam((0.45, -1.1, 2.35), (0.25, -1.2, 2.75), 0.08, 0.08, "blue", "SmoothPlastic", D)
     p.box((0.6, 0.3, 0.5), (1.35, -0.1, 1.3), None, "gold", "SmoothPlastic", D)
     p.rope((1.15, -0.1, 1.55), (1.3, 0, 2.2), 0.05, 0.04, "gold", 3)

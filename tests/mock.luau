@@ -833,6 +833,13 @@ local function pivotOf(self)
 	end
 	return d.props.WorldPivot or CFrame.new()
 end
+function Methods.BulkMoveTo(_self, parts, cframes, _mode)
+	assert(#parts == #cframes, "BulkMoveTo needs one CFrame per part")
+	for i, p in parts do
+		assert(isCF(cframes[i]), "BulkMoveTo needs CFrames")
+		data[p].props.CFrame = cframes[i]
+	end
+end
 function Methods.GetPivot(self)
 	return pivotOf(self)
 end

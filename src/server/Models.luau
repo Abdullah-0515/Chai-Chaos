@@ -393,6 +393,15 @@ local function buildFromBlender(def: Brainrots.Def, mutation: string?): Model?
 	root.Transparency = 1
 	model.PrimaryPart = root
 
+	-- the moving parts' pivots, in the Root's space, for the client to animate
+	local pivots, turn = Props.rig(def.id, scale)
+	for rigName, pivot in pivots do
+		model:SetAttribute("Rig_" .. rigName, pivot - Vector3.new(0, size.Y * scale / 2, 0))
+	end
+	if turn ~= 0 then
+		model:SetAttribute("RigTurn", turn)
+	end
+
 	local sign = SIGNS[def.id]
 	if sign then
 		local at = Props.anchor(def.id, sign.anchor, CFrame.new(), scale)
@@ -445,6 +454,8 @@ end
 -- Anchors the model, adds the rarity ring, sparkles and the name pop-up.
 local function decorate(model: Model, def: Brainrots.Def, mutation: string?)
 	local primary = model.PrimaryPart :: BasePart
+	-- arrives on a player's screen all at once, so its arms and legs can be animated
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			p.Anchored = true
@@ -480,17 +491,6 @@ local function decorate(model: Model, def: Brainrots.Def, mutation: string?)
 	model:SetAttribute("GroundOffset", -(bottom - 0.2) + hover)
 	model:SetAttribute("BrainrotId", def.id)
 	model:SetAttribute("Mutation", mutation)
-
-	-- welds hold the parts together while a thief carries the brainrot
-	for _, p in model:GetDescendants() do
-		if p:IsA("BasePart") and p ~= primary then
-			local weld = Instance.new("WeldConstraint")
-			weld.Name = "Hold"
-			weld.Part0 = primary
-			weld.Part1 = p
-			weld.Parent = p
-		end
-	end
 
 	local m = mutation and Mutations.byId[mutation]
 	if m then
@@ -582,9 +582,31 @@ function Models.create(def: Brainrots.Def, mutation: string?): Model
 end
 
 -- Welds the brainrot onto a thief so it moves smoothly with their character.
+-- Only now are its parts welded to its Root (standing still they are anchored,
+-- so the client can move its arms and legs). Moving parts get a Weld, whose C0
+-- the client swings to make them kick and flail.
 function Models.attach(model: Model, root: BasePart, offset: CFrame)
 	model:SetAttribute("Carried", true)
 	model:PivotTo(root.CFrame * offset)
+	local primary = model.PrimaryPart :: BasePart
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") and p ~= primary then
+			if p:GetAttribute("Rig") then
+				local weld = Instance.new("Weld")
+				weld.Name = "Hold"
+				weld.Part0 = primary
+				weld.Part1 = p
+				weld.C0 = primary.CFrame:ToObjectSpace(p.CFrame)
+				weld.Parent = p
+			else
+				local weld = Instance.new("WeldConstraint")
+				weld.Name = "Hold"
+				weld.Part0 = primary
+				weld.Part1 = p
+				weld.Parent = p
+			end
+		end
+	end
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			p.Massless = true
@@ -607,6 +629,8 @@ function Models.detach(model: Model)
 	for _, p in model:GetDescendants() do
 		if p:IsA("BasePart") then
 			p.Anchored = true
+		elseif p.Name == "Hold" and (p:IsA("Weld") or p:IsA("WeldConstraint")) then
+			p:Destroy()
 		end
 	end
 	model:SetAttribute("Carried", false)

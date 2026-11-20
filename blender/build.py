@@ -83,7 +83,7 @@ def write_propdata(entries):
         "-- models in blender/ and run `python blender/build.py` again.",
         "--",
         "-- parts: { shape (B block, C cylinder, L ball), x, y, z, size x, y, z,",
-        "--          rotation quaternion x, y, z, w, palette colour, material, flags }",
+        "--          rotation quaternion x, y, z, w, palette colour, material, flags, moving part }",
         "-- flags: 1 no collide, 2 always a part (never merged into the mesh),",
         "--        4 see-through, 8 gives off light, 16 no shadow, 32 parts version only,",
         "--        64 an eye (keeps its colour on mutated brainrots), 128 a vehicle's painted panel",
@@ -111,6 +111,11 @@ def write_propdata(entries):
         if e["anchors"]:
             items = ", ".join(f"{k} = {vec(v)}" for k, v in sorted(e["anchors"].items()))
             lines.append(f"\t\tanchors = {{ {items} }},")
+        if e["rig"]:
+            items = ", ".join(f"{k} = {vec(v)}" for k, v in sorted(e["rig"].items()))
+            lines.append(f"\t\trig = {{ {items} }},")
+            if e["rig_turn"]:
+                lines.append(f"\t\trigTurn = {fmt(e['rig_turn'])},")
         lines.append("\t\tparts = {")
         for p in e["parts"]:
             values = (
@@ -119,6 +124,7 @@ def write_propdata(entries):
                 + [fmt(x) for x in p["size"]]
                 + [fmt(x, 4) for x in p["quat"]]
                 + [str(p["color"] + 1), str(mat_index[p["material"]]), str(p["flags"])]
+                + ([f'"{p["rig"]}"'] if p["rig"] else [])
             )
             lines.append("\t\t\t{ " + ", ".join(values) + " },")
         lines.append("\t\t},")
@@ -343,9 +349,10 @@ def main():
         else:
             prop.mesh_object = None
         anchors = {k: tuple(kit.TO_ROBLOX @ v) for k, v in prop.anchors.items()}
+        rig = {k: tuple(kit.TO_ROBLOX @ v) for k, v in prop.rig.items()}
         entries.append({
             "name": name, "category": category, "size": size, "center": center,
-            "mesh": mesh_info, "anchors": anchors, "parts": parts,
+            "mesh": mesh_info, "anchors": anchors, "parts": parts, "rig": rig, "rig_turn": prop.rig_turn,
         })
         props.append(prop)
         print(f"  {name:22s} {category:9s} {len(parts):4d} parts  {mesh_info['triangles'] if mesh_info else 0:6d} triangles")

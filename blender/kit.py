@@ -14,6 +14,7 @@ Colours come from one small palette texture, so the whole set of meshes uses
 a single texture in Roblox.
 """
 
+import contextlib
 import math
 import struct
 import zlib
@@ -201,7 +202,23 @@ class Prop:
         bpy.context.scene.collection.children.link(self.coll)
         self.pieces = []
         self.anchors = {}
+        self.rig = {}  # moving parts (arms, legs, wings, tails): name -> pivot
+        self.rig_turn = 0.0  # degrees the whole prop was turned about z by transform()
+        self._rig_stack = []
         self._count = 0
+
+    @contextlib.contextmanager
+    def rigged(self, name, pivot=None):
+        """Pieces made inside belong to a moving part the game animates (an arm, a
+        leg, a wing, a tail), turning about `pivot`. Open it again without a pivot
+        to add more pieces (something held in that hand)."""
+        if name and pivot is not None and name not in self.rig:
+            self.rig[name] = Vector(pivot)
+        self._rig_stack.append(name)
+        try:
+            yield name
+        finally:
+            self._rig_stack.pop()
 
     # ------------------------------------------------------------------ pieces
     def _finish(self, bm, pos, rot, color, mat, flags, shape, fallback=None, fallback_scale=(1, 1, 1)):
@@ -233,6 +250,7 @@ class Prop:
         obj["rbx_color"] = color
         obj["rbx_material"] = mat
         obj["rbx_flags"] = flags
+        obj["rbx_rig"] = self._rig_stack[-1] if self._rig_stack else ""  # "" (still) inside rigged("")
         if flags & PARTSONLY:
             obj.hide_render = True  # the previews show the mesh version
         self.coll.objects.link(obj)
@@ -376,6 +394,10 @@ class Prop:
             obj.rotation_quaternion = q @ obj.rotation_quaternion
         for key, pos in self.anchors.items():
             self.anchors[key] = q @ (pos * scale)
+        for key, pos in self.rig.items():
+            self.rig[key] = q @ (pos * scale)
+        if rot:
+            self.rig_turn += rot[2]
 
 
 # ---------------------------------------------------------------------------
@@ -434,6 +456,7 @@ def part_spec(obj):
         "color": COLOR_INDEX[obj["rbx_color"]],
         "material": obj["rbx_material"],
         "flags": obj["rbx_flags"],
+        "rig": obj.get("rbx_rig", ""),
     }
 
 

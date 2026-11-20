@@ -66,7 +66,7 @@ def samosa(p):
     p.detail((0.5, 0.1, 0.09), (0.15, -0.6, 1.55), (-tilt, 0, -12), "black")  # smirk
     p.box((0.5, 0.1, 0.09), (0.15, -0.65, 1.62), (0, -12, 0), "black", "SmoothPlastic", D | PARTSONLY)
     for side in (-1, 1):  # arms crossed
-        block_arm(p, (side * 1.0, -0.4, 1.15), (-side * 0.45, -0.85, 1.05), 0.3, "samosadark", "samosa", 0.42)
+        block_arm(p, (side * 1.0, -0.4, 1.15), (-side * 0.45, -0.85, 1.05), 0.3, "samosadark", "samosa", 0.42, still=True)
 
 
 @prop("ChaiyooKettlesaurus", "brainrot")
@@ -125,8 +125,9 @@ def chana_chaat(p):
     for x in (-0.5, 0.5):
         block_leg(p, x, -0.1, 0.95, 0.34, "steeldark", "black")
     block_arm(p, (1.45, -0.1, 1.4), (1.75, -0.35, 1.7), 0.24, "steeldark", "steel", 0.34)
-    p.box((0.13, 0.13, 2.3), (1.8, -0.35, 1.15), (0, -2.5, 0), "steel", "Metal", D)
-    p.box((0.5, 0.38, 0.2), (1.74, -0.35, 2.4), None, "steel", "Metal", D)
+    with p.rigged("armR"):  # the spoon
+        p.box((0.13, 0.13, 2.3), (1.8, -0.35, 1.15), (0, -2.5, 0), "steel", "Metal", D)
+        p.box((0.5, 0.38, 0.2), (1.74, -0.35, 2.4), None, "steel", "Metal", D)
 
 
 @prop("KulfiKangaroo", "brainrot")
@@ -156,8 +157,9 @@ def kulfi(p):
     blush(p, 0, -0.86, 2.45, 1.15, 0.16)
     for side in (-1, 1):
         block_arm(p, (side * 0.8, -0.3, 2.1), (side * 0.8, -0.8, 1.75), 0.24, "kulfi")
-        p.box((0.5, 1.3, 0.3), (side * 0.45, -0.35, 0.15), None, "kulfi", "SmoothPlastic", D)
-        p.beam((side * 0.45, -0.1, 0.3), (side * 0.35, 0.0, 1.25), 0.32, 0.32, "kulfi", "SmoothPlastic", D)
+        with p.rigged("legLF" if side < 0 else "legRF", (side * 0.35, 0.0, 1.25)):
+            p.box((0.5, 1.3, 0.3), (side * 0.45, -0.35, 0.15), None, "kulfi", "SmoothPlastic", D)
+            p.beam((side * 0.45, -0.1, 0.3), (side * 0.35, 0.0, 1.25), 0.32, 0.32, "kulfi", "SmoothPlastic", D)
     p.box((0.32, 0.16, 1.9), (0, 0.55, 0.85), (25, 0, 0), "kulfistick", "Wood", D)
 
 
@@ -191,13 +193,14 @@ def pakora_panda(p):
     for x in (-0.55, 0.55):
         p.box((0.55, 0.7, 0.4), (x, -0.65, 0.3), None, "pakoradark", "SmoothPlastic", D)
     block_arm(p, (1.1, -0.4, 1.35), (1.35, -0.55, 1.7), 0.24, "pakoradark")
-    p.box((0.12, 0.12, 2.5), (1.35, -0.55, 2.65), None, "darkmetal", "Metal", D)
-    # a striped umbrella: two squares turned 45 degrees apart make an eight-pointed
-    # star of blue and cream points, with a blue cap
-    p.box((1.85, 1.85, 0.12), (1.35, -0.55, 3.95), (0, 0, 0), "blue", "Fabric", D)
-    p.box((1.85, 1.85, 0.12), (1.35, -0.55, 3.99), (0, 0, 45), "cream2", "Fabric", D)
-    p.box((0.95, 0.95, 0.14), (1.35, -0.55, 4.06), (0, 0, 22.5), "blue", "Fabric", D)
-    p.box((0.35, 0.35, 0.3), (1.35, -0.55, 4.25), (0, 0, 45), "blue", "Fabric", D)
+    with p.rigged("armR"):  # the umbrella
+        p.box((0.12, 0.12, 2.5), (1.35, -0.55, 2.65), None, "darkmetal", "Metal", D)
+        # a striped umbrella: two squares turned 45 degrees apart make an eight-pointed
+        # star of blue and cream points, with a blue cap
+        p.box((1.85, 1.85, 0.12), (1.35, -0.55, 3.95), (0, 0, 0), "blue", "Fabric", D)
+        p.box((1.85, 1.85, 0.12), (1.35, -0.55, 3.99), (0, 0, 45), "cream2", "Fabric", D)
+        p.box((0.95, 0.95, 0.14), (1.35, -0.55, 4.06), (0, 0, 22.5), "blue", "Fabric", D)
+        p.box((0.35, 0.35, 0.3), (1.35, -0.55, 4.25), (0, 0, 45), "blue", "Fabric", D)
 
 
 @prop("NaanNinja", "brainrot")
@@ -222,11 +225,13 @@ def naan_ninja(p):
     smile(p, 0, -0.52, 1.85, 0.4, f=f)
     block_arm(p, (-0.95, -0.1, 2.0), (-1.55, -0.55, 2.4), 0.22, "naan", f=f)
     block_arm(p, (0.95, -0.1, 2.0), (1.5, -0.5, 1.6), 0.22, "naan", f=f)
-    for k in range(2):  # a roti star in hand
-        p.box((0.7, 0.08, 0.14), f.p(-1.6, -0.75, 2.5), f.r((0, k * 90 + 45, 0)), "cream2", "SmoothPlastic", D)
+    with p.rigged("armL"):
+        for k in range(2):  # a roti star in hand
+            p.box((0.7, 0.08, 0.14), f.p(-1.6, -0.75, 2.5), f.r((0, k * 90 + 45, 0)), "cream2", "SmoothPlastic", D)
     for side in (-1, 1):
-        p.beam(f.p(side * 0.35, 0, 1.0), f.p(side * 0.55, -0.15, 0.25), 0.24, 0.24, "naan", "SmoothPlastic", D)
-        p.box((0.36, 0.6, 0.22), f.p(side * 0.58, -0.3, 0.11), f.r(), "black", "SmoothPlastic", D)
+        with p.rigged("legLF" if side < 0 else "legRF", f.p(side * 0.35, 0, 1.0)):
+            p.beam(f.p(side * 0.35, 0, 1.0), f.p(side * 0.55, -0.15, 0.25), 0.24, 0.24, "naan", "SmoothPlastic", D)
+            p.box((0.36, 0.6, 0.22), f.p(side * 0.58, -0.3, 0.11), f.r(), "black", "SmoothPlastic", D)
 
 
 @prop("PyaazPehelwan", "brainrot")
@@ -249,7 +254,8 @@ def pyaaz(p):
     for side in (-1, 1):
         p.box((0.75, 0.75, 0.75), (side * 1.25, -0.1, 2.0), (45, 35.26, 0), "onion", "SmoothPlastic", D)
         block_arm(p, (side * 1.25, -0.1, 2.0), (side * 1.85, -0.2, 2.35), 0.36, "onion", "onionpale", 0.5)
-        p.box((0.6, 0.6, 0.6), (side * 1.6, -0.12, 2.25), (45, 35.26, 0), "onion", "SmoothPlastic", D)
+        with p.rigged("armL" if side < 0 else "armR"):
+            p.box((0.6, 0.6, 0.6), (side * 1.6, -0.12, 2.25), (45, 35.26, 0), "onion", "SmoothPlastic", D)
         block_leg(p, side * 0.45, 0, 0.75, 0.38, "onion", "black")
     for side in (-1, 1):
         p.ball(0.12, (side * 2.3, -0.6, 2.4), "skyblue", "Glass", D, segments=6, rings=4)
@@ -310,16 +316,18 @@ def rickshaw_raptor(p):
     p.box((0.4, 0.24, 0.24), (0.75, -2.0, 3.45), None, "yellow", "Metal", D)
     p.box((0.3, 0.36, 0.36), (1.05, -2.0, 3.45), (45, 0, 0), "yellow", "Metal", D)
     for side in (-1, 1):  # raptor legs with three toes
-        knee, ankle = (side * 0.7, 0.9, 1.2), (side * 0.7, 0.25, 0.12)
-        p.beam((side * 0.6, 0.3, 2.1), knee, 0.52, 0.52, "dino", "SmoothPlastic", D)
-        p.beam(knee, ankle, 0.38, 0.38, "dino", "SmoothPlastic", D)
-        for t in (-25, 0, 25):
-            a = math.radians(t)
-            p.box((0.16, 0.6, 0.16), (side * 0.7 + math.sin(a) * 0.3, 0.1 - math.cos(a) * 0.3, 0.1), (0, 0, t), "dino",
-                  "SmoothPlastic", D)
-    for a, b, r in (((0, 1.75, 2.6), (0, 2.8, 2.35), 0.55), ((0, 2.8, 2.35), (0, 3.7, 2.1), 0.38)):
-        p.beam(a, b, r, r, "dino", "SmoothPlastic", D)
-    p.box((0.3, 0.3, 0.3), (0, 3.75, 2.1), (45, 35.26, 0), "red", "SmoothPlastic", D)
+        with p.rigged("legLF" if side < 0 else "legRF", (side * 0.6, 0.3, 2.1)):
+            knee, ankle = (side * 0.7, 0.9, 1.2), (side * 0.7, 0.25, 0.12)
+            p.beam((side * 0.6, 0.3, 2.1), knee, 0.52, 0.52, "dino", "SmoothPlastic", D)
+            p.beam(knee, ankle, 0.38, 0.38, "dino", "SmoothPlastic", D)
+            for t in (-25, 0, 25):
+                a = math.radians(t)
+                p.box((0.16, 0.6, 0.16), (side * 0.7 + math.sin(a) * 0.3, 0.1 - math.cos(a) * 0.3, 0.1), (0, 0, t), "dino",
+                      "SmoothPlastic", D)
+    with p.rigged("tail", (0, 1.75, 2.6)):
+        for a, b, r in (((0, 1.75, 2.6), (0, 2.8, 2.35), 0.55), ((0, 2.8, 2.35), (0, 3.7, 2.1), 0.38)):
+            p.beam(a, b, r, r, "dino", "SmoothPlastic", D)
+        p.box((0.3, 0.3, 0.3), (0, 3.75, 2.1), (45, 35.26, 0), "red", "SmoothPlastic", D)
 
 
 @prop("LassiLlama", "brainrot")
@@ -345,8 +353,9 @@ def lassi_llama(p):
     p.box((0.75, 0.2, 0.16), (0, -0.84, 3.55), None, "malai", "SmoothPlastic", D)
     for side in (-1, 1):
         p.box((0.24, 0.24, 0.24), (side * 0.4, -0.84, 3.58), (45, 35.26, 0), "malai", "SmoothPlastic", D)
-        p.beam((side * 0.4, -0.55, 2.5), (side * 0.48, -1.12, 2.62), 0.24, 0.24, "llama", "SmoothPlastic", D)
-        p.box((0.26, 0.26, 0.26), (side * 0.48, -1.16, 2.62), None, "mudlight", "SmoothPlastic", D)
+        with p.rigged("armL" if side < 0 else "armR", (side * 0.4, -0.55, 2.5)):
+            p.beam((side * 0.4, -0.55, 2.5), (side * 0.48, -1.12, 2.62), 0.24, 0.24, "llama", "SmoothPlastic", D)
+            p.box((0.26, 0.26, 0.26), (side * 0.48, -1.16, 2.62), None, "mudlight", "SmoothPlastic", D)
     p.box((0.14, 0.14, 2.1), (0.85, 0.42, 3.25), (14, 14, 0), "red", "SmoothPlastic", D)
 
 
@@ -379,11 +388,13 @@ def bun_kebab(p):
     block_arm(p, (-1.85, -0.1, 1.7), (-1.8, -0.1, 2.5), 0.34, "bun", "bun", 0.48)
     p.box((0.62, 0.62, 0.62), (-1.55, -0.12, 1.85), (45, 35.26, 0), "bun", "SmoothPlastic", D)
     block_arm(p, (1.2, 0, 1.45), (1.6, -0.3, 2.6), 0.38, "bun", "bun", 0.48)
-    p.box((0.4, 0.4, 0.35), (1.6, -0.3, 2.95), None, "gold", "Metal", D)  # the trophy
-    p.box((0.75, 0.75, 0.4), (1.6, -0.3, 3.3), None, "gold", "Metal", D)
-    p.box((0.95, 0.95, 0.25), (1.6, -0.3, 3.62), None, "gold", "Metal", D)
+    with p.rigged("armR"):  # the trophy
+        p.box((0.4, 0.4, 0.35), (1.6, -0.3, 2.95), None, "gold", "Metal", D)  # the trophy
+        p.box((0.75, 0.75, 0.4), (1.6, -0.3, 3.3), None, "gold", "Metal", D)
+        p.box((0.95, 0.95, 0.25), (1.6, -0.3, 3.62), None, "gold", "Metal", D)
     for side in (-1, 1):
-        p.box((0.1, 0.3, 0.35), (1.6 + side * 0.55, -0.3, 3.4), None, "gold", "Metal", D)
+        with p.rigged("armR"):
+            p.box((0.1, 0.3, 0.35), (1.6 + side * 0.55, -0.3, 3.4), None, "gold", "Metal", D)
         block_leg(p, side * 0.45, 0, 0.55, 0.32, "bun", "white")
 
 
@@ -410,8 +421,9 @@ def sharbat_rhino(p):
     for x in (-0.65, 0.65):
         for y in (-0.8, 0.9):
             block_leg(p, x, y, 0.8, 0.6, "rhinored")
-    p.beam((0, 1.85, 1.6), (0, 2.3, 1.2), 0.14, 0.14, "rhinored", "SmoothPlastic", D)
-    p.box((0.28, 0.28, 0.28), (0, 2.32, 1.15), (45, 35.26, 0), "maroon", "SmoothPlastic", D)
+    with p.rigged("tail", (0, 1.85, 1.6)):
+        p.beam((0, 1.85, 1.6), (0, 2.3, 1.2), 0.14, 0.14, "rhinored", "SmoothPlastic", D)
+        p.box((0.28, 0.28, 0.28), (0, 2.32, 1.15), (45, 35.26, 0), "maroon", "SmoothPlastic", D)
     for i, (x, y, z) in enumerate(((-1.4, -0.6, 2.6), (1.3, 0.2, 2.9), (-1.0, 1.2, 3.1), (1.5, -1.2, 2.2))):
         p.box((0.3, 0.06, 0.24), (x, y, z), (i * 30, i * 50, i * 20), "rosepetal", "SmoothPlastic", D)
 
@@ -439,16 +451,20 @@ def halwa_gorilla(p):
     for side in (-1, 1):
         p.box((0.9, 1.6, 0.25), (side * 0.85, 0.2, 2.75), (0, side * 35, 0), "maroon", "Fabric", D)
         p.box((0.92, 0.1, 0.1), (side * 0.85, -0.6, 2.75), (0, side * 35, 0), "gold", "Fabric", D)
-        p.beam((side * 1.25, 0, 2.55), (side * 1.6, -0.3, 1.3), 0.56, 0.56, "halwa", "SmoothPlastic", D)
+        with p.rigged("armL" if side < 0 else "armR", (side * 1.25, 0, 2.55)):
+            p.beam((side * 1.25, 0, 2.55), (side * 1.6, -0.3, 1.3), 0.56, 0.56, "halwa", "SmoothPlastic", D)
         block_leg(p, side * 0.55, 0.1, 0.8, 0.54, "halwa", "pakoradark")
-    p.beam((1.6, -0.3, 1.3), (1.4, -0.9, 1.0), 0.42, 0.42, "halwa", "SmoothPlastic", D)
-    p.box((0.62, 0.62, 0.62), (-1.65, -0.35, 0.95), (45, 35.26, 0), "halwa", "SmoothPlastic", D)
-    p.cone(0.7, 0.5, (1.3, -1.1, 1.0), (180, 0, 0), "steel", "Metal", D, verts=12, top=0.4, fallback="None")
-    p.box((0.9, 0.9, 0.25), (1.3, -1.1, 0.87), None, "steel", "Metal", D | PARTSONLY)
-    p.box((1.3, 1.3, 0.25), (1.3, -1.1, 1.12), None, "steel", "Metal", D | PARTSONLY)
-    p.blob(0.62, (1.3, -1.1, 1.3), (1, 1, 0.35), "halwa", "SmoothPlastic", D, seed=73, fallback="None")
-    p.box((1.1, 1.1, 0.2), (1.3, -1.1, 1.28), (0, 0, 45), "halwa", "SmoothPlastic", D | PARTSONLY)
-    cube_puff(p, [(1.3, -1.1, 1.8), (1.4, -1.15, 2.25)], 0.36)
+    with p.rigged("armR"):
+        p.beam((1.6, -0.3, 1.3), (1.4, -0.9, 1.0), 0.42, 0.42, "halwa", "SmoothPlastic", D)
+    with p.rigged("armL"):
+        p.box((0.62, 0.62, 0.62), (-1.65, -0.35, 0.95), (45, 35.26, 0), "halwa", "SmoothPlastic", D)
+    with p.rigged("armR"):  # the bowl of halwa
+        p.cone(0.7, 0.5, (1.3, -1.1, 1.0), (180, 0, 0), "steel", "Metal", D, verts=12, top=0.4, fallback="None")
+        p.box((0.9, 0.9, 0.25), (1.3, -1.1, 0.87), None, "steel", "Metal", D | PARTSONLY)
+        p.box((1.3, 1.3, 0.25), (1.3, -1.1, 1.12), None, "steel", "Metal", D | PARTSONLY)
+        p.blob(0.62, (1.3, -1.1, 1.3), (1, 1, 0.35), "halwa", "SmoothPlastic", D, seed=73, fallback="None")
+        p.box((1.1, 1.1, 0.2), (1.3, -1.1, 1.28), (0, 0, 45), "halwa", "SmoothPlastic", D | PARTSONLY)
+        cube_puff(p, [(1.3, -1.1, 1.8), (1.4, -1.15, 2.25)], 0.36)
 
 
 @prop("DoodhPattiDolphin", "brainrot")

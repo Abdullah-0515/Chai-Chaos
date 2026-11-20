@@ -76,18 +76,30 @@ def moustache(p, x, y, z, w, color="black", f=WORLD, curl=True, thick=0.28):
                    segments=8, rings=5)
 
 
+def leg_name(x, y):
+    """legLF, legRB...: the side, and front or back (four-legged brainrots trot)."""
+    return "leg" + ("L" if x < 0 else "R") + ("B" if y > 0.35 else "F")
+
+
+def arm_name(a, b):
+    x = a[0] if abs(a[0]) > 0.05 else b[0]
+    return "arm" + ("L" if x < 0 else "R")
+
+
 def leg(p, x, y, height, r, color, foot=None, foot_len=None, f=WORLD):
     """A stubby leg from the ground up, with a rounded foot."""
-    p.cyl(r, height, f.p(x, y, height / 2), f.r(), color, "SmoothPlastic", D, verts=10)
-    fl = foot_len or r * 2.6
-    p.box((r * 2.1, fl, r * 1.1), f.p(x, y - fl * 0.25, r * 0.55), f.r(), foot or color, "SmoothPlastic", D)
+    with p.rigged(leg_name(x, y), f.p(x, y, height)):
+        p.cyl(r, height, f.p(x, y, height / 2), f.r(), color, "SmoothPlastic", D, verts=10)
+        fl = foot_len or r * 2.6
+        p.box((r * 2.1, fl, r * 1.1), f.p(x, y - fl * 0.25, r * 0.55), f.r(), foot or color, "SmoothPlastic", D)
 
 
 def arm(p, a, b, r, color, hand=None, hand_r=None, f=WORLD):
     """An arm from shoulder a to hand b (points in the frame)."""
     pa, pb = f.p(*a), f.p(*b)
-    p.rod(pa, pb, r, color, "SmoothPlastic", D, verts=8)
-    p.ball(hand_r or r * 1.4, pb, hand or color, "SmoothPlastic", D, segments=8, rings=5)
+    with p.rigged(arm_name(a, b), pa):
+        p.rod(pa, pb, r, color, "SmoothPlastic", D, verts=8)
+        p.ball(hand_r or r * 1.4, pb, hand or color, "SmoothPlastic", D, segments=8, rings=5)
 
 
 def crown(p, x, y, z, r, color="gold", gem="red", points=5, f=WORLD):
@@ -118,6 +130,12 @@ def puffs(p, points, r, color="steam", seed=0, f=WORLD):
 
 def wing(p, root, side, length, width, color, f=WORLD, angle=30, flags=D, mat="SmoothPlastic", style="feather"):
     """A wing sticking out sideways and up from root: fanned feathers, or a bat wing for dragons."""
+    x, y, z = root
+    with p.rigged("wing" + ("L" if side < 0 else "R"), f.p(x, y, z)):
+        _wing(p, root, side, length, width, color, f, angle, flags, mat, style)
+
+
+def _wing(p, root, side, length, width, color, f, angle, flags, mat, style):
     x, y, z = root
     if style == "bat":
         for k, (lf, wf) in enumerate(((1.0, 1.0), (0.7, 0.75))):
@@ -165,16 +183,21 @@ def chunk(p, radius, pos, scale=(1, 1, 1), color="wood", mat="SmoothPlastic", se
 
 def block_leg(p, x, y, height, w, color, foot=None, foot_len=None, f=WORLD):
     """A chunky square leg from the ground up, with a block foot."""
-    p.box((w, w, height), f.p(x, y, height / 2), f.r(), color, "SmoothPlastic", D)
-    fl = foot_len or w * 1.6
-    p.box((w * 1.25, fl, w * 0.55), f.p(x, y - (fl - w) / 2, w * 0.27), f.r(), foot or color, "SmoothPlastic", D)
+    with p.rigged(leg_name(x, y), f.p(x, y, height)):
+        p.box((w, w, height), f.p(x, y, height / 2), f.r(), color, "SmoothPlastic", D)
+        fl = foot_len or w * 1.6
+        p.box((w * 1.25, fl, w * 0.55), f.p(x, y - (fl - w) / 2, w * 0.27), f.r(), foot or color, "SmoothPlastic", D)
 
 
-def block_arm(p, a, b, w, color, hand=None, hand_w=None, f=WORLD):
-    """A chunky square arm from shoulder a to hand b, with a faceted block fist."""
-    p.beam(f.p(*a), f.p(*b), w, w, color, "SmoothPlastic", D)
-    hw = hand_w or w * 1.45
-    p.box((hw, hw, hw), f.p(*b), f.r((45, 35.26, 0)), hand or color, "SmoothPlastic", D)
+def block_arm(p, a, b, w, color, hand=None, hand_w=None, f=WORLD, still=False):
+    """A chunky square arm from shoulder a to hand b, with a faceted block fist.
+    Returns the arm's name, to put something in its hand: `with p.rigged(name):`.
+    still=True keeps it still (crossed arms, both hands on one thing)."""
+    with p.rigged(arm_name(a, b) if not still else "", f.p(*a)) as name:
+        p.beam(f.p(*a), f.p(*b), w, w, color, "SmoothPlastic", D)
+        hw = hand_w or w * 1.45
+        p.box((hw, hw, hw), f.p(*b), f.r((45, 35.26, 0)), hand or color, "SmoothPlastic", D)
+    return name
 
 
 def block_cap(p, x, y, z, r, color, brim=None, backwards=False, band=None, f=WORLD):

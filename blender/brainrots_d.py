@@ -30,7 +30,7 @@ def kahwa_yeti(p):
         p.box((0.3, 0.2, 0.42), (0, -1.78 + i * 0.05, z), (0, 0, 45), "pistachio", "SmoothPlastic", D)
     for side in (-1, 1):
         block_leg(p, side * 0.95, 0.2, 1.2, 1.0, "white", "skyblue", foot_len=1.8)
-        block_arm(p, (side * 1.8, -0.3, 4.4), (side * 1.0, -2.2, 3.4), 0.85, "white", "white", 1.0)
+        block_arm(p, (side * 1.8, -0.3, 4.4), (side * 1.0, -2.2, 3.4), 0.85, "white", "white", 1.0, still=True)
     # the samovar in its arms
     p.box((1.3, 1.3, 1.6), (0, -2.6, 3.3), None, "copper", "Metal", D)
     p.box((0.95, 0.95, 0.35), (0, -2.6, 4.27), None, "copper", "Metal", D)
@@ -69,11 +69,12 @@ def gola_golem(p):
         shoulder = (side * 2.0, 0, 4.6)
         hand = (side * 2.9, -0.6, 2.8)
         p.box((1.4, 1.4, 1.4), shoulder, (45, 35.26, 0), "ice", "Ice", D)
-        p.beam(shoulder, hand, 1.1, 1.1, "ice", "Ice", D)
-        p.box((1.2, 1.2, 1.2), hand, (45, 35.26, side * 20), syrup[(side + 2) % 6], "Ice", D)
-        for k in range(3):  # wooden gola sticks for fingers
-            p.beam((hand[0], hand[1], hand[2] - 0.3), (hand[0] + side * (0.3 + k * 0.2), hand[1] - 0.5 + k * 0.4,
-                                                        hand[2] - 1.5), 0.16, 0.16, "lightwood", "Wood", D)
+        with p.rigged("armL" if side < 0 else "armR", shoulder):
+            p.beam(shoulder, hand, 1.1, 1.1, "ice", "Ice", D)
+            p.box((1.2, 1.2, 1.2), hand, (45, 35.26, side * 20), syrup[(side + 2) % 6], "Ice", D)
+            for k in range(3):  # wooden gola sticks for fingers
+                p.beam((hand[0], hand[1], hand[2] - 0.3), (hand[0] + side * (0.3 + k * 0.2), hand[1] - 0.5 + k * 0.4,
+                                                            hand[2] - 1.5), 0.16, 0.16, "lightwood", "Wood", D)
     for i, (x, z) in enumerate(((-1.0, 2.0), (0.6, 1.6), (1.3, 2.6))):  # drips
         p.box((0.28, 0.28, 0.28), (x, -1.85, z), (45, 35.26, 0), syrup[i], "SmoothPlastic", D)
 
@@ -107,11 +108,12 @@ def barfi_bagh(p):
     for x in (-0.65, 0.65):
         for y in (-1.6, 2.6):
             block_leg(p, x, y, 1.6, 0.7, "white", "pistachio", f=f)
-    tail = [(0, 3.2, 2.8), (0, 4.4, 3.4), (0, 5.0, 4.6), (0, 4.6, 5.6)]
-    for k, (a, b) in enumerate(zip(tail, tail[1:])):
-        w = 0.9 - k * 0.08
-        p.beam(f.p(*a), f.p(*b), w, w, "white" if k % 2 == 0 else "pistachio", "SmoothPlastic", D)
-    p.box((0.9, 0.9, 0.9), f.p(0, 4.6, 5.8), f.r((45, 35.26, 0)), "white", "SmoothPlastic", D)
+    with p.rigged("tail", f.p(0, 3.2, 2.8)):
+        tail = [(0, 3.2, 2.8), (0, 4.4, 3.4), (0, 5.0, 4.6), (0, 4.6, 5.6)]
+        for k, (a, b) in enumerate(zip(tail, tail[1:])):
+            w = 0.9 - k * 0.08
+            p.beam(f.p(*a), f.p(*b), w, w, "white" if k % 2 == 0 else "pistachio", "SmoothPlastic", D)
+        p.box((0.9, 0.9, 0.9), f.p(0, 4.6, 5.8), f.r((45, 35.26, 0)), "white", "SmoothPlastic", D)
     for i in range(4):
         a = i * 1.6
         p.box((0.16, 0.16, 0.16), (math.cos(a) * 2.6, math.sin(a) * 2.2, 5 + (i % 2) * 0.6), (45, 45, 0), "white",
@@ -164,4 +166,5 @@ def jalebi_markhor(p):
         a = math.radians(-50 + i * 50)
         p.ball(0.18, (math.sin(a) * 0.7, -1.6, 3.5 - abs(math.cos(a)) * 0.1), "gold", "Metal", D, segments=6,
                rings=4)
-    p.beam((0, 2.6, 3.4), (0, 3.1, 3.9), 0.3, 0.3, "llama", "SmoothPlastic", D)
+    with p.rigged("tail", (0, 2.6, 3.4)):
+        p.beam((0, 2.6, 3.4), (0, 3.1, 3.9), 0.3, 0.3, "llama", "SmoothPlastic", D)

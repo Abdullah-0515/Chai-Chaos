@@ -35,13 +35,15 @@ def truck_art_parrot(p):
         p.box((0.3, 0.07, 0.3), (x, -1.04, z), None, color, "SmoothPlastic", D)
         p.box((0.14, 0.08, 0.14), (x, -1.06, z), None, "white", "SmoothPlastic", D)
     for side in (-1, 1):
-        p.box((0.28, 1.3, 1.8), (side * 1.2, 0.25, 2.7), (0, side * -10, 0), "blue", "SmoothPlastic", D)
-        for k, color in enumerate(("red", "yellow", "green")):
-            p.box((0.06, 1.2, 0.18), (side * 1.35, 0.25, 2.1 + k * 0.5), (0, side * -10, 0), color, "SmoothPlastic", D)
-        for k in range(4):
-            p.ball(0.12, (side * 1.38, -0.2 + k * 0.32, 1.7), "gold", "Metal", D, segments=6, rings=4)
-        p.box((0.25, 0.5, 0.2), (side * 0.4, -0.3, 0.1), None, "orange", "SmoothPlastic", D)
-        p.beam((side * 0.35, 0, 1.3), (side * 0.4, -0.2, 0.15), 0.2, 0.2, "orange", "SmoothPlastic", D)
+        with p.rigged("wingL" if side < 0 else "wingR", (side * 1.05, 0.25, 3.4)):
+            p.box((0.28, 1.3, 1.8), (side * 1.2, 0.25, 2.7), (0, side * -10, 0), "blue", "SmoothPlastic", D)
+            for k, color in enumerate(("red", "yellow", "green")):
+                p.box((0.06, 1.2, 0.18), (side * 1.35, 0.25, 2.1 + k * 0.5), (0, side * -10, 0), color, "SmoothPlastic", D)
+            for k in range(4):
+                p.ball(0.12, (side * 1.38, -0.2 + k * 0.32, 1.7), "gold", "Metal", D, segments=6, rings=4)
+        with p.rigged("legLF" if side < 0 else "legRF", (side * 0.35, 0, 1.3)):
+            p.box((0.25, 0.5, 0.2), (side * 0.4, -0.3, 0.1), None, "orange", "SmoothPlastic", D)
+            p.beam((side * 0.35, 0, 1.3), (side * 0.4, -0.2, 0.15), 0.2, 0.2, "orange", "SmoothPlastic", D)
     for k, color in enumerate(("yellow", "red", "blue")):  # the tail, with its lettering panel
         p.box((0.45, 0.12, 2.2), (-0.45 + k * 0.45, 1.5, 1.2), (35, 0, (k - 1) * 8), color, "SmoothPlastic", D)
     p.box((1.3, 0.1, 0.45), (0, 1.62, 1.0), (35, 0, 0), "white", "SmoothPlastic", D)
@@ -75,16 +77,19 @@ def sixer_sher(p):
     for side in (-1, 1):
         block_leg(p, side * 0.5, 0.1, 1.0, 0.5, "lion", "white")
     block_arm(p, (1.25, 0, 2.8), (0.9, -0.6, 3.6), 0.36, "lion", "lion", 0.5)
-    p.box((0.55, 0.18, 2.3), (0.85, 0.3, 4.1), (0, 0, 35), "willow", "Wood", D)
-    p.cyl(0.13, 0.9, (0.25, -0.55, 3.15), (0, -35, 0), "black", "Fabric", D, verts=8)
-    for k, color in enumerate(("black", "red", "black")):
-        p.box((0.58, 0.2, 0.12), (1.0 + k * 0.25, 0.3, 4.3 + k * 0.35), (0, 0, 35), color, "Fabric", D)
+    with p.rigged("armR"):  # the bat on its shoulder
+        p.box((0.55, 0.18, 2.3), (0.85, 0.3, 4.1), (0, 0, 35), "willow", "Wood", D)
+        p.cyl(0.13, 0.9, (0.25, -0.55, 3.15), (0, -35, 0), "black", "Fabric", D, verts=8)
+        for k, color in enumerate(("black", "red", "black")):
+            p.box((0.58, 0.2, 0.12), (1.0 + k * 0.25, 0.3, 4.3 + k * 0.35), (0, 0, 35), color, "Fabric", D)
     block_arm(p, (-1.25, 0, 2.8), (-1.6, -0.6, 2.4), 0.36, "lion", "lion", 0.5)
-    p.box((0.38, 0.38, 0.38), (-1.62, -0.62, 2.88), None, "red", "Fabric", D)  # a sweatband
-    p.ball(0.3, (-1.65, -0.95, 2.45), "tennisball", "Fabric", D)
-    p.cyl(0.31, 0.12, (-1.65, -0.95, 2.45), (30, 0, 0), "black", "Fabric", D, verts=10)
-    p.beam((0, 1.1, 1.5), (0, 2.0, 1.8), 0.2, 0.2, "lion", "SmoothPlastic", D)
-    p.box((0.45, 0.45, 0.45), (0, 2.1, 1.85), (45, 35.26, 0), "mane", "SmoothPlastic", D)
+    with p.rigged("armL"):  # the sweatband and ball
+        p.box((0.38, 0.38, 0.38), (-1.62, -0.62, 2.88), None, "red", "Fabric", D)  # a sweatband
+        p.ball(0.3, (-1.65, -0.95, 2.45), "tennisball", "Fabric", D)
+        p.cyl(0.31, 0.12, (-1.65, -0.95, 2.45), (30, 0, 0), "black", "Fabric", D, verts=10)
+    with p.rigged("tail", (0, 1.1, 1.5)):
+        p.beam((0, 1.1, 1.5), (0, 2.0, 1.8), 0.2, 0.2, "lion", "SmoothPlastic", D)
+        p.box((0.45, 0.45, 0.45), (0, 2.1, 1.85), (45, 35.26, 0), "mane", "SmoothPlastic", D)
 
 
 @prop("ChilgozaChachaChipka", "brainrot")
@@ -113,8 +118,8 @@ def chilgoza(p):
         p.box((0.75, 0.2, 0.2), f.p(0.35 + k * 0.1, -0.52, 0.05 + k * 0.12), f.r((0, -20 - k * 15, 0)), "black",
               "SmoothPlastic", D)
     smile(p, 0, -0.52, -0.2, 0.3, f=f, open_mouth=True)
-    block_arm(p, (-0.5, 0, 0.5), (-0.2, 0.3, 1.25), 0.2, "pinenut", f=f)
-    block_arm(p, (0.5, 0, 0.5), (0.35, 0.3, 1.25), 0.2, "pinenut", f=f)
+    block_arm(p, (-0.5, 0, 0.5), (-0.2, 0.3, 1.25), 0.2, "pinenut", f=f, still=True)
+    block_arm(p, (0.5, 0, 0.5), (0.35, 0.3, 1.25), 0.2, "pinenut", f=f, still=True)
     for k, z in enumerate((2.3, 1.55, 0.6)):  # dripping honey
         s = 0.32 - k * 0.05
         p.box((s, s, s), (1.45, -0.6, z), (45, 35.26, 0), "honey", "Glass", D | GLASS)
@@ -148,9 +153,10 @@ def mela_maharaja(p):
     blush(p, 0, -0.88, cz, 1.1, 0.14)
     crown(p, 0, 0, cz + r + 0.1, 0.65, "gold", "red")
     for side in (-1, 1):
-        p.beam((0, 0.25, cz), (side * 1.6, 0.25, 0.4), 0.28, 0.28, "white", "Metal", D)
-        p.box((0.6, 0.9, 0.35), (side * 1.65, 0.05, 0.18), None, "red", "SmoothPlastic", D)
-        style.side_diamonds(p, side * 1.96, -0.3, 0.4, 0.18, height=0.24, band="gold", colors=("dhabateal", "white"))
+        with p.rigged("legLF" if side < 0 else "legRF", (side * 0.3, 0.25, cz - 0.6)):
+            p.beam((0, 0.25, cz), (side * 1.6, 0.25, 0.4), 0.28, 0.28, "white", "Metal", D)
+            p.box((0.6, 0.9, 0.35), (side * 1.65, 0.05, 0.18), None, "red", "SmoothPlastic", D)
+            style.side_diamonds(p, side * 1.96, -0.3, 0.4, 0.18, height=0.24, band="gold", colors=("dhabateal", "white"))
 
 
 @prop("CylinderCycleChacha", "brainrot")
@@ -257,12 +263,13 @@ def kite_kaptaan(p):
     p.box((1.1, 1.1, 0.15), hat.p(0, 0, 2.65), hat.r(), "navy", "Fabric", D)
     p.box((0.9, 0.5, 0.08), hat.p(0, -0.55, 2.58), hat.r(), "black", "SmoothPlastic", D)
     p.box((0.2, 0.08, 0.2), hat.p(0, -0.57, 2.82), hat.r((0, 45, 0)), "gold", "Metal", D)
-    tail = [f.p(0, 0, -2.6), (0.4, 0, 1.0), (-0.2, 0, 0.0)]
-    for k, (a, b) in enumerate(zip(tail, tail[1:])):
-        p.beam(a, b, 0.25, 0.06, ("pink", "skyblue")[k], "Fabric", D)
-    for k in range(3):
-        p.box((0.35, 0.06, 0.2), (0.25 - k * 0.2, 0, 1.6 - k * 0.55), (0, 45, 0), ("green", "orange", "purple")[k],
-              "Fabric", D)
+    with p.rigged("tail", f.p(0, 0, -2.6)):
+        tail = [f.p(0, 0, -2.6), (0.4, 0, 1.0), (-0.2, 0, 0.0)]
+        for k, (a, b) in enumerate(zip(tail, tail[1:])):
+            p.beam(a, b, 0.25, 0.06, ("pink", "skyblue")[k], "Fabric", D)
+        for k in range(3):
+            p.box((0.35, 0.06, 0.2), (0.25 - k * 0.2, 0, 1.6 - k * 0.55), (0, 45, 0), ("green", "orange", "purple")[k],
+                  "Fabric", D)
     p.rope(f.p(0, 0.1, 0), (1.6, 0.6, 0.6), 0.6, 0.03, "white", 6)
     p.box((0.8, 0.7, 0.7), (1.6, 0.6, 0.45), None, "wood", "Wood", D)
     for side in (-1, 1):
@@ -295,18 +302,20 @@ def bangle_cheetah(p):
     colours = ("red", "green", "blue", "gold", "pink", "purple")
     for x in (-0.45, 0.45):
         for y in (-1.0, 1.3):
-            p.box((0.36, 0.36, 1.6), (x, y, 0.85), None, "cheetah", "SmoothPlastic", D)
-            p.box((0.42, 0.55, 0.15), (x, y - 0.12, 0.07), None, "henna", "SmoothPlastic", D)
-            if y < 0:
-                for k in range(4):
-                    p.box((0.5, 0.5, 0.09), (x, y, 0.55 + k * 0.14), (0, 0, 45 * (k % 2)),
-                          colours[(k + (x > 0) * 2) % 6], "Glass", D)
-    tail = [(0, 1.9, 2.1), (0, 2.6, 2.6), (0, 2.9, 3.4)]
-    for a, b in zip(tail, tail[1:]):
-        p.beam(a, b, 0.28, 0.28, "cheetah", "SmoothPlastic", D)
-    for k in range(4):
-        p.box((0.42, 0.42, 0.08), (0, 2.45 + k * 0.12, 2.45 + k * 0.2), (-35, 0, 45 * (k % 2)), colours[k + 1],
-              "Glass", D)
+            with p.rigged(("legL" if x < 0 else "legR") + ("F" if y < 0 else "B"), (x, y, 1.65)):
+                p.box((0.36, 0.36, 1.6), (x, y, 0.85), None, "cheetah", "SmoothPlastic", D)
+                p.box((0.42, 0.55, 0.15), (x, y - 0.12, 0.07), None, "henna", "SmoothPlastic", D)
+                if y < 0:
+                    for k in range(4):
+                        p.box((0.5, 0.5, 0.09), (x, y, 0.55 + k * 0.14), (0, 0, 45 * (k % 2)),
+                              colours[(k + (x > 0) * 2) % 6], "Glass", D)
+    with p.rigged("tail", (0, 1.9, 2.1)):
+        tail = [(0, 1.9, 2.1), (0, 2.6, 2.6), (0, 2.9, 3.4)]
+        for a, b in zip(tail, tail[1:]):
+            p.beam(a, b, 0.28, 0.28, "cheetah", "SmoothPlastic", D)
+        for k in range(4):
+            p.box((0.42, 0.42, 0.08), (0, 2.45 + k * 0.12, 2.45 + k * 0.2), (-35, 0, 45 * (k % 2)), colours[k + 1],
+                  "Glass", D)
     p.box((1.15, 1.15, 0.16), (0, -1.25, 2.45), (60, 0, 0), "gold", "Metal", D)  # the collar
     for k, x in enumerate((-0.32, 0, 0.32)):
         p.box((0.16, 0.08, 0.16), (x, -1.62, 2.18), (60, 45, 0), "red" if k == 1 else "dhabateal", "SmoothPlastic", D)
@@ -340,7 +349,7 @@ def mithai_mamu(p):
     smile(p, 0, -1.47, 1.75, 0.55, open_mouth=True)
     blush(p, 0, -1.38, 2.1, 1.45, 0.18)
     for side in (-1, 1):
-        block_arm(p, (side * 1.3, -0.3, 1.8), (side * 0.75, -1.65, 1.5), 0.32, "laddoo")
+        block_arm(p, (side * 1.3, -0.3, 1.8), (side * 0.75, -1.65, 1.5), 0.32, "laddoo", still=True)
         block_leg(p, side * 0.55, 0, 0.75, 0.44, "laddoo", "black")
     p.box((2.1, 1.2, 0.12), (0, -1.95, 1.55), None, "steel", "Metal", D)
     p.box((0.45, 0.45, 0.22), (-0.6, -1.95, 1.72), None, "barfi", "SmoothPlastic", D)
@@ -372,9 +381,10 @@ def lassi_lightning(p):
                                ((0.6, 0.1, 4.9), (0.9, 0.1, 5.35)))):
         p.beam(a, b, 0.14, 0.08, "lightning", "Neon", D | KEEP | (LIGHT if k == 0 else 0))
     for side in (-1, 1):  # lightning-bolt wings
-        pts = [(side * 0.95, 0.2, 2.0), (side * 1.6, 0.3, 2.6), (side * 1.35, 0.3, 2.75), (side * 2.1, 0.4, 3.4)]
-        for a, b in zip(pts, pts[1:]):
-            p.beam(a, b, 0.3, 0.1, "yellow", "SmoothPlastic", D)
+        with p.rigged("wingL" if side < 0 else "wingR", (side * 0.95, 0.2, 2.0)):
+            pts = [(side * 0.95, 0.2, 2.0), (side * 1.6, 0.3, 2.6), (side * 1.35, 0.3, 2.75), (side * 2.1, 0.4, 3.4)]
+            for a, b in zip(pts, pts[1:]):
+                p.beam(a, b, 0.3, 0.1, "yellow", "SmoothPlastic", D)
     for k in range(2):
         p.box((1.5 - k * 0.3, 0.1, 1.2), (0, 1.05 + k * 0.4, 1.9 - k * 0.6), (-25 - k * 15, 0, 0), "red", "Fabric", D)
     for i in range(5):
@@ -407,9 +417,11 @@ def chowkidar_choocha(p):
     p.box((0.14, 0.3, 0.14), (0.25, -1.5, 1.9), None, "steel", "Metal", D)  # the whistle
     p.rope((0.25, -1.4, 1.9), (0.8, -0.6, 2.3), 0.3, 0.03, "rope", 4)
     for side in (-1, 1):
-        p.box((0.25, 0.8, 0.9), (side * 1.3, -0.2, 1.7), (0, side * -15, 0), "chick", "SmoothPlastic", D)
-        p.box((0.25, 0.6, 0.12), (side * 0.45, -0.25, 0.06), None, "orange", "SmoothPlastic", D)
-        p.beam((side * 0.45, 0, 0.6), (side * 0.45, -0.1, 0.1), 0.14, 0.14, "orange", "SmoothPlastic", D)
+        with p.rigged("wingL" if side < 0 else "wingR", (side * 1.3, -0.2, 2.1)):
+            p.box((0.25, 0.8, 0.9), (side * 1.3, -0.2, 1.7), (0, side * -15, 0), "chick", "SmoothPlastic", D)
+        with p.rigged("legLF" if side < 0 else "legRF", (side * 0.45, 0, 0.6)):
+            p.box((0.25, 0.6, 0.12), (side * 0.45, -0.25, 0.06), None, "orange", "SmoothPlastic", D)
+            p.beam((side * 0.45, 0, 0.6), (side * 0.45, -0.1, 0.1), 0.14, 0.14, "orange", "SmoothPlastic", D)
     p.box((0.14, 0.14, 2.4), (1.48, -0.6, 1.2), None, "lightwood", "Wood", D)
     p.box((0.34, 0.7, 0.34), (-1.5, -0.7, 1.5), None, "black", "Metal", D)  # the torch
     p.box((0.28, 0.05, 0.28), (-1.5, -1.07, 1.5), None, "yellow", "Neon", D | KEEP | LIGHT)
@@ -420,14 +432,15 @@ def rangeela_raja(p):
     # a plump peacock king with a rainbow tail fan with diamond eyes, a crown and
     # puffs of Holi colour. A chunky body; the head stays round.
     rainbow = ("red", "orange", "yellow", "green", "teal", "blue", "purple")
-    for i, color in enumerate(rainbow):
-        a = math.radians(-66 + i * 22)
-        tip = (math.sin(a) * 3.2, 0.9, 1.6 + math.cos(a) * 3.2)
-        p.beam((0, 0.7, 1.5), tip, 0.7, 0.08, color, "SmoothPlastic", D)
-        p.box((0.5, 0.06, 0.5), (tip[0] * 0.95, 0.82, tip[2] - 0.05), (0, 45 - math.degrees(a), 0), "navy",
-              "SmoothPlastic", D)
-        p.box((0.28, 0.08, 0.28), (tip[0] * 0.95, 0.78, tip[2] - 0.05), (0, 45 - math.degrees(a), 0), "peacockteal",
-              "SmoothPlastic", D)
+    with p.rigged("tail", (0, 0.7, 1.5)):
+        for i, color in enumerate(rainbow):
+            a = math.radians(-66 + i * 22)
+            tip = (math.sin(a) * 3.2, 0.9, 1.6 + math.cos(a) * 3.2)
+            p.beam((0, 0.7, 1.5), tip, 0.7, 0.08, color, "SmoothPlastic", D)
+            p.box((0.5, 0.06, 0.5), (tip[0] * 0.95, 0.82, tip[2] - 0.05), (0, 45 - math.degrees(a), 0), "navy",
+                  "SmoothPlastic", D)
+            p.box((0.28, 0.08, 0.28), (tip[0] * 0.95, 0.78, tip[2] - 0.05), (0, 45 - math.degrees(a), 0), "peacockteal",
+                  "SmoothPlastic", D)
     chunk(p, 1.1, (0, 0, 2.0), (0.9, 1.0, 1.25), "peacock", seed=260)
     p.blob(0.62, (0, -0.35, 3.45), (1, 1, 1.05), "peacock", "SmoothPlastic", D, seed=261, jitter=0.02,
            fallback="Ball")
@@ -435,10 +448,12 @@ def rangeela_raja(p):
     eyes(p, 0, -0.9, 3.6, 0.5, 0.19)
     crown(p, 0, -0.35, 3.98, 0.38, "gold", "green")
     for side in (-1, 1):
-        p.box((0.3, 0.9, 1.2), (side * 1.0, 0.1, 2.0), (0, side * -12, 0), "peacockteal", "SmoothPlastic", D)
-        p.box((0.32, 0.92, 0.14), (side * 1.0, 0.1, 1.42), (0, side * -12, 0), "gold", "SmoothPlastic", D)
-        p.beam((side * 0.35, 0, 0.9), (side * 0.4, -0.15, 0.1), 0.14, 0.14, "cream2", "SmoothPlastic", D)
-        p.box((0.3, 0.6, 0.1), (side * 0.4, -0.3, 0.05), None, "cream2", "SmoothPlastic", D)
+        with p.rigged("wingL" if side < 0 else "wingR", (side * 1.0, 0.1, 2.5)):
+            p.box((0.3, 0.9, 1.2), (side * 1.0, 0.1, 2.0), (0, side * -12, 0), "peacockteal", "SmoothPlastic", D)
+            p.box((0.32, 0.92, 0.14), (side * 1.0, 0.1, 1.42), (0, side * -12, 0), "gold", "SmoothPlastic", D)
+        with p.rigged("legLF" if side < 0 else "legRF", (side * 0.35, 0, 0.9)):
+            p.beam((side * 0.35, 0, 0.9), (side * 0.4, -0.15, 0.1), 0.14, 0.14, "cream2", "SmoothPlastic", D)
+            p.box((0.3, 0.6, 0.1), (side * 0.4, -0.3, 0.05), None, "cream2", "SmoothPlastic", D)
     for i, color in enumerate(("pink", "yellow", "lime", "skyblue")):
         a = i * 1.6 + 0.4
         p.box((0.55, 0.55, 0.45), (math.cos(a) * 1.4, -0.4 + math.sin(a) * 0.9, 0.35), (45, 35.26, i * 25), color,
@@ -516,7 +531,8 @@ def star_tonga(p):
         p.box((0.1, 0.1, 0.3), (side * 0.18, -3.3, 3.95), None, "white", "SmoothPlastic", D)
         wing(p, (side * 0.55, -2.2, 2.8), side, 1.3, 0.9, "white", angle=35)
         for y in (-2.0, -2.7):
-            p.beam((side * 0.3, y, 2.1), (side * 0.3, y + 0.3, 1.35), 0.18, 0.18, "white", "SmoothPlastic", D)
+            with p.rigged(("legL" if side < 0 else "legR") + ("F" if y < -2.3 else "B"), (side * 0.3, y, 2.1)):
+                p.beam((side * 0.3, y, 2.1), (side * 0.3, y + 0.3, 1.35), 0.18, 0.18, "white", "SmoothPlastic", D)
     for k in range(3):
         p.box((0.12, 0.25, 0.35), (0, -3.05 + k * 0.2, 3.7 - k * 0.25), (-30, 0, 0), "lightning", "Neon", D | KEEP)
     eyes(p, 0, -3.95, 3.6, 0.36, 0.13)

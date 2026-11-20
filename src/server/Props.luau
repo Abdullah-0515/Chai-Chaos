@@ -131,6 +131,17 @@ function Props.anchor(name: string, anchorName: string, cf: CFrame, scale: numbe
 	return cf * v3(point, scale)
 end
 
+-- The prop's moving parts (a brainrot's arms, legs, wings and tail): each one's
+-- pivot at a scale, and how far the whole model was turned in Blender (degrees).
+function Props.rig(name: string, scale: number?): ({ [string]: Vector3 }, number)
+	local spec = PropData.props[name]
+	local pivots = {}
+	for rigName, point in (spec and spec.rig) or {} do
+		pivots[rigName] = v3(point, scale)
+	end
+	return pivots, (spec and spec.rigTurn) or 0
+end
+
 local function newPart(entry, cf: CFrame, scale: number, visible: boolean): Part
 	local flags = entry[14]
 	local p = Instance.new("Part")
@@ -166,6 +177,9 @@ local function newPart(entry, cf: CFrame, scale: number, visible: boolean): Part
 		p.Transparency = 1
 		p.CastShadow = false
 		p.Name = "Collider"
+	end
+	if entry[15] then
+		p:SetAttribute("Rig", entry[15]) -- a moving part: the client animates it
 	end
 	return p
 end
